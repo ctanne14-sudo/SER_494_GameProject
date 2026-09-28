@@ -1,0 +1,31 @@
+flowchart TD
+    A[Main Menu] -->|Start Game| B[Create New Run]
+    B --> C[Stage 1-1 Normal Combat]
+    C --> D{Combat Result}
+    D -->|Victory| E[Apply Rewards]
+    D -->|Defeat| F{Player Choice}
+    F -->|Retry| C
+    F -->|Abandon Run| A
+    E --> G[Route Selection]
+    G --> H{Selected Node Type}
+    H -->|Combat| I[Normal Combat]
+    H -->|Event| J[Resolve Event]
+    H -->|Reward| K[Grant Reward]
+    H -->|Shop| L[Open Shop]
+    I --> M{Combat Result}
+    M -->|Victory| N[Apply Rewards and Progression]
+    M -->|Defeat| O{Player Choice}
+    O -->|Retry| I
+    O -->|Abandon Run| A
+    J --> P[Advance Stage]
+    K --> P
+    L --> P
+    N --> P
+    P --> Q{Stage 1-5 Reached?}
+    Q -->|No| G
+    Q -->|Yes| R[Boss Combat]
+    R --> S{Boss Result}
+    S -->|Victory| T[Run Complete]
+    S -->|Defeat and Retry| R
+    S -->|Abandon Run| A
+    T -->|Return to Main Menu| A

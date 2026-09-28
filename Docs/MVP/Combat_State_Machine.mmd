@@ -1,0 +1,28 @@
+stateDiagram-v2
+    [*] --> Setup
+    Setup --> RollInitiative
+    RollInitiative --> RollInitiative: Tie
+    RollInitiative --> BeginPlayerTurn: Player wins
+    RollInitiative --> BeginEnemyTurn: Enemy wins
+
+    BeginPlayerTurn --> PlayerMovement
+    PlayerMovement --> PlayerAction: Move, skip, or no legal move
+    PlayerAction --> ResolvePlayerAction: Attack or potion
+    ResolvePlayerAction --> CheckOutcome
+
+    BeginEnemyTurn --> EvaluateEnemyAI
+    EvaluateEnemyAI --> EnemyMovement: Player out of range
+    EvaluateEnemyAI --> ResolveEnemyAttack: Player in range
+    EnemyMovement --> ResolveEnemyAttack: Player in range after movement
+    EnemyMovement --> CheckOutcome: Player still out of range
+    ResolveEnemyAttack --> CheckOutcome
+
+    CheckOutcome --> Victory: Enemy HP is zero
+    CheckOutcome --> Defeat: Player HP is zero
+    CheckOutcome --> BeginEnemyTurn: Player action completed
+    CheckOutcome --> BeginPlayerTurn: Enemy action completed
+
+    Defeat --> Setup: Retry from snapshot
+    Defeat --> [*]: Abandon run
+    Victory --> ApplyRewards
+    ApplyRewards --> [*]

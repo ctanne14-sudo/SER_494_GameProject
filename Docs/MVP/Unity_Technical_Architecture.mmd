@@ -1,0 +1,51 @@
+flowchart LR
+    subgraph Scenes[Unity Scenes and Presentation]
+        Bootstrap[Bootstrap]
+        MainMenu[Main Menu]
+        RouteMap[Route Map and UI Nodes]
+        CombatScene[Combat Scene]
+        Complete[Run Complete]
+    end
+
+    subgraph Application[Application Services]
+        Session[Game Session]
+        SceneFlow[Scene Flow Service]
+        StageGenerator[Stage Generator]
+        CombatController[Combat Controller]
+        RewardService[Reward Service]
+    end
+
+    subgraph Domain[Domain Rules]
+        RunState[Run and Player State]
+        HexGrid[Hex Grid and Pathfinding]
+        Dice[Dice and Attack Resolution]
+        Progression[Items, Events, and Progression]
+    end
+
+    subgraph Data[Static Definitions]
+        EnemyData[Enemy Definitions]
+        ItemData[Item Definitions]
+        EventData[Event Definitions]
+        Config[Combat Configuration]
+    end
+
+    Bootstrap --> Session
+    Bootstrap --> SceneFlow
+    MainMenu --> SceneFlow
+    RouteMap --> StageGenerator
+    RouteMap --> RewardService
+    CombatScene --> CombatController
+    Complete --> SceneFlow
+
+    SceneFlow --> Session
+    StageGenerator --> RunState
+    CombatController --> RunState
+    CombatController --> HexGrid
+    CombatController --> Dice
+    RewardService --> Progression
+    RewardService --> RunState
+
+    CombatController --> EnemyData
+    RewardService --> ItemData
+    RewardService --> EventData
+    CombatController --> Config

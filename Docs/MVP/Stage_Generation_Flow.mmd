@@ -1,0 +1,17 @@
+flowchart TD
+    A[Request Choices for Current Stage] --> B{Stage Number}
+    B -->|1| C[Return Combat Only]
+    B -->|2 to 4| D[Create Pool: Combat, Event, Reward, Shop]
+    B -->|5| E[Return Boss Combat Only]
+    D --> F{Previous Node Was Non-Combat?}
+    F -->|Yes| G[Remove Previous Node Type]
+    F -->|No| H[Keep Full Pool]
+    G --> I[Randomly Select Two Different Types]
+    H --> I
+    I --> J[Display Two Route Options]
+    C --> K[Display One Route Option]
+    E --> K
+    J --> L[Player Selects a Node]
+    K --> L
+    L --> M[Store Selected Type and Resolve Node]
+    M --> N[Advance Stage After Resolution]
