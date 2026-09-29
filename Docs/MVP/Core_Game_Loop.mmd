@@ -1,31 +1,26 @@
 flowchart TD
-    A[Main Menu] -->|Start Game| B[Create New Run]
-    B --> C[Stage 1-1 Normal Combat]
-    C --> D{Combat Result}
-    D -->|Victory| E[Apply Rewards]
-    D -->|Defeat| F{Player Choice}
-    F -->|Retry| C
-    F -->|Abandon Run| A
-    E --> G[Route Selection]
-    G --> H{Selected Node Type}
-    H -->|Combat| I[Normal Combat]
-    H -->|Event| J[Resolve Event]
-    H -->|Reward| K[Grant Reward]
-    H -->|Shop| L[Open Shop]
-    I --> M{Combat Result}
-    M -->|Victory| N[Apply Rewards and Progression]
-    M -->|Defeat| O{Player Choice}
-    O -->|Retry| I
-    O -->|Abandon Run| A
-    J --> P[Advance Stage]
-    K --> P
-    L --> P
-    N --> P
-    P --> Q{Stage 1-5 Reached?}
-    Q -->|No| G
-    Q -->|Yes| R[Boss Combat]
-    R --> S{Boss Result}
-    S -->|Victory| T[Run Complete]
-    S -->|Defeat and Retry| R
-    S -->|Abandon Run| A
-    T -->|Return to Main Menu| A
+    A[Main Menu] -->|Start Run| B[Initialize Party and Run State]
+    B --> C[Enter 3D Room]
+    C --> D[Explore as Selected Leader]
+    D --> E{Room Interaction}
+    E -->|Enemy Encounter| F[Blend to Fixed Battle Camera]
+    E -->|Merchant| G[Trade]
+    E -->|Chest or Resource| H[Collect Reward]
+    E -->|Event| I[Choose Responders and Resolve]
+    E -->|Door| J{Exit Available?}
+    F --> K[Turn-Based Party Combat]
+    K --> L{Combat Result}
+    L -->|Victory| M[Rewards and Inherent Skill Learning]
+    L -->|Defeat| N{Retry or Abandon}
+    N -->|Retry| F
+    N -->|Abandon| A
+    M --> O[Return to Room Exploration]
+    G --> D
+    H --> D
+    I --> D
+    O --> D
+    J -->|No| D
+    J -->|Yes| P{Boss Cleared?}
+    P -->|No| C
+    P -->|Yes| Q[Run Complete]
+    Q --> A

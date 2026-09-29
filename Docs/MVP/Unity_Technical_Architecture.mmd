@@ -1,51 +1,61 @@
 flowchart LR
-    subgraph Scenes[Unity Scenes and Presentation]
+    subgraph Presentation[Scenes and Presentation]
         Bootstrap[Bootstrap]
         MainMenu[Main Menu]
-        RouteMap[Route Map and UI Nodes]
-        CombatScene[Combat Scene]
+        DungeonRoom[Reusable Dungeon Room]
+        Exploration[Leader Exploration and Interaction]
+        BattleView[Fixed Battle Camera and Combat UI]
         Complete[Run Complete]
     end
 
     subgraph Application[Application Services]
         Session[Game Session]
-        SceneFlow[Scene Flow Service]
-        StageGenerator[Stage Generator]
-        CombatController[Combat Controller]
-        RewardService[Reward Service]
+        SceneFlow[Scene Flow]
+        RoomFlow[Room Flow and Assembly]
+        Encounter[Encounter Controller]
+        Combat[Combat Controller]
+        Environment[Optional Environment Interaction Service]
+        InherentSkills[Inherent Skill Acquisition Service]
+        Rewards[Reward Service]
     end
 
-    subgraph Domain[Domain Rules]
-        RunState[Run and Player State]
-        HexGrid[Hex Grid and Pathfinding]
-        Dice[Dice and Attack Resolution]
-        Progression[Items, Events, and Progression]
+    subgraph Domain[Domain State and Rules]
+        RunState[Run Room and Party State]
+        TurnRules[Turn Order Skill and Damage Rules]
+        EnvironmentRules[Approved Environment Interaction Rules]
+        Learning[Combat Learning Records]
     end
 
-    subgraph Data[Static Definitions]
-        EnemyData[Enemy Definitions]
-        ItemData[Item Definitions]
-        EventData[Event Definitions]
-        Config[Combat Configuration]
+    subgraph Data[ScriptableObject Definitions]
+        RoomData[Rooms Modules Doors and Encounters]
+        CharacterData[Characters Equipment and Skills]
+        EnvironmentData[Optional Environment Interaction Definitions]
+        ContentData[Enemies Events Inherent Skills and Rewards]
     end
 
     Bootstrap --> Session
     Bootstrap --> SceneFlow
     MainMenu --> SceneFlow
-    RouteMap --> StageGenerator
-    RouteMap --> RewardService
-    CombatScene --> CombatController
+    SceneFlow --> DungeonRoom
+    DungeonRoom --> RoomFlow
+    Exploration --> RoomFlow
+    DungeonRoom --> Encounter
+    Encounter --> BattleView
+    BattleView --> Combat
     Complete --> SceneFlow
-
-    SceneFlow --> Session
-    StageGenerator --> RunState
-    CombatController --> RunState
-    CombatController --> HexGrid
-    CombatController --> Dice
-    RewardService --> Progression
-    RewardService --> RunState
-
-    CombatController --> EnemyData
-    RewardService --> ItemData
-    RewardService --> EventData
-    CombatController --> Config
+    RoomFlow --> Session
+    Encounter --> Session
+    Combat --> Session
+    Combat --> TurnRules
+    Combat --> Environment
+    Environment --> EnvironmentRules
+    Combat --> Learning
+    InherentSkills --> Learning
+    InherentSkills --> RunState
+    Rewards --> RunState
+    Session --> RunState
+    RoomFlow --> RoomData
+    Combat --> CharacterData
+    Environment --> EnvironmentData
+    InherentSkills --> ContentData
+    Rewards --> ContentData

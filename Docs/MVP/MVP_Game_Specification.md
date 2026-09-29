@@ -1,291 +1,317 @@
 # SER594 Dungeon Exploration Game
 
-## MVP Game Design and Requirements Specification
+## MVP Vertical Slice Game Design and Requirements Specification
 
-**Version:** 1.0  
-**Status:** Approved MVP baseline  
-**Unity version:** 6000.3.24f1  
-**Target platform:** Windows desktop  
-**Game mode:** Single-player  
-**Presentation:** 3D, fixed angled camera, placeholder or low-poly visuals
+**Version:** 2.0
+
+**Status:** Working baseline for team review
+
+**Unity version:** 6000.3.24f1
+
+**Target platform:** Windows desktop
+
+**Game mode:** Single-player
+
+**Presentation:** 3D third-person room exploration with a fixed battle camera
 
 ## 1. Product Summary
 
-The MVP is a short dungeon run that combines a branching route-selection interface with D&D-inspired, turn-based combat on a 3D hexagonal board. A complete run contains five stages. The player manages health, gold, experience, potions, and one weapon upgrade while choosing between combat, event, reward, and shop nodes.
+The vertical slice is a short dungeon expedition through connected 3D rooms. The player explores as a party leader, enters doors to reach new rooms, interacts with mixed room content, and controls a party in classic turn-based battles. Combat uses no tactical grid and provides no movement command.
 
-The MVP uses selected tabletop concepts rather than the complete D&D ruleset. It includes initiative, armor class, attack rolls, damage dice, movement, and simple ability checks.
+Rooms are compositions rather than exclusive types. One room may contain enemies, a merchant corner, an event, a chest, resources, and possible environment content at the same time. Combat remains in the room where the encounter began so approved room-specific interactions can be added later without requiring a separate battle scene.
 
-## 2. Player Experience Goal
+## 2. Experience Goals
 
-The player should be able to complete one full run in a short session, make meaningful route and resource decisions, and understand every combat result through visible dice rolls and a combat log.
+- Make entering a new room feel uncertain and worth observing.
+- Let party composition, weapon loadouts, active skills, and acquired Inherent Skills create different character roles.
+- Keep combat and progression systems flexible enough to support future mechanics that the team has not finalized.
+- Deliver one short, complete run that demonstrates exploration, combat, rewards, progression, and a boss conclusion.
 
-## 3. Core Game Loop
+## 3. Vertical Slice Scope
 
-1. Start a new run from the main menu.
-2. Enter the route-selection screen.
-3. Choose one available node for the current stage.
-4. Resolve combat or a UI-based node.
-5. Apply rewards, damage, purchases, and progression to the current run.
-6. Continue until the Stage 1-5 boss battle.
-7. Win the run or return to the main menu after defeat.
+The first playable slice contains:
 
-## 4. Run Structure
+- Three connected 3D rooms, including a final boss room.
+- Two playable party members; runtime data structures support up to four.
+- Two normal enemy definitions and one boss definition.
+- Two to three doors per non-final room.
+- At least one merchant interaction, one chest, and one event across the run.
+- Two active skills and one initial passive or identity feature per playable character.
+- Two weapon slots, one armor slot, and one accessory slot per character.
+- Slashing, Blunt, Piercing, Fire, Ice, and Lightning damage types.
+- Oil + Fire and Water + Lightning as provisional environment-interaction examples, subject to team revision.
+- At least one event-granted Inherent Skill and one combat-learning Inherent Skill.
+- Exploration-to-combat and combat-to-exploration camera transitions.
 
-### Stage 1-1
+## 4. Core Game Loop
 
-- Always a normal combat node.
-- Only one route option is displayed.
+1. Start a new run and initialize the party.
+2. Enter a 3D room through a door.
+3. Explore, inspect, and interact with available room content.
+4. Trigger and resolve any encounter in the current room.
+5. Collect treasure, trade, resolve events, and apply progression.
+6. Choose an available exit door.
+7. Continue until the boss room is cleared or the party is defeated.
+8. Display the run result and return to the main menu.
 
-### Stages 1-2 through 1-4
+## 5. Room Model
 
-- Display two different node types selected from Combat, Event, Reward, and Shop.
-- If the completed node was Event, Reward, or Shop, the next stage cannot offer that same type.
-- Combat is the exception and may appear in consecutive stages.
-- The route is generated one stage at a time. The MVP does not require a complete Slay-the-Spire-style map.
+Each visited node is represented as a playable 3D room. A room is assembled from a base layout plus optional modules rather than assigned one exclusive gameplay type.
 
-### Stage 1-5
+### Required Room Elements
 
-- Always a boss combat node.
-- Only one route option is displayed.
+- Entry point.
+- Two or more door sockets when the room is not final.
+- Exploration bounds and camera bounds.
+- Encounter trigger area.
+- Party and enemy battle anchors.
+- Optional sockets for future room-specific interactions.
 
-## 5. Player Statistics
+### Optional Room Modules
 
-| Statistic | Initial value |
-| --- | ---: |
-| Maximum HP | 100 |
-| Current HP | 100 |
-| Armor Class | 10 |
-| Gold | 10 |
-| Movement | 3 hexes per turn |
-| Attack range | 1 hex |
-| Attack bonus | +2 |
-| Base damage | 1D10 |
-| Strength check bonus | +2 |
-| Constitution check bonus | +2 |
+- Enemy group.
+- Merchant corner.
+- Event interaction.
+- Chest or resource pickup.
+- Environmental feature.
+- Rest or recovery point.
+- Lore or non-reward interaction.
 
-## 6. Experience and Leveling
+A `RoomDefinition` determines which compatible modules are enabled, their placement sockets, door connections, encounter data, and environmental configuration. A boss room may use a dedicated scene if its presentation cannot fit the reusable room scene.
 
-- A normal combat victory awards 5 EXP.
-- The player gains one level for every 10 EXP earned.
-- Leveling increases maximum HP by 5.
-- Leveling does not restore current HP.
-- After leveling, 10 EXP is removed and remaining EXP is retained.
-- Boss EXP does not affect the current MVP run because the run ends after the boss victory.
+## 6. Door and Run Progression
 
-## 7. Combat Board
+- Doors are physical navigation choices, not UI-only route nodes.
+- A door displays a readable interaction prompt when the leader is in range.
+- Locked or unavailable doors clearly show why they cannot be used.
+- Entering a valid door records the current room as cleared or visited and loads the connected room.
+- The vertical slice may use authored room connections. Full procedural dungeon generation is not required.
+- Returning through previous doors is optional and may be disabled for the first slice.
 
-- The board is rendered in 3D.
-- It uses pointy-topped hexagons.
-- The board has radius 3 and contains 37 hexes.
-- The MVP has no terrain height, obstacles, hazards, or environmental effects.
-- Each unit occupies one hex.
-- The player and enemy begin on opposite sides of the board.
-- Normal combat contains one enemy.
-- Boss combat contains one boss.
+## 7. Party and Exploration Presentation
 
-## 8. Turn Structure
+### MVP Presentation
 
-1. The player and enemy each roll 1D20 for initiative.
-2. The higher result acts first.
-3. Tied initiative rolls are rerolled.
-4. Each turn provides one movement phase and one action.
-5. A unit may move first, then attack or use a potion.
-6. A unit may skip movement and use its action immediately.
-7. Using an action ends the unit's turn.
-8. The MVP does not support movement after an action.
+- Only the selected party leader appears and moves during room exploration.
+- The party roster remains visible in the HUD.
+- Entering combat places all active party members at battle anchors.
+- Changing the leader outside combat changes the exploration model and interaction character.
 
-## 9. Attack Resolution
+This avoids follower pathfinding, door congestion, animation synchronization, and teleport correction during the first slice.
 
-An attack hits when:
+### Retained Presentation Option
 
-`1D20 + attack bonus >= target Armor Class`
+Showing the other party members following the leader, similar to a visible RPG party, remains a future presentation option. It is not required by v2.0.
 
-On a hit, roll the attacker's damage dice and subtract the result from the target's current HP. On a miss, no damage is dealt.
+## 8. Character Identity Model
 
-The MVP does not include critical hits, automatic failure on a natural 1, opportunity attacks, reactions, advantage, disadvantage, saving throws, or damage resistance.
+Character identity combines a fixed core with a flexible loadout.
 
-## 10. Enemy Statistics
+### Fixed or Character-Bound Elements
 
-### Normal Enemy
+- Base statistics and growth tendencies.
+- Weapon proficiency values and growth caps.
+- One identity passive or unique feature.
+- Acquired Inherent Skills, which cannot be transferred to another character.
 
-| Statistic | Value |
-| --- | ---: |
-| HP | 50 |
-| Armor Class | 7 |
-| Attack bonus | +1 |
-| Damage | 1D4 |
-| Attack range | 1 hex |
-| Movement | 3 hexes per turn |
+### Player-Configurable Elements
 
-### Boss
+- Active skills owned by the party.
+- Two equipped weapons.
+- Armor and accessory.
+- Consumable assignment.
 
-| Statistic | Value |
-| --- | ---: |
-| HP | 80 |
-| Armor Class | 7 |
-| Attack bonus | +2 |
-| Damage | 2D4 |
-| Attack range | 1 hex |
-| Movement | 3 hexes per turn |
+Most basic weapons should remain equippable even at low proficiency. Proficiency modifies effectiveness and may unlock advanced weapons or additional skill effects. This preserves experimentation while keeping characters meaningfully different.
 
-## 11. Enemy AI
+## 9. Weapons and Active Skills
 
-1. Attack if the player is already within attack range.
-2. Otherwise, follow the shortest legal path toward the player.
-3. Move up to three hexes.
-4. Attack if the player is within range after movement.
-5. If the ideal destination is blocked, choose the reachable hex with the shortest distance to the player.
+- Each character has an Active Weapon slot and a Secondary Weapon slot.
+- Every weapon has one or more tags, such as Sword, Mace, Bow, Staff, Melee, Ranged, Heavy, or Magic Focus.
+- An active skill declares the weapon tags it requires.
+- A skill is unavailable when neither equipped weapon satisfies its requirement.
+- The character may switch the active weapon once at the beginning of their turn without spending the action.
+- Only the active weapon needs to be visibly held in the MVP. Full body-mounted display of every carried weapon is retained for later presentation work.
 
-## 12. Potions
+## 10. Inherent Skills
 
-- A potion restores 20 HP without exceeding maximum HP.
-- A potion may be used from the route-selection screen or another non-combat node.
-- Using a potion during combat consumes the player's action.
-- A shop may sell up to three potions per visit.
-- Potions gained from rewards and events do not count against the shop limit.
-- The MVP does not impose an inventory capacity.
+An **Inherent Skill** is a character-bound passive skill. It cannot be equipped by or transferred to another character and becomes part of that character's run history.
 
-## 13. Weapon Upgrades
+### Event Acquisition
 
-The player may have one weapon upgrade at a time. A new weapon replaces the existing weapon effect.
+1. An event may ask the player to select one or more responding characters.
+2. The event resolves using those characters and the selected choice.
+3. Its result may award equipment, consumable items, resources, an Inherent Skill, another benefit, or a negative consequence.
+4. When the result is an Inherent Skill, it binds to the responding character who receives it.
 
-### Accuracy Weapon
+### Combat Learning
 
-- Adds +2 to the player's attack bonus.
-- The total attack bonus becomes +4.
+1. Combat records meaningful actions by character, including damage type, weapon tag, finishing blows, reactions caused, and support actions.
+2. The result phase checks Inherent Skill learning conditions.
+3. Eligible characters may receive an Inherent Skill from the matching pool.
+4. The reward screen explains the behavior that led to the skill.
 
-### Damage Weapon
+### MVP Limits
 
-- Changes the player's attack damage from 1D10 to 2D10.
+- Each character has one Inherent Skill slot in the vertical slice.
+- The slice demonstrates at least one event acquisition and one combat-learning acquisition.
+- Acquisition chances and thresholds are data-driven.
+- The test configuration may guarantee the first eligible acquisition so the feature can be demonstrated reliably.
 
-Weapon effects do not stack.
+### Example
 
-## 14. Shop Node
+**Execution Insight: Slashing Lv1**
 
-The shop is a UI-only node.
+Possible condition: the character repeatedly delivers finishing blows with Slashing attacks.
 
-| Item | Cost | Purchase limit | Effect |
-| --- | ---: | ---: | --- |
-| Potion | 5 gold | 3 per shop visit | Restore 20 HP when used |
-| Accuracy Weapon | 10 gold | 1 weapon purchase per visit | Attack bonus +2 |
-| Damage Weapon | 10 gold | 1 weapon purchase per visit | Damage becomes 2D10 |
+Effect: deal 10% more Slashing damage to targets at or below 25% HP.
 
-The player chooses which weapon to purchase. Purchase controls are disabled when the player lacks enough gold.
+## 11. Combat Presentation
 
-## 15. Reward Node
+- An encounter begins in the current room.
+- Exploration input is suspended.
+- The camera blends from free third-person view to an authored fixed battle view.
+- Party members and enemies use predefined battle anchors.
+- The room geometry, visible features, and current environment states remain present.
+- After victory, the camera returns to exploration view and cleared enemies remain inactive.
 
-- 50% chance to receive one potion.
-- 50% chance to receive one randomly selected weapon upgrade.
-- A newly awarded weapon replaces the current weapon effect.
+## 12. Turn Structure
 
-## 16. Event Nodes
+1. Build a deterministic turn order from each combatant's Speed and a stable tie-break rule.
+2. Start the next living combatant's turn.
+3. Apply start-of-turn statuses and any approved encounter effects.
+4. Allow an optional active-weapon switch.
+5. Select one valid action: active skill, item, defend, or available environment action.
+6. Select valid targets or currently supported interactables.
+7. Preview costs, targets, damage type, and any currently defined interaction.
+8. Resolve the action and any currently supported environment interaction.
+9. Apply end-of-turn effects.
+10. Check victory or defeat, then continue the queue.
 
-Ability checks succeed when:
+There is no movement phase, movement command, hex grid, position pathfinding, attack roll, or Armor Class check in v2.0 combat.
 
-`1D20 + ability bonus >= DC 12`
+## 13. Damage and Resistance Model
 
-### Event 1
+### Damage Types
 
-| Choice | Result |
+| Family | Types |
 | --- | --- |
-| Constitution check | Success: gain one potion. Failure: lose 10 HP. |
-| Pay 5 gold | Gain one potion. |
-| Leave | No effect. |
+| Physical | Slashing, Blunt, Piercing |
+| Elemental | Fire, Ice, Lightning |
 
-### Event 2
+### Delivery and Weapon Tags
 
-| Choice | Result |
-| --- | --- |
-| Strength check | Success: gain a random weapon. Failure: lose 10 HP. |
-| Sacrifice 15 HP | Increase maximum HP by 5. Current HP is not restored. |
-| Take gold | Gain 5 gold with no additional cost. |
+Damage type and delivery method are separate. A Piercing attack may be Melee or Ranged. A Fire skill may require a Staff or may be delivered through a Fire-tagged weapon.
 
-If event damage reduces current HP to zero, the run ends and returns to the main menu.
+Prototype damage uses a stable formula:
 
-## 17. Combat Rewards
+`Final Damage = round(Base Power × Skill Multiplier × Type Multiplier × Situational Modifiers)`
 
-A normal combat victory awards:
+Resistance data determines the Type Multiplier. Equipment, proficiency, Inherent Skills, statuses, and other future mechanics may contribute situational modifiers. Exact balance values remain editable data and should not be hardcoded in presentation scripts.
 
-- 5 EXP
-- 5 gold
-- 25% chance to receive one potion
+## 14. Provisional Environment Interaction Examples
 
-A result panel displays the rewards before the player returns to route selection. A boss victory opens the run-complete screen.
+Environment interaction remains an open design area. The current discussion provides only two provisional examples:
 
-## 18. Defeat and Retry
+- Oil + Fire.
+- Water + Lightning.
 
-When combat reduces the player's HP to zero, display two options:
+Oil or Water may be present in a room or may be applied through a skill. The exact effects, targeting rules, duration, presentation, and final inclusion in the MVP have not been decided. The design and technical structure should remain open to changing, replacing, expanding, or removing these examples after further team discussion.
 
-- **Retry Battle:** restore the exact run state captured immediately before entering that combat node.
-- **Return to Main Menu:** abandon the current run and clear all run progress.
+## 15. Room Activities
 
-The retry snapshot includes HP, maximum HP, EXP, gold, potion count, and weapon effect.
+### Merchant
 
-## 19. Required Screens
+- Appears as an interactable corner or character inside a room.
+- Opens a trade panel without changing to a dedicated shop node.
+- The MVP supports a small authored stock list.
 
-1. Main Menu
-2. Route Selection
-3. Combat HUD
-4. Shop
-5. Reward
-6. Event
-7. Normal Combat Result
-8. Defeat
-9. Run Complete
+### Chest and Resources
 
-The combat HUD displays player HP, enemy HP, Armor Class, EXP, gold, potion count, current weapon, active turn, remaining movement, and a readable combat log.
+- A chest or pickup is opened in the room.
+- Rewards are applied to the run state and shown in a result panel.
+- A room may contain treasure even when it also contains combat or an event.
 
-## 20. Controls and Feedback
+### Events
 
-- Use mouse input for selecting route nodes, UI choices, hexes, enemies, and actions.
-- Highlight legal movement destinations.
-- Highlight enemies that are currently within attack range.
-- Reject illegal selections without consuming movement or an action.
-- Display initiative, attack rolls, hit or miss results, damage rolls, healing, and rewards in readable UI feedback.
+- Events occur through room interactions and dialogue choices.
+- Some choices require selecting responding characters.
+- Outcomes may award equipment, consumable items, resources, an Inherent Skill, another benefit, or a negative consequence. Inherent Skills are one possible event result, not the default or exclusive reward.
 
-## 21. Runtime State
+## 16. Victory, Defeat, and Retry
 
-The current run must retain:
+- A normal victory returns control to room exploration after the result panel.
+- Boss victory opens the run-complete result.
+- Party defeat offers Retry Encounter or Return to Main Menu.
+- Retry restores the snapshot captured immediately before combat, including party state, loadouts, consumables, Inherent Skills, encounter state, and room interaction state.
 
-- Stage number
-- Previously completed node type
-- Current and maximum HP
-- Armor Class
-- EXP and level
-- Gold
-- Potion count
-- Active weapon effect
-- Shop purchase counts for the current visit
-- Pre-combat retry snapshot
+## 17. Runtime State
 
-Leaving the application or returning to the main menu clears the run. Persistent save and load are outside the MVP.
+The active run retains:
 
-## 22. MVP Acceptance Criteria
+- Current room and door connection history.
+- Room module and interaction states.
+- Party roster and selected leader.
+- HP, statistics, proficiencies, equipment, active skills, and Inherent Skills for every character.
+- Inventory and run resources.
+- Cleared encounters, opened chests, completed events, and merchant state.
+- Any environment-interaction state required by the final approved design.
+- Pre-combat snapshot.
 
-The MVP is complete when a player can:
+Persistent save and load across application restarts are outside the vertical slice.
 
-1. Start a new run from the main menu.
-2. Progress from Stage 1-1 through Stage 1-5.
-3. Receive valid route choices that follow the generation rules.
-4. Move on a 37-hex board using legal hex movement.
-5. Complete player and enemy turns without invalid overlapping actions.
-6. Resolve initiative, attack rolls, Armor Class, damage, healing, victory, and defeat correctly.
-7. Complete Shop, Reward, and both Event nodes.
-8. Retain run statistics between scenes and nodes.
-9. Retry a failed battle from the correct pre-combat state.
-10. Defeat the boss and reach the run-complete screen.
-11. Return to the main menu and begin a clean new run.
+## 18. Required Screens and UI States
 
-## 23. Out of Scope
+1. Main Menu.
+2. Exploration HUD and interaction prompts.
+3. Party and loadout screen.
+4. Combat HUD and action selection.
+5. Merchant panel.
+6. Chest or reward panel.
+7. Event dialogue and responder selection.
+8. Combat result and Inherent Skill learning result.
+9. Defeat and retry panel.
+10. Run-complete screen.
 
-- Multiplayer
-- Persistent save files
-- Character creation or classes
-- Full D&D rules
-- Spells, equipment inventory, or multiple weapons
-- Multiple enemies in one battle
-- Terrain height, obstacles, hazards, or line of sight
-- Procedural 3D dungeon exploration
-- Advanced animation, cinematic sequences, voice acting, or final art
-- Mobile, console, or web builds
-- Monetization or online services
+## 19. MVP Acceptance Criteria
+
+The v2.0 vertical slice is complete when a player can:
+
+1. Start a run with two party members.
+2. Explore three connected 3D rooms and choose physical doors.
+3. Encounter mixed content without every room being assigned one exclusive type.
+4. Enter battle through a camera transition and return to exploration after victory.
+5. Control both party members in deterministic turn-based combat with no movement command.
+6. Equip two weapons and use only active skills supported by equipped weapon tags.
+7. Resolve all six damage types and data-driven resistances.
+8. Resolve events that can produce different result categories, including equipment or consumable items.
+9. Acquire a non-transferable Inherent Skill through an event or combat-learning condition.
+10. Use a merchant, open a chest, and complete an event.
+11. Retry a failed encounter from the correct pre-combat state.
+12. Defeat the boss and reach the run-complete screen.
+
+## 20. Retained but Inactive Design Systems
+
+The following ideas are retained for later evaluation but do not exist as active v2.0 systems:
+
+- D&D-derived combat rules, including D20 attack rolls, Armor Class, damage dice, saving throws, and tabletop initiative rolls.
+- Follow-up skills that trigger outside the owner's normal turn.
+- Follow-up chains, trigger priority, per-round limits, and reaction queues.
+- A visible follower party during room exploration.
+- Four simultaneously playable party members in shipped vertical-slice content.
+- Full weapon display on the character's back and waist.
+- Additional or alternative environment interactions. The final environment system remains open to future team decisions.
+
+Code may leave clean extension points for these ideas, but the backlog must not include their implementation as required work.
+
+## 21. Out of Scope
+
+- Multiplayer or online services.
+- Persistent save files.
+- Procedural generation of complete room geometry.
+- Combat grids, movement commands, pathfinding, or free positioning during battle.
+- Full D&D rules.
+- Follow-up attacks.
+- More than three playable rooms in the first slice.
+- Advanced follower AI.
+- Final art, voice acting, cinematic production, or large content libraries.
+- Mobile, console, or web builds.
