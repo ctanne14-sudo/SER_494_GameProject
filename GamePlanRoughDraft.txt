@@ -4,3 +4,4 @@ Gameplay: Player can pick from three classes each with their own specialties. Us
 
 Mechanics(Decide): Movement will be either clicking on where to go or by typical WASD movement. A hot bar will allow players to choose different actions or attacks while facing an enemy.
 
+Design: Can pick from 2d on 3d look or free asset designs for main character. Dungeon could be a cylinder like design almost tower like with stairs moving onto next floor after completing objective. 
