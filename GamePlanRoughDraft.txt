@@ -1,0 +1,6 @@
+Story: The player wakes up in an unknow dungeon with no memories of their life before. They will encounter challenges as they attempt to escape the dungeon by climbing up. By completing each challenge they will unlock a memory once forgotten. Even death does not mean the end, it seems an unknown presence wishes for their success as well.
+
+Gameplay: Player can pick from three classes each with their own specialties. Using common D&D mechanics the player will face enemies in turn based combat. They will face one challenge/floor at a time with each floor scaling in difficulty. 
+
+Mechanics(Decide): Movement will be either clicking on where to go or by typical WASD movement. A hot bar will allow players to choose different actions or attacks while facing an enemy.
+
