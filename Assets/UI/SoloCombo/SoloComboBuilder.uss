@@ -1,0 +1,179 @@
+:root {
+    --screen-background: #10151d;
+    --panel-background: #1a2230;
+    --panel-border: #34445d;
+    --field-background: #111924;
+    --text-primary: #f2f5f9;
+    --text-secondary: #aebbd0;
+    --accent: #d89a46;
+    --accent-hover: #e9ae5e;
+    --valid: #76d39b;
+    --invalid: #f08a84;
+}
+
+.combo-builder-screen {
+    flex-grow: 1;
+    padding: 24px;
+    background-color: var(--screen-background);
+    color: var(--text-primary);
+}
+
+.combo-builder-panel {
+    flex-grow: 1;
+    max-width: 1080px;
+    align-self: center;
+    padding: 24px;
+    background-color: var(--panel-background);
+    border-width: 1px;
+    border-color: var(--panel-border);
+    border-radius: 8px;
+}
+
+.header-block {
+    margin-bottom: 16px;
+}
+
+.screen-title {
+    font-size: 28px;
+    -unity-font-style: bold;
+    color: var(--text-primary);
+}
+
+.screen-subtitle {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    white-space: normal;
+}
+
+.combo-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.combo-tab {
+    flex-grow: 1;
+    min-width: 140px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    min-height: 38px;
+    color: var(--text-primary);
+    background-color: #263247;
+    border-width: 1px;
+    border-color: #40516c;
+    border-radius: 4px;
+}
+
+.combo-tab:hover {
+    background-color: #31405a;
+}
+
+.combo-tab-selected {
+    color: #17120b;
+    background-color: var(--accent);
+    border-color: var(--accent-hover);
+    -unity-font-style: bold;
+}
+
+.content-scroll {
+    flex-grow: 1;
+}
+
+.section-card {
+    margin-bottom: 12px;
+    padding: 14px;
+    background-color: #151d29;
+    border-width: 1px;
+    border-color: #2d3a4e;
+    border-radius: 5px;
+}
+
+.section-title {
+    margin-bottom: 8px;
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: var(--text-primary);
+}
+
+.field-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combo-field {
+    flex-grow: 1;
+    min-width: 280px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.combo-field > .unity-base-field__label {
+    min-width: 120px;
+    color: var(--text-secondary);
+}
+
+.combo-field > .unity-base-field__input {
+    color: var(--text-primary);
+    background-color: var(--field-background);
+    border-width: 1px;
+    border-color: #3b4b64;
+    border-radius: 3px;
+}
+
+.cost-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.cost-label {
+    flex-grow: 1;
+    min-width: 160px;
+    margin-right: 8px;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.status-label {
+    margin-top: 4px;
+    padding: 10px;
+    white-space: normal;
+    background-color: #111924;
+    border-width: 1px;
+    border-color: #34445d;
+    border-radius: 4px;
+}
+
+.status-valid {
+    color: var(--valid);
+    border-color: #3f8d61;
+}
+
+.status-invalid {
+    color: var(--invalid);
+    border-color: #934d4a;
+}
+
+.library-text {
+    color: var(--text-secondary);
+    white-space: normal;
+}
+
+.button-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.secondary-button {
+    min-width: 180px;
+    min-height: 36px;
+    color: var(--text-primary);
+    background-color: #2a374c;
+    border-width: 1px;
+    border-color: #465a76;
+    border-radius: 4px;
+}
+
+.secondary-button:hover {
+    background-color: #35465f;
+}

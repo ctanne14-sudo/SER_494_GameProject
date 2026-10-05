@@ -1,14 +1,11 @@
 {
-  "name": "SER494.Combat.Editor",
-  "rootNamespace": "SER494.Gameplay.Combat.Editor",
+  "name": "SER494.Combat.UI",
+  "rootNamespace": "SER494.Gameplay.Combat.UI",
   "references": [
     "SER494.Combat",
-    "SER494.Combat.Authoring",
-    "SER494.Combat.UI"
+    "SER494.Combat.Authoring"
   ],
-  "includePlatforms": [
-    "Editor"
-  ],
+  "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

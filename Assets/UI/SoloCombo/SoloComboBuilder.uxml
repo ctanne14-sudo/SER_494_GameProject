@@ -1,0 +1,59 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="SoloComboBuilder.uss" />
+    <ui:VisualElement name="root" class="combo-builder-screen">
+        <ui:VisualElement class="combo-builder-panel">
+            <ui:VisualElement class="header-block">
+                <ui:Label text="Solo Combo Builder" class="screen-title" />
+                <ui:Label text="Prepare four Combos before battle. Main is required; Opening, Closing, and Linked are optional." class="screen-subtitle" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="combo-tabs">
+                <ui:Button name="combo1Button" text="combo1" class="combo-tab" />
+                <ui:Button name="combo2Button" text="combo2" class="combo-tab" />
+                <ui:Button name="combo3Button" text="combo3" class="combo-tab" />
+                <ui:Button name="combo4Button" text="combo4" class="combo-tab" />
+            </ui:VisualElement>
+
+            <ui:ScrollView name="contentScroll" class="content-scroll">
+                <ui:VisualElement class="section-card">
+                    <ui:Label text="Combo Identity" class="section-title" />
+                    <ui:TextField name="comboNameField" label="Combo Name" class="combo-field" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="section-card">
+                    <ui:Label text="Action Sequence" class="section-title" />
+                    <ui:VisualElement class="field-row">
+                        <ui:DropdownField name="openingActionField" label="Opening Action" class="combo-field" />
+                        <ui:DropdownField name="mainActionField" label="Main Action *" class="combo-field" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field-row">
+                        <ui:DropdownField name="closingActionField" label="Closing Action" class="combo-field" />
+                        <ui:DropdownField name="linkedActionField" label="Linked Action" class="combo-field" />
+                    </ui:VisualElement>
+                    <ui:DropdownField name="linkedPlacementField" label="Linked Placement" class="combo-field" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="section-card">
+                    <ui:Label text="Combo Summary" class="section-title" />
+                    <ui:VisualElement class="cost-row">
+                        <ui:Label name="loadCostLabel" text="Load: 0 / 12" class="cost-label" />
+                        <ui:Label name="manaCostLabel" text="Mana: 0 / 12" class="cost-label" />
+                        <ui:Label name="staminaCostLabel" text="Stamina: 0 / 14" class="cost-label" />
+                        <ui:Label name="cooldownLabel" text="Cooldown: 0" class="cost-label" />
+                    </ui:VisualElement>
+                    <ui:Label name="currentComboStatusLabel" text="Current Combo: Main Action is required." class="status-label status-invalid" />
+                    <ui:Label name="loadoutStatusLabel" text="Loadout: Four Combos are incomplete." class="status-label status-invalid" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="section-card">
+                    <ui:Label text="Available Action Library" class="section-title" />
+                    <ui:Label name="actionLibraryLabel" text="No Actions assigned to the builder." class="library-text" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="button-row">
+                    <ui:Button name="resetComboButton" text="Reset Current Combo" class="secondary-button" />
+                </ui:VisualElement>
+            </ui:ScrollView>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
