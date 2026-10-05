@@ -33,7 +33,7 @@ The Combo Editor validates the following rules:
 
 Current Mana and Stamina are checked only when the player attempts to execute a Combo. They are not used to reject a Combo during construction because resources may recover before the player uses it.
 
-New Combo slots use simple names such as `Combo 1` and `Combo 2`. Players may rename them, and the custom name can appear as stylized text when the Combo is performed.
+New Combo slots use simple names such as `combo1` and `combo2`. Players may rename them, and the custom name can appear as stylized text when the Combo is performed.
 
 ## Resources and Cooldown
 
