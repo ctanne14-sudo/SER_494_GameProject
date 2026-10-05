@@ -1,6 +1,6 @@
 {
-  "name": "SER494.Combat.EditModeTests",
-  "rootNamespace": "SER494.Gameplay.Combat.Tests",
+  "name": "SER494.Combat.Editor",
+  "rootNamespace": "SER494.Gameplay.Combat.Editor",
   "references": [
     "SER494.Combat",
     "SER494.Combat.Authoring"
@@ -12,11 +12,8 @@
   "allowUnsafeCode": false,
   "overrideReferences": false,
   "precompiledReferences": [],
-  "autoReferenced": false,
+  "autoReferenced": true,
   "defineConstraints": [],
   "versionDefines": [],
-  "noEngineReferences": false,
-  "optionalUnityReferences": [
-    "TestAssemblies"
-  ]
+  "noEngineReferences": false
 }

@@ -1,0 +1,16 @@
+{
+  "name": "SER494.Combat.Authoring",
+  "rootNamespace": "SER494.Gameplay.Combat.Authoring",
+  "references": [
+    "SER494.Combat"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
