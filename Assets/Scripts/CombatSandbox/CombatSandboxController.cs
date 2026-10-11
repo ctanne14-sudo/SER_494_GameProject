@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.SoloCombo;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,6 +25,7 @@ namespace SER494.Gameplay.CombatSandbox
         private GUIStyle _titleStyle;
         private GUIStyle _sectionStyle;
         private GUIStyle _logStyle;
+        private Vector2 _contentScrollPosition;
         private Vector2 _logScrollPosition;
         private string _playerStatus = string.Empty;
         private string _enemyStatus = string.Empty;
@@ -63,6 +65,9 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
+            _contentScrollPosition = GUILayout.BeginScrollView(
+                _contentScrollPosition,
+                GUILayout.ExpandHeight(true));
             DrawCombatantStatus();
             GUILayout.Space(8f);
             DrawEnemyIntent();
@@ -70,7 +75,8 @@ namespace SER494.Gameplay.CombatSandbox
             DrawComboActions();
             GUILayout.Space(10f);
             DrawCombatLog();
-            GUILayout.FlexibleSpace();
+            GUILayout.EndScrollView();
+            GUILayout.Space(6f);
 
             GUILayout.Label(_outcomeStatus, _sectionStyle);
             GUILayout.BeginHorizontal();
@@ -275,6 +281,7 @@ namespace SER494.Gameplay.CombatSandbox
             _setupError = null;
             _combatLog.Clear();
             _combatLogText = string.Empty;
+            _contentScrollPosition = Vector2.zero;
             _logScrollPosition = Vector2.zero;
 
             if (loadoutSession == null)
@@ -293,8 +300,8 @@ namespace SER494.Gameplay.CombatSandbox
                 "Player",
                 new CombatantStats(
                     maxHealth: 100,
-                    maxMana: 12,
-                    maxStamina: 14,
+                    maxMana: 30,
+                    maxStamina: 30,
                     attack: 50,
                     defense: 50));
 
@@ -306,6 +313,13 @@ namespace SER494.Gameplay.CombatSandbox
                     maxStamina: 0,
                     attack: 60,
                     defense: 60));
+
+            // Temporary sandbox traits make type-specific modifier behavior visible
+            // before equipment, Inherent Skills, and timed statuses own these effects.
+            player.AddDamageDealtModifier(
+                DamageModifier.ForType(DamageType.Slashing, 0.20d));
+            enemy.AddDamageTakenModifier(
+                DamageModifier.ForType(DamageType.Fire, -0.20d));
 
             var enemySequence = new EnemyActionSequence(
                 "training.claw-pattern",
@@ -433,7 +447,40 @@ namespace SER494.Gameplay.CombatSandbox
             return $"HP: {combatant.CurrentHealth}/{combatant.Stats.MaxHealth}\n"
                 + $"Mana: {combatant.CurrentMana}/{combatant.Stats.MaxMana}\n"
                 + $"Stamina: {combatant.CurrentStamina}/{combatant.Stats.MaxStamina}\n"
-                + $"Weapon ATK: {combatant.Stats.Attack}   Defense: {combatant.Stats.Defense}";
+                + $"Weapon ATK: {combatant.Stats.Attack}   Defense: {combatant.Stats.Defense}\n"
+                + $"Damage Dealt: {ModifierText(combatant.DamageDealtModifiers)}\n"
+                + $"Damage Taken: {ModifierText(combatant.DamageTakenModifiers)}";
+        }
+
+        private static string ModifierText(IReadOnlyList<DamageModifier> modifiers)
+        {
+            if (modifiers.Count == 0)
+            {
+                return "none";
+            }
+
+            var labels = new string[modifiers.Count];
+            for (int index = 0; index < modifiers.Count; index++)
+            {
+                DamageModifier modifier = modifiers[index];
+                string scope;
+                switch (modifier.Scope)
+                {
+                    case DamageModifierScope.Family:
+                        scope = modifier.Family.ToString();
+                        break;
+                    case DamageModifierScope.Type:
+                        scope = modifier.Type.ToString();
+                        break;
+                    default:
+                        scope = "All";
+                        break;
+                }
+
+                labels[index] = $"{scope} {modifier.Amount:+0%;-0%;0%}";
+            }
+
+            return string.Join(", ", labels);
         }
 
         private static string FailureText(SoloComboExecutionFailure failure)

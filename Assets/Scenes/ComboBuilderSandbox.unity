@@ -168,8 +168,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: df609958289745d3b9a038ad6b81311f, type: 2}
   - {fileID: 11400000, guid: ab478a11930443d7b098bf79e5b06f78, type: 2}
   maximumLoad: 12
-  maximumMana: 12
-  maximumStamina: 14
+  maximumMana: 30
+  maximumStamina: 30
 --- !u!114 &1573911959
 MonoBehaviour:
   m_ObjectHideFlags: 0

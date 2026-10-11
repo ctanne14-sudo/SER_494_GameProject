@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
@@ -156,6 +157,34 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         && resolution.ResolutionEffect == ActionResolutionEffect.Damage)
                     .DamageAvoidance,
                 Is.EqualTo(DamageAvoidanceResult.Evaded));
+        }
+
+        [Test]
+        public void ExecuteCombo_UsesAttackersDamageDealtModifiers()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { MainOnlyCombo("modified", 0, 0, 0, 0.40d) });
+            battle.Player.AddDamageDealtModifier(
+                DamageModifier.ForType(DamageType.Slashing, 0.20d));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.TotalDamageDealt, Is.EqualTo(15));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(85));
+        }
+
+        [Test]
+        public void ExecuteCombo_UsesDefendersDamageTakenModifiers()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { MainOnlyCombo("resisted", 0, 0, 0, 0.40d) });
+            battle.Enemy.AddDamageTakenModifier(
+                DamageModifier.ForType(DamageType.Slashing, -0.20d));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.TotalDamageDealt, Is.EqualTo(10));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(90));
         }
 
         [Test]

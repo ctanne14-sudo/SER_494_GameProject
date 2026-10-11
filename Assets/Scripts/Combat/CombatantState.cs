@@ -1,9 +1,17 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat
 {
     public sealed class CombatantState
     {
+        private readonly List<DamageModifier> _damageDealtModifiers;
+        private readonly List<DamageModifier> _damageTakenModifiers;
+        private readonly ReadOnlyCollection<DamageModifier> _readOnlyDamageDealtModifiers;
+        private readonly ReadOnlyCollection<DamageModifier> _readOnlyDamageTakenModifiers;
+
         public CombatantState(string displayName, CombatantStats stats)
         {
             if (string.IsNullOrWhiteSpace(displayName))
@@ -16,6 +24,10 @@ namespace SER494.Gameplay.Combat
             CurrentHealth = stats.MaxHealth;
             CurrentMana = stats.MaxMana;
             CurrentStamina = stats.MaxStamina;
+            _damageDealtModifiers = new List<DamageModifier>();
+            _damageTakenModifiers = new List<DamageModifier>();
+            _readOnlyDamageDealtModifiers = _damageDealtModifiers.AsReadOnly();
+            _readOnlyDamageTakenModifiers = _damageTakenModifiers.AsReadOnly();
         }
 
         public string DisplayName { get; }
@@ -29,6 +41,32 @@ namespace SER494.Gameplay.Combat
         public int CurrentStamina { get; private set; }
 
         public bool IsDefeated => CurrentHealth == 0;
+
+        public IReadOnlyList<DamageModifier> DamageDealtModifiers =>
+            _readOnlyDamageDealtModifiers;
+
+        public IReadOnlyList<DamageModifier> DamageTakenModifiers =>
+            _readOnlyDamageTakenModifiers;
+
+        public void AddDamageDealtModifier(DamageModifier modifier)
+        {
+            _damageDealtModifiers.Add(modifier);
+        }
+
+        public bool RemoveDamageDealtModifier(DamageModifier modifier)
+        {
+            return _damageDealtModifiers.Remove(modifier);
+        }
+
+        public void AddDamageTakenModifier(DamageModifier modifier)
+        {
+            _damageTakenModifiers.Add(modifier);
+        }
+
+        public bool RemoveDamageTakenModifier(DamageModifier modifier)
+        {
+            return _damageTakenModifiers.Remove(modifier);
+        }
 
         public bool CanPay(int manaCost, int staminaCost)
         {

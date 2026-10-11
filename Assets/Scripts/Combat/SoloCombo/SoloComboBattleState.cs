@@ -438,8 +438,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 attackModifier: 0d,
                 baseDefense: defender.Stats.Defense,
                 defenseModifier: 0d,
-                damageDealtModifiers: null,
-                damageTakenModifiers: null,
+                damageDealtModifiers: attacker.DamageDealtModifiers,
+                damageTakenModifiers: defender.DamageTakenModifiers,
                 clashDamageReduction: 0d,
                 configuration: _damageConfiguration).FinalDamage;
         }

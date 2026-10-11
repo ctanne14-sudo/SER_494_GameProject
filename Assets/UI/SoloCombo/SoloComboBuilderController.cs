@@ -31,11 +31,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
 
         [SerializeField]
         [Min(0)]
-        private int maximumMana = 12;
+        private int maximumMana = 30;
 
         [SerializeField]
         [Min(0)]
-        private int maximumStamina = 14;
+        private int maximumStamina = 30;
 
         private readonly ComboDraft[] _drafts = new ComboDraft[ComboCount];
 
