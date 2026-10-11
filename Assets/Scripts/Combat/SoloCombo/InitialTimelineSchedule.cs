@@ -22,7 +22,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int resolutionTime,
             DamageEffectDefinition damageEffect,
             ActionResolutionEffect resolutionEffect,
-            DamageResolutionTag damageTags)
+            DamageResolutionTag damageTags,
+            CombatStatusDefinition statusEffect,
+            ActionStatusTarget statusTarget)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -34,6 +36,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = damageTags;
+            StatusEffect = statusEffect;
+            StatusTarget = statusTarget;
         }
 
         public TimelineActorSide Side { get; }
@@ -57,6 +61,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionResolutionEffect ResolutionEffect { get; }
 
         public DamageResolutionTag DamageTags { get; }
+
+        public CombatStatusDefinition StatusEffect { get; }
+
+        public ActionStatusTarget StatusTarget { get; }
     }
 
     public sealed class TimelineResolutionStep

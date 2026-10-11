@@ -188,6 +188,36 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ExecuteCombo_DebuffBeforeDamage_ModifiesLaterResolutionPoint()
+        {
+            SoloComboBattleState battle = CreateBattleWithExposedSequence(
+                clawResolutionOffset: 1);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.EnemyDamageDealt, Is.EqualTo(19));
+            Assert.That(battle.Player.ActiveStatuses, Has.Count.EqualTo(1));
+            Assert.That(battle.Player.ActiveStatuses[0].Definition.DisplayName, Is.EqualTo("Exposed"));
+            Assert.That(battle.Player.ActiveStatuses[0].RemainingDuration, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExecuteCombo_DebuffAtSameTime_DoesNotRetroactivelyModifyDamage()
+        {
+            SoloComboBattleState battle = CreateBattleWithExposedSequence(
+                clawResolutionOffset: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.EnemyDamageDealt, Is.EqualTo(16));
+            Assert.That(
+                result.ActionResolutions.Single(
+                    resolution => resolution.ResolutionEffect
+                        == ActionResolutionEffect.ApplyDebuff).StatusApplied,
+                Is.True);
+        }
+
+        [Test]
         public void ExecuteCombo_GuardAtDifferentTime_DoesNotBlockDamage()
         {
             SoloComboBattleState battle = CreateBattle(
@@ -491,6 +521,51 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 player,
                 enemy,
                 new[] { DefensiveCombo(defensiveEffect, resolutionOffset: 2) },
+                enemySequence,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2);
+        }
+
+        private static SoloComboBattleState CreateBattleWithExposedSequence(
+            int clawResolutionOffset)
+        {
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(60, 12, 14, 50, 50));
+            var enemy = new CombatantState(
+                "Training Enemy",
+                new CombatantStats(100, 0, 0, 60, 60));
+            var exposed = new CombatStatusDefinition(
+                "exposed",
+                "Exposed",
+                CombatStatusDurationType.Rounds,
+                duration: 2,
+                CombatStatusModifierDirection.DamageTaken,
+                DamageModifier.All(0.20d));
+            var enemySequence = new EnemyActionSequence(
+                "expose-claw",
+                "Expose Claw",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "expose",
+                        "Expose",
+                        loadCost: 1,
+                        resolutionOffset: 1,
+                        resolutionEffect: ActionResolutionEffect.ApplyDebuff,
+                        statusEffect: exposed,
+                        statusTarget: ActionStatusTarget.Opponent),
+                    new EnemyActionDefinition(
+                        "claw",
+                        "Claw",
+                        loadCost: 1,
+                        resolutionOffset: clawResolutionOffset,
+                        damageMultiplier: 0.40d)
+                });
+            return new SoloComboBattleState(
+                player,
+                enemy,
+                new[] { MainOnlyCombo("status-test", 0, 0, 0, 0.10d) },
                 enemySequence,
                 manaRecoveryPerTurn: 1,
                 staminaRecoveryPerTurn: 2);

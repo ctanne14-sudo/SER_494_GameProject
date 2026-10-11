@@ -13,7 +13,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             double damageMultiplier = 0d,
             DamageType damageType = DamageType.Slashing,
             ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
-            DamageResolutionTag damageTags = DamageResolutionTag.None)
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
             : this(
                 actionId,
                 displayName,
@@ -21,7 +23,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionOffset,
                 CreateSingleDamageEffect(damageMultiplier, damageType),
                 ResolveEffect(damageMultiplier, resolutionEffect),
-                damageTags)
+                damageTags,
+                statusEffect,
+                statusTarget)
         {
         }
 
@@ -31,7 +35,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int loadCost,
             int resolutionOffset,
             DamageEffectDefinition damageEffect,
-            DamageResolutionTag damageTags = DamageResolutionTag.None)
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
             : this(
                 actionId,
                 displayName,
@@ -41,7 +47,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect != null
                     ? ActionResolutionEffect.Damage
                     : ActionResolutionEffect.None,
-                damageTags)
+                damageTags,
+                statusEffect,
+                statusTarget)
         {
         }
 
@@ -52,7 +60,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int resolutionOffset,
             DamageEffectDefinition damageEffect,
             ActionResolutionEffect resolutionEffect,
-            DamageResolutionTag damageTags)
+            DamageResolutionTag damageTags,
+            CombatStatusDefinition statusEffect,
+            ActionStatusTarget statusTarget)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -89,6 +99,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = ValidateDamageTags(damageEffect, damageTags);
+            StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
+            StatusTarget = ValidateStatusTarget(statusTarget);
         }
 
         public string ActionId { get; }
@@ -106,6 +118,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionResolutionEffect ResolutionEffect { get; }
 
         public DamageResolutionTag DamageTags { get; }
+
+        public CombatStatusDefinition StatusEffect { get; }
+
+        public ActionStatusTarget StatusTarget { get; }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,
@@ -184,6 +200,39 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return damageTags;
+        }
+
+        private static CombatStatusDefinition ValidateStatusEffect(
+            ActionResolutionEffect resolutionEffect,
+            CombatStatusDefinition statusEffect)
+        {
+            bool appliesStatus = resolutionEffect == ActionResolutionEffect.ApplyBuff
+                || resolutionEffect == ActionResolutionEffect.ApplyDebuff;
+            if (appliesStatus && statusEffect == null)
+            {
+                throw new ArgumentException(
+                    "Apply Buff and Apply Debuff effects require a Status Effect.",
+                    nameof(statusEffect));
+            }
+
+            if (!appliesStatus && statusEffect != null)
+            {
+                throw new ArgumentException(
+                    "Only Apply Buff and Apply Debuff effects may contain a Status Effect.",
+                    nameof(statusEffect));
+            }
+
+            return statusEffect;
+        }
+
+        private static ActionStatusTarget ValidateStatusTarget(ActionStatusTarget statusTarget)
+        {
+            if (!Enum.IsDefined(typeof(ActionStatusTarget), statusTarget))
+            {
+                throw new ArgumentOutOfRangeException(nameof(statusTarget));
+            }
+
+            return statusTarget;
         }
     }
 }

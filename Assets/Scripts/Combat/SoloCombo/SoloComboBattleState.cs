@@ -32,7 +32,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int damageDealt,
             ActionResolutionEffect resolutionEffect,
             DamageAvoidanceResult damageAvoidance,
-            DamageResolutionTag damageTags)
+            DamageResolutionTag damageTags,
+            string statusDisplayName,
+            ActionStatusTarget statusTarget,
+            bool statusApplied)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -42,6 +45,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ResolutionEffect = resolutionEffect;
             DamageAvoidance = damageAvoidance;
             DamageTags = damageTags;
+            StatusDisplayName = statusDisplayName;
+            StatusTarget = statusTarget;
+            StatusApplied = statusApplied;
         }
 
         public TimelineActorSide Side { get; }
@@ -59,6 +65,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public DamageAvoidanceResult DamageAvoidance { get; }
 
         public DamageResolutionTag DamageTags { get; }
+
+        public string StatusDisplayName { get; }
+
+        public ActionStatusTarget StatusTarget { get; }
+
+        public bool StatusApplied { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -262,6 +274,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             Outcome = EvaluateOutcome();
             RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
+            AdvanceRoundStatuses();
 
             return SoloComboTurnResult.Completed(
                 resolutions,
@@ -294,6 +307,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             Outcome = EvaluateOutcome();
             RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
+            AdvanceRoundStatuses();
 
             return SoloComboTurnResult.Completed(
                 resolutions,
@@ -313,6 +327,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 TimelineResolutionStep step = schedule.ResolutionSteps[stepIndex];
                 int pendingPlayerDamage = 0;
                 int pendingEnemyDamage = 0;
+                var pendingStatuses = new List<ScheduledTimelineAction>();
                 ActionResolutionEffect playerDefense = FindDefensiveResolution(
                     step,
                     TimelineActorSide.Player);
@@ -337,6 +352,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         continue;
                     }
 
+                    if (action.StatusEffect != null)
+                    {
+                        pendingStatuses.Add(action);
+                        continue;
+                    }
+
                     ActionResolutionEffect targetDefense = action.Side == TimelineActorSide.Player
                         ? enemyDefense
                         : playerDefense;
@@ -355,7 +376,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         damage,
                         action.ResolutionEffect,
                         avoidance,
-                        action.DamageTags));
+                        action.DamageTags,
+                        statusDisplayName: null,
+                        statusTarget: ActionStatusTarget.Self,
+                        statusApplied: false));
 
                     if (action.Side == TimelineActorSide.Player)
                     {
@@ -369,6 +393,38 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
                 Enemy.ReceiveDamage(pendingEnemyDamage);
                 Player.ReceiveDamage(pendingPlayerDamage);
+
+                for (int statusIndex = 0; statusIndex < pendingStatuses.Count; statusIndex++)
+                {
+                    ScheduledTimelineAction action = pendingStatuses[statusIndex];
+                    CombatantState actor = action.Side == TimelineActorSide.Player
+                        ? Player
+                        : Enemy;
+                    CombatantState opponent = action.Side == TimelineActorSide.Player
+                        ? Enemy
+                        : Player;
+                    CombatantState recipient = action.StatusTarget == ActionStatusTarget.Self
+                        ? actor
+                        : opponent;
+                    bool applied = !actor.IsDefeated && !recipient.IsDefeated;
+                    if (applied)
+                    {
+                        recipient.ApplyStatus(action.StatusEffect);
+                    }
+
+                    resolutions.Add(new SoloComboActionResolution(
+                        action.Side,
+                        action.ActionId,
+                        action.DisplayName,
+                        step.TimeStep,
+                        damageDealt: 0,
+                        action.ResolutionEffect,
+                        DamageAvoidanceResult.None,
+                        DamageResolutionTag.None,
+                        action.StatusEffect.DisplayName,
+                        action.StatusTarget,
+                        applied));
+                }
 
                 if (EvaluateOutcome() != BattleOutcome.Ongoing)
                 {
@@ -471,6 +527,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Player.RestoreStamina(_staminaRecoveryPerTurn);
             manaRecovered = Player.CurrentMana - manaBeforeRecovery;
             staminaRecovered = Player.CurrentStamina - staminaBeforeRecovery;
+        }
+
+        private void AdvanceRoundStatuses()
+        {
+            Player.AdvanceRoundStatuses();
+            Enemy.AdvanceRoundStatuses();
         }
 
         private BattleOutcome EvaluateOutcome()

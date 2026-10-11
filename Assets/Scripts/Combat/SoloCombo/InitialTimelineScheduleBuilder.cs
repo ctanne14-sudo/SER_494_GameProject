@@ -132,7 +132,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     checked(currentTime + definition.ResolutionOffset),
                     definition.DamageEffect,
                     definition.ResolutionEffect,
-                    definition.DamageTags));
+                    definition.DamageTags,
+                    definition.StatusEffect,
+                    definition.StatusTarget));
                 currentTime = endTime;
             }
 
@@ -158,7 +160,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     checked(currentTime + definition.ResolutionOffset),
                     definition.DamageEffect,
                     definition.ResolutionEffect,
-                    definition.DamageTags));
+                    definition.DamageTags,
+                    definition.StatusEffect,
+                    definition.StatusTarget));
                 currentTime = endTime;
             }
 

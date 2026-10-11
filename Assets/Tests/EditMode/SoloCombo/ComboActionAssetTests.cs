@@ -169,6 +169,32 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(validationError, Does.Contain("Damage Tags without damage"));
         }
 
+        [Test]
+        public void TryCreateDefinition_StatusEffectWithoutStatusAuthoring_ReturnsValidationError()
+        {
+            ConfigureAsset(
+                actionId: "missing-status",
+                displayName: "Missing Status",
+                category: ComboActionCategory.Opening,
+                loadCost: 2,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.ApplyBuff,
+                damageTags: DamageResolutionTag.None);
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("requires Status authoring"));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

@@ -164,15 +164,15 @@ namespace SER494.Gameplay.CombatSandbox
             GUI.Box(timelineRect, GUIContent.none);
 
             Color previousColor = GUI.color;
-            GUI.color = new Color(0.92f, 0.25f, 0.22f, 0.9f);
             for (int index = 0; index < _battle.EnemyIntent.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _battle.EnemyIntent.Actions[index];
-                if (!action.HasDamage)
+                if (action.ResolutionEffect == ActionResolutionEffect.None)
                 {
                     continue;
                 }
 
+                GUI.color = IntentColor(action.ResolutionEffect);
                 float startRatio = Mathf.Clamp01(
                     (action.ResolutionTime - 1f) / IntentTimelineLength);
                 float endRatio = Mathf.Clamp01(
@@ -201,8 +201,31 @@ namespace SER494.Gameplay.CombatSandbox
             for (int index = 0; index < _battle.EnemyIntent.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _battle.EnemyIntent.Actions[index];
-                string effect = action.HasDamage ? "Damage" : "Action";
+                string effect = action.ResolutionEffect.ToString();
+                if (action.StatusEffect != null)
+                {
+                    effect += $" ({action.StatusEffect.DisplayName})";
+                }
+
                 GUILayout.Label($"T{action.ResolutionTime}: {action.DisplayName} — {effect}");
+            }
+        }
+
+        private static Color IntentColor(ActionResolutionEffect effect)
+        {
+            switch (effect)
+            {
+                case ActionResolutionEffect.Damage:
+                    return new Color(0.92f, 0.25f, 0.22f, 0.9f);
+                case ActionResolutionEffect.Guard:
+                case ActionResolutionEffect.Evade:
+                    return new Color(0.25f, 0.65f, 0.95f, 0.9f);
+                case ActionResolutionEffect.ApplyBuff:
+                    return new Color(0.25f, 0.80f, 0.35f, 0.9f);
+                case ActionResolutionEffect.ApplyDebuff:
+                    return new Color(0.70f, 0.30f, 0.85f, 0.9f);
+                default:
+                    return Color.white;
             }
         }
 
@@ -321,17 +344,28 @@ namespace SER494.Gameplay.CombatSandbox
             enemy.AddDamageTakenModifier(
                 DamageModifier.ForType(DamageType.Fire, -0.20d));
 
+            var exposed = new CombatStatusDefinition(
+                "training.exposed",
+                "Exposed",
+                CombatStatusDurationType.Rounds,
+                duration: 2,
+                CombatStatusModifierDirection.DamageTaken,
+                DamageModifier.All(0.20d));
+
             var enemySequence = new EnemyActionSequence(
                 "training.claw-pattern",
                 "Claw Pattern",
                 new[]
                 {
                     new EnemyActionDefinition(
-                        "training.claw-windup",
-                        "Claw Windup",
+                        "training.expose",
+                        "Expose",
                         loadCost: 2,
                         resolutionOffset: 2,
-                        damageMultiplier: 0d),
+                        damageMultiplier: 0d,
+                        resolutionEffect: ActionResolutionEffect.ApplyDebuff,
+                        statusEffect: exposed,
+                        statusTarget: ActionStatusTarget.Opponent),
                     new EnemyActionDefinition(
                         "training.claw",
                         "Claw",
@@ -386,6 +420,20 @@ namespace SER494.Gameplay.CombatSandbox
                     AppendLog(
                         $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
                         + $"{resolution.DamageDealt} damage{tags}.");
+                }
+                else if (resolution.StatusDisplayName != null)
+                {
+                    string recipient = resolution.StatusTarget == ActionStatusTarget.Self
+                        ? actor
+                        : resolution.Side == TimelineActorSide.Player
+                            ? "Training Enemy"
+                            : "Player";
+                    AppendLog(
+                        resolution.StatusApplied
+                            ? $"  T{resolution.TimeStep}: {actor} applied "
+                                + $"{resolution.StatusDisplayName} to {recipient}."
+                            : $"  T{resolution.TimeStep}: {actor} could not apply "
+                                + $"{resolution.StatusDisplayName}.");
                 }
                 else
                 {
@@ -449,7 +497,29 @@ namespace SER494.Gameplay.CombatSandbox
                 + $"Stamina: {combatant.CurrentStamina}/{combatant.Stats.MaxStamina}\n"
                 + $"Weapon ATK: {combatant.Stats.Attack}   Defense: {combatant.Stats.Defense}\n"
                 + $"Damage Dealt: {ModifierText(combatant.DamageDealtModifiers)}\n"
-                + $"Damage Taken: {ModifierText(combatant.DamageTakenModifiers)}";
+                + $"Damage Taken: {ModifierText(combatant.DamageTakenModifiers)}\n"
+                + $"Statuses: {StatusText(combatant.ActiveStatuses)}";
+        }
+
+        private static string StatusText(IReadOnlyList<CombatStatusInstance> statuses)
+        {
+            if (statuses.Count == 0)
+            {
+                return "none";
+            }
+
+            var labels = new string[statuses.Count];
+            for (int index = 0; index < statuses.Count; index++)
+            {
+                CombatStatusInstance status = statuses[index];
+                string unit = status.Definition.DurationType == CombatStatusDurationType.Rounds
+                    ? "round"
+                    : "Time Steps";
+                labels[index] = $"{status.Definition.DisplayName} "
+                    + $"({status.RemainingDuration} {unit})";
+            }
+
+            return string.Join(", ", labels);
         }
 
         private static string ModifierText(IReadOnlyList<DamageModifier> modifiers)

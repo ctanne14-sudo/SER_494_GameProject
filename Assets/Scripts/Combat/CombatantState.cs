@@ -9,8 +9,12 @@ namespace SER494.Gameplay.Combat
     {
         private readonly List<DamageModifier> _damageDealtModifiers;
         private readonly List<DamageModifier> _damageTakenModifiers;
+        private readonly List<DamageModifier> _permanentDamageDealtModifiers;
+        private readonly List<DamageModifier> _permanentDamageTakenModifiers;
+        private readonly List<CombatStatusInstance> _activeStatuses;
         private readonly ReadOnlyCollection<DamageModifier> _readOnlyDamageDealtModifiers;
         private readonly ReadOnlyCollection<DamageModifier> _readOnlyDamageTakenModifiers;
+        private readonly ReadOnlyCollection<CombatStatusInstance> _readOnlyActiveStatuses;
 
         public CombatantState(string displayName, CombatantStats stats)
         {
@@ -26,8 +30,12 @@ namespace SER494.Gameplay.Combat
             CurrentStamina = stats.MaxStamina;
             _damageDealtModifiers = new List<DamageModifier>();
             _damageTakenModifiers = new List<DamageModifier>();
+            _permanentDamageDealtModifiers = new List<DamageModifier>();
+            _permanentDamageTakenModifiers = new List<DamageModifier>();
+            _activeStatuses = new List<CombatStatusInstance>();
             _readOnlyDamageDealtModifiers = _damageDealtModifiers.AsReadOnly();
             _readOnlyDamageTakenModifiers = _damageTakenModifiers.AsReadOnly();
+            _readOnlyActiveStatuses = _activeStatuses.AsReadOnly();
         }
 
         public string DisplayName { get; }
@@ -48,24 +56,67 @@ namespace SER494.Gameplay.Combat
         public IReadOnlyList<DamageModifier> DamageTakenModifiers =>
             _readOnlyDamageTakenModifiers;
 
+        public IReadOnlyList<CombatStatusInstance> ActiveStatuses => _readOnlyActiveStatuses;
+
         public void AddDamageDealtModifier(DamageModifier modifier)
         {
-            _damageDealtModifiers.Add(modifier);
+            _permanentDamageDealtModifiers.Add(modifier);
+            RebuildDamageModifiers();
         }
 
         public bool RemoveDamageDealtModifier(DamageModifier modifier)
         {
-            return _damageDealtModifiers.Remove(modifier);
+            bool removed = _permanentDamageDealtModifiers.Remove(modifier);
+            RebuildDamageModifiers();
+            return removed;
         }
 
         public void AddDamageTakenModifier(DamageModifier modifier)
         {
-            _damageTakenModifiers.Add(modifier);
+            _permanentDamageTakenModifiers.Add(modifier);
+            RebuildDamageModifiers();
         }
 
         public bool RemoveDamageTakenModifier(DamageModifier modifier)
         {
-            return _damageTakenModifiers.Remove(modifier);
+            bool removed = _permanentDamageTakenModifiers.Remove(modifier);
+            RebuildDamageModifiers();
+            return removed;
+        }
+
+        public void ApplyStatus(CombatStatusDefinition definition)
+        {
+            if (definition == null)
+            {
+                throw new ArgumentNullException(nameof(definition));
+            }
+
+            for (int index = 0; index < _activeStatuses.Count; index++)
+            {
+                CombatStatusInstance status = _activeStatuses[index];
+                if (string.Equals(
+                        status.Definition.StatusId,
+                        definition.StatusId,
+                        StringComparison.Ordinal))
+                {
+                    status.Refresh(definition);
+                    RebuildDamageModifiers();
+                    return;
+                }
+            }
+
+            _activeStatuses.Add(new CombatStatusInstance(definition));
+            RebuildDamageModifiers();
+        }
+
+        public void AdvanceRoundStatuses()
+        {
+            AdvanceStatuses(1, CombatStatusDurationType.Rounds);
+        }
+
+        public void AdvanceTimeStepStatuses(int elapsedTimeSteps)
+        {
+            AdvanceStatuses(elapsedTimeSteps, CombatStatusDurationType.TimeSteps);
         }
 
         public bool CanPay(int manaCost, int staminaCost)
@@ -127,6 +178,45 @@ namespace SER494.Gameplay.Combat
             }
 
             return Math.Min(maximumValue, currentValue + amount);
+        }
+
+        private void AdvanceStatuses(int amount, CombatStatusDurationType durationType)
+        {
+            if (amount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            }
+
+            for (int index = _activeStatuses.Count - 1; index >= 0; index--)
+            {
+                if (_activeStatuses[index].Advance(amount, durationType))
+                {
+                    _activeStatuses.RemoveAt(index);
+                }
+            }
+
+            RebuildDamageModifiers();
+        }
+
+        private void RebuildDamageModifiers()
+        {
+            _damageDealtModifiers.Clear();
+            _damageDealtModifiers.AddRange(_permanentDamageDealtModifiers);
+            _damageTakenModifiers.Clear();
+            _damageTakenModifiers.AddRange(_permanentDamageTakenModifiers);
+
+            for (int index = 0; index < _activeStatuses.Count; index++)
+            {
+                CombatStatusDefinition status = _activeStatuses[index].Definition;
+                if (status.ModifierDirection == CombatStatusModifierDirection.DamageDealt)
+                {
+                    _damageDealtModifiers.Add(status.Modifier);
+                }
+                else
+                {
+                    _damageTakenModifiers.Add(status.Modifier);
+                }
+            }
         }
     }
 }

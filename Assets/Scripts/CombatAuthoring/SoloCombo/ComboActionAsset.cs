@@ -140,6 +140,14 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (resolutionEffect == ActionResolutionEffect.ApplyBuff
+                || resolutionEffect == ActionResolutionEffect.ApplyDebuff)
+            {
+                validationError = $"{name} requires Status authoring, which is not yet "
+                    + "available on player Combo Action assets.";
+                return false;
+            }
+
             definition = new ComboActionDefinition(
                 actionId.Trim(),
                 displayName.Trim(),

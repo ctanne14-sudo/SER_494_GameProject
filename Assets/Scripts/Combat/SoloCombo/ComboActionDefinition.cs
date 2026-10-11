@@ -16,7 +16,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
         None,
         Damage,
         Guard,
-        Evade
+        Evade,
+        ApplyBuff,
+        ApplyDebuff
+    }
+
+    public enum ActionStatusTarget
+    {
+        Self,
+        Opponent
     }
 
     [Flags]
@@ -42,7 +50,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionOffset = null,
             DamageType damageType = DamageType.Slashing,
             ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
-            DamageResolutionTag damageTags = DamageResolutionTag.None)
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
             : this(
                 actionId,
                 displayName,
@@ -54,7 +64,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 CreateSingleDamageEffect(damageMultiplier, damageType),
                 resolutionOffset,
                 ResolveEffect(damageMultiplier, resolutionEffect),
-                damageTags)
+                damageTags,
+                statusEffect,
+                statusTarget)
         {
         }
 
@@ -68,7 +80,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int cooldown,
             DamageEffectDefinition damageEffect,
             int? resolutionOffset = null,
-            DamageResolutionTag damageTags = DamageResolutionTag.None)
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
             : this(
                 actionId,
                 displayName,
@@ -82,7 +96,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect != null
                     ? ActionResolutionEffect.Damage
                     : ActionResolutionEffect.None,
-                damageTags)
+                damageTags,
+                statusEffect,
+                statusTarget)
         {
         }
 
@@ -97,7 +113,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             int? resolutionOffset,
             ActionResolutionEffect resolutionEffect,
-            DamageResolutionTag damageTags)
+            DamageResolutionTag damageTags,
+            CombatStatusDefinition statusEffect,
+            ActionStatusTarget statusTarget)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -119,6 +137,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = ValidateDamageTags(damageEffect, damageTags);
+            StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
+            StatusTarget = ValidateStatusTarget(statusTarget);
             ResolutionOffset = RequireResolutionOffset(
                 resolutionOffset ?? LoadCost,
                 LoadCost,
@@ -146,6 +166,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionResolutionEffect ResolutionEffect { get; }
 
         public DamageResolutionTag DamageTags { get; }
+
+        public CombatStatusDefinition StatusEffect { get; }
+
+        public ActionStatusTarget StatusTarget { get; }
 
         public int ResolutionOffset { get; }
 
@@ -249,6 +273,39 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return damageTags;
+        }
+
+        private static CombatStatusDefinition ValidateStatusEffect(
+            ActionResolutionEffect resolutionEffect,
+            CombatStatusDefinition statusEffect)
+        {
+            bool appliesStatus = resolutionEffect == ActionResolutionEffect.ApplyBuff
+                || resolutionEffect == ActionResolutionEffect.ApplyDebuff;
+            if (appliesStatus && statusEffect == null)
+            {
+                throw new ArgumentException(
+                    "Apply Buff and Apply Debuff effects require a Status Effect.",
+                    nameof(statusEffect));
+            }
+
+            if (!appliesStatus && statusEffect != null)
+            {
+                throw new ArgumentException(
+                    "Only Apply Buff and Apply Debuff effects may contain a Status Effect.",
+                    nameof(statusEffect));
+            }
+
+            return statusEffect;
+        }
+
+        private static ActionStatusTarget ValidateStatusTarget(ActionStatusTarget statusTarget)
+        {
+            if (!Enum.IsDefined(typeof(ActionStatusTarget), statusTarget))
+            {
+                throw new ArgumentOutOfRangeException(nameof(statusTarget));
+            }
+
+            return statusTarget;
         }
 
         private static int RequireResolutionOffset(
