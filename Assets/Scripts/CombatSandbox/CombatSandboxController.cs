@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
@@ -19,12 +20,18 @@ namespace SER494.Gameplay.CombatSandbox
         [SerializeField]
         private SoloComboLoadoutSession loadoutSession = null;
 
+        [Header("Timeline Playback")]
+        [SerializeField]
+        [Min(0.01f)]
+        private float secondsPerTimeStep = 0.2f;
+
         private readonly List<string> _combatLog = new List<string>();
 
         private SoloComboBattleState _battle;
         private GUIStyle _titleStyle;
         private GUIStyle _sectionStyle;
         private GUIStyle _logStyle;
+        private GUIStyle _timelineStyle;
         private Vector2 _contentScrollPosition;
         private Vector2 _logScrollPosition;
         private string _playerStatus = string.Empty;
@@ -32,6 +39,10 @@ namespace SER494.Gameplay.CombatSandbox
         private string _outcomeStatus = string.Empty;
         private string _combatLogText = string.Empty;
         private string _setupError;
+        private Coroutine _timelinePlayback;
+        private bool _isTimelinePlaying;
+        private int _playbackTimeStep;
+        private int _playbackEndTimeStep;
 
         public SoloComboLoadoutSession LoadoutSession
         {
@@ -71,6 +82,8 @@ namespace SER494.Gameplay.CombatSandbox
             DrawCombatantStatus();
             GUILayout.Space(8f);
             DrawEnemyIntent();
+            GUILayout.Space(8f);
+            DrawTimelinePlayback();
             GUILayout.Space(10f);
             DrawComboActions();
             GUILayout.Space(10f);
@@ -80,6 +93,8 @@ namespace SER494.Gameplay.CombatSandbox
 
             GUILayout.Label(_outcomeStatus, _sectionStyle);
             GUILayout.BeginHorizontal();
+            bool previousEnabledState = GUI.enabled;
+            GUI.enabled = !_isTimelinePlaying;
             if (GUILayout.Button("Reset Battle", GUILayout.Height(34f)))
             {
                 ResetBattle();
@@ -90,6 +105,7 @@ namespace SER494.Gameplay.CombatSandbox
                 SceneManager.LoadScene(BuilderSceneName);
             }
 
+            GUI.enabled = previousEnabledState;
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
         }
@@ -132,7 +148,8 @@ namespace SER494.Gameplay.CombatSandbox
             for (int index = 0; index < _battle.Combos.Count; index++)
             {
                 SoloComboExecutionFailure failure = _battle.GetExecutionFailure(index);
-                GUI.enabled = failure == SoloComboExecutionFailure.None;
+                GUI.enabled = !_isTimelinePlaying
+                    && failure == SoloComboExecutionFailure.None;
                 if (GUILayout.Button(ComboButtonText(index, failure), GUILayout.Height(46f)))
                 {
                     ExecuteCombo(index);
@@ -141,7 +158,7 @@ namespace SER494.Gameplay.CombatSandbox
 
             if (_battle.CanWait)
             {
-                GUI.enabled = true;
+                GUI.enabled = !_isTimelinePlaying;
                 if (GUILayout.Button(
                         "Wait Turn  |  advance cooldowns and recover resources",
                         GUILayout.Height(42f)))
@@ -151,6 +168,40 @@ namespace SER494.Gameplay.CombatSandbox
             }
 
             GUI.enabled = previousEnabledState;
+        }
+
+        private void DrawTimelinePlayback()
+        {
+            GUILayout.Label("Timeline Resolution", _sectionStyle);
+
+            int displayEnd = Mathf.Max(1, _playbackEndTimeStep);
+            float progress = _isTimelinePlaying
+                ? Mathf.Clamp01(_playbackTimeStep / (float)displayEnd)
+                : 0f;
+            Rect progressRect = GUILayoutUtility.GetRect(
+                100f,
+                24f,
+                GUILayout.ExpandWidth(true));
+            GUI.Box(progressRect, GUIContent.none);
+
+            if (_isTimelinePlaying)
+            {
+                Color previousColor = GUI.color;
+                GUI.color = new Color(0.25f, 0.65f, 0.95f, 0.9f);
+                GUI.DrawTexture(
+                    new Rect(
+                        progressRect.x + 2f,
+                        progressRect.y + 2f,
+                        (progressRect.width - 4f) * progress,
+                        progressRect.height - 4f),
+                    Texture2D.whiteTexture);
+                GUI.color = previousColor;
+            }
+
+            string label = _isTimelinePlaying
+                ? $"Resolving T{_playbackTimeStep} / T{_playbackEndTimeStep}"
+                : "Ready — choose a Combo after reviewing Enemy Intent";
+            GUI.Label(progressRect, label, _timelineStyle);
         }
 
         private void DrawEnemyIntent()
@@ -253,22 +304,8 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
-            AppendLog($"Player used {combo.Name}.");
-            AppendTimelineResolutions(result);
-
-            if (result.ManaRecovered > 0 || result.StaminaRecovered > 0)
-            {
-                AppendLog(
-                    $"Player recovered {result.ManaRecovered} Mana and "
-                    + $"{result.StaminaRecovered} Stamina.");
-            }
-
-            if (result.Outcome != BattleOutcome.Ongoing)
-            {
-                AppendLog(OutcomeText(result.Outcome));
-            }
-
-            RefreshPresentation();
+            AppendLog($"Player committed {combo.Name}. Timeline resolution started.");
+            BeginTimelinePlayback(result);
         }
 
         private void WaitTurn()
@@ -280,26 +317,21 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
-            AppendLog("Player waited. All active cooldowns advanced by one turn.");
-            AppendTimelineResolutions(result);
-
-            if (result.ManaRecovered > 0 || result.StaminaRecovered > 0)
-            {
-                AppendLog(
-                    $"Player recovered {result.ManaRecovered} Mana and "
-                    + $"{result.StaminaRecovered} Stamina.");
-            }
-
-            if (result.Outcome != BattleOutcome.Ongoing)
-            {
-                AppendLog(OutcomeText(result.Outcome));
-            }
-
-            RefreshPresentation();
+            AppendLog("Player waited. Timeline resolution started.");
+            BeginTimelinePlayback(result);
         }
 
         private void ResetBattle()
         {
+            if (_timelinePlayback != null)
+            {
+                StopCoroutine(_timelinePlayback);
+                _timelinePlayback = null;
+            }
+
+            _isTimelinePlaying = false;
+            _playbackTimeStep = 0;
+            _playbackEndTimeStep = 0;
             _battle = null;
             _setupError = null;
             _combatLog.Clear();
@@ -385,6 +417,60 @@ namespace SER494.Gameplay.CombatSandbox
             RefreshPresentation();
         }
 
+        private void BeginTimelinePlayback(SoloComboTurnResult result)
+        {
+            _isTimelinePlaying = true;
+            _playbackTimeStep = 0;
+            _playbackEndTimeStep = result.LastResolvedTimeStep;
+            if (_playbackEndTimeStep == 0)
+            {
+                CompleteTimelinePlayback(result);
+                return;
+            }
+
+            _timelinePlayback = StartCoroutine(PlayTimeline(result));
+        }
+
+        private IEnumerator PlayTimeline(SoloComboTurnResult result)
+        {
+            int resolutionIndex = 0;
+            var wait = new WaitForSecondsRealtime(Mathf.Max(0.01f, secondsPerTimeStep));
+
+            for (int timeStep = 1; timeStep <= _playbackEndTimeStep; timeStep++)
+            {
+                yield return wait;
+                _playbackTimeStep = timeStep;
+
+                while (resolutionIndex < result.ActionResolutions.Count
+                    && result.ActionResolutions[resolutionIndex].TimeStep == timeStep)
+                {
+                    AppendTimelineResolution(result.ActionResolutions[resolutionIndex]);
+                    resolutionIndex++;
+                }
+            }
+
+            CompleteTimelinePlayback(result);
+        }
+
+        private void CompleteTimelinePlayback(SoloComboTurnResult result)
+        {
+            if (result.ManaRecovered > 0 || result.StaminaRecovered > 0)
+            {
+                AppendLog(
+                    $"Round End: Player recovered {result.ManaRecovered} Mana and "
+                    + $"{result.StaminaRecovered} Stamina.");
+            }
+
+            if (result.Outcome != BattleOutcome.Ongoing)
+            {
+                AppendLog(OutcomeText(result.Outcome));
+            }
+
+            _isTimelinePlaying = false;
+            _timelinePlayback = null;
+            RefreshPresentation();
+        }
+
         private void AppendLog(string message)
         {
             _combatLog.Add(message);
@@ -392,58 +478,54 @@ namespace SER494.Gameplay.CombatSandbox
             _logScrollPosition.y = float.MaxValue;
         }
 
-        private void AppendTimelineResolutions(SoloComboTurnResult result)
+        private void AppendTimelineResolution(SoloComboActionResolution resolution)
         {
-            for (int index = 0; index < result.ActionResolutions.Count; index++)
+            string actor = resolution.Side == TimelineActorSide.Player
+                ? "Player"
+                : "Training Enemy";
+            if (resolution.DamageAvoidance == DamageAvoidanceResult.Guarded)
             {
-                SoloComboActionResolution resolution = result.ActionResolutions[index];
-                string actor = resolution.Side == TimelineActorSide.Player
-                    ? "Player"
-                    : "Training Enemy";
-                if (resolution.DamageAvoidance == DamageAvoidanceResult.Guarded)
-                {
-                    AppendLog(
-                        $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} was Guarded; "
-                        + "its Damage and dependent On Hit effects failed.");
-                }
-                else if (resolution.DamageAvoidance == DamageAvoidanceResult.Evaded)
-                {
-                    AppendLog(
-                        $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} was Evaded; "
-                        + "its Damage and dependent On Hit effects failed.");
-                }
-                else if (resolution.ResolutionEffect == ActionResolutionEffect.Damage)
-                {
-                    string tags = resolution.DamageTags == DamageResolutionTag.None
-                        ? string.Empty
-                        : $" [{resolution.DamageTags}]";
-                    AppendLog(
-                        $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
-                        + $"{resolution.DamageDealt} damage{tags}.");
-                }
-                else if (resolution.StatusDisplayName != null)
-                {
-                    string recipient = resolution.StatusTarget == ActionStatusTarget.Self
-                        ? actor
-                        : resolution.Side == TimelineActorSide.Player
-                            ? "Training Enemy"
-                            : "Player";
-                    AppendLog(
-                        resolution.StatusApplied
-                            ? $"  T{resolution.TimeStep}: {actor} applied "
-                                + $"{resolution.StatusDisplayName} to {recipient}."
-                            : $"  T{resolution.TimeStep}: {actor} could not apply "
-                                + $"{resolution.StatusDisplayName}.");
-                }
-                else
-                {
-                    string effect = resolution.ResolutionEffect == ActionResolutionEffect.None
-                        ? "with no prototype combat effect"
-                        : $"{resolution.ResolutionEffect}";
-                    AppendLog(
-                        $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} resolved "
-                        + $"{effect}.");
-                }
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} was Guarded; "
+                    + "its Damage and dependent On Hit effects failed.");
+            }
+            else if (resolution.DamageAvoidance == DamageAvoidanceResult.Evaded)
+            {
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} was Evaded; "
+                    + "its Damage and dependent On Hit effects failed.");
+            }
+            else if (resolution.ResolutionEffect == ActionResolutionEffect.Damage)
+            {
+                string tags = resolution.DamageTags == DamageResolutionTag.None
+                    ? string.Empty
+                    : $" [{resolution.DamageTags}]";
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
+                    + $"{resolution.DamageDealt} damage{tags}.");
+            }
+            else if (resolution.StatusDisplayName != null)
+            {
+                string recipient = resolution.StatusTarget == ActionStatusTarget.Self
+                    ? actor
+                    : resolution.Side == TimelineActorSide.Player
+                        ? "Training Enemy"
+                        : "Player";
+                AppendLog(
+                    resolution.StatusApplied
+                        ? $"  T{resolution.TimeStep}: {actor} applied "
+                            + $"{resolution.StatusDisplayName} to {recipient}."
+                        : $"  T{resolution.TimeStep}: {actor} could not apply "
+                            + $"{resolution.StatusDisplayName}.");
+            }
+            else
+            {
+                string effect = resolution.ResolutionEffect == ActionResolutionEffect.None
+                    ? "with no prototype combat effect"
+                    : $"{resolution.ResolutionEffect}";
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} resolved "
+                    + $"{effect}.");
             }
         }
 
@@ -477,6 +559,12 @@ namespace SER494.Gameplay.CombatSandbox
             _logStyle = new GUIStyle(GUI.skin.label)
             {
                 wordWrap = true
+            };
+
+            _timelineStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
             };
         }
 

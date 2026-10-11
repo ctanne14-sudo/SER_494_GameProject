@@ -30,6 +30,19 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(new[] { 0, 13, 6, 0 }));
             Assert.That(result.TotalDamageDealt, Is.EqualTo(19));
             Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(81));
+            Assert.That(result.LastResolvedTimeStep, Is.EqualTo(7));
+        }
+
+        [Test]
+        public void FailedTurn_HasNoLastResolvedTimeStep()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3) });
+
+            SoloComboTurnResult result = battle.ExecuteCombo(-1);
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.LastResolvedTimeStep, Is.Zero);
         }
 
         [Test]

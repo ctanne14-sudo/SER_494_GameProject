@@ -112,6 +112,22 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public int EnemyDamageDealt => SumDamage(TimelineActorSide.Enemy);
 
+        public int LastResolvedTimeStep
+        {
+            get
+            {
+                int completionTime = 0;
+                for (int index = 0; index < ActionResolutions.Count; index++)
+                {
+                    completionTime = Math.Max(
+                        completionTime,
+                        ActionResolutions[index].TimeStep);
+                }
+
+                return completionTime;
+            }
+        }
+
         internal static SoloComboTurnResult Failed(
             SoloComboExecutionFailure failure,
             BattleOutcome outcome)
