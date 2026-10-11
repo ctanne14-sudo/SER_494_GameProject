@@ -86,7 +86,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     cooldown: 3,
                     damageMultiplier: 0.70f,
                     damageType: DamageType.Slashing,
-                    resolutionEffect: ActionResolutionEffect.Damage),
+                    resolutionEffect: ActionResolutionEffect.Damage,
+                    damageTags: DamageResolutionTag.Overcommit),
                 new SampleAction(
                     "Sample_GuardBreaker",
                     "sample.guard-breaker",
@@ -99,7 +100,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     cooldown: 2,
                     damageMultiplier: 0.50f,
                     damageType: DamageType.Blunt,
-                    resolutionEffect: ActionResolutionEffect.Damage),
+                    resolutionEffect: ActionResolutionEffect.Damage,
+                    damageTags: DamageResolutionTag.Unguardable),
                 new SampleAction(
                     "Sample_IceLance",
                     "sample.ice-lance",
@@ -190,7 +192,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     cooldown: 2,
                     damageMultiplier: 0.30f,
                     damageType: DamageType.Fire,
-                    resolutionEffect: ActionResolutionEffect.Damage),
+                    resolutionEffect: ActionResolutionEffect.Damage,
+                    damageTags: DamageResolutionTag.Area),
                 new SampleAction(
                     "Sample_WardEcho",
                     "sample.ward-echo",
@@ -292,6 +295,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serializedAsset.FindProperty("damageType").enumValueIndex = (int)sample.DamageType;
             serializedAsset.FindProperty("resolutionEffect").enumValueIndex =
                 (int)sample.ResolutionEffect;
+            serializedAsset.FindProperty("damageTags").intValue = (int)sample.DamageTags;
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
 
             if (isNewAsset)
@@ -330,7 +334,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 int cooldown,
                 float damageMultiplier,
                 DamageType damageType,
-                ActionResolutionEffect resolutionEffect)
+                ActionResolutionEffect resolutionEffect,
+                DamageResolutionTag damageTags = DamageResolutionTag.None)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -344,6 +349,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 DamageMultiplier = damageMultiplier;
                 DamageType = damageType;
                 ResolutionEffect = resolutionEffect;
+                DamageTags = damageTags;
             }
 
             public string FileName { get; }
@@ -369,6 +375,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public DamageType DamageType { get; }
 
             public ActionResolutionEffect ResolutionEffect { get; }
+
+            public DamageResolutionTag DamageTags { get; }
         }
     }
 }

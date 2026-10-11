@@ -574,8 +574,14 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     builder.Append(" (")
                         .Append(action.DamageType)
                         .Append(" x")
-                        .Append(action.DamageMultiplier.ToString("0.00"))
-                        .Append(')');
+                        .Append(action.DamageMultiplier.ToString("0.00"));
+                    if (action.DamageTags != DamageResolutionTag.None)
+                    {
+                        builder.Append(" | Tags: ")
+                            .Append(action.DamageTags);
+                    }
+
+                    builder.Append(')');
                 }
                 else if (action.ResolutionEffect == ActionResolutionEffect.None)
                 {

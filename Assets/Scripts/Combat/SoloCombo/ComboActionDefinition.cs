@@ -19,6 +19,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Evade
     }
 
+    [Flags]
+    public enum DamageResolutionTag
+    {
+        None = 0,
+        Area = 1 << 0,
+        Unguardable = 1 << 1,
+        Overcommit = 1 << 2
+    }
+
     public sealed class ComboActionDefinition
     {
         public ComboActionDefinition(
@@ -32,7 +41,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             double damageMultiplier = 0d,
             int? resolutionOffset = null,
             DamageType damageType = DamageType.Slashing,
-            ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None)
+            ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
+            DamageResolutionTag damageTags = DamageResolutionTag.None)
             : this(
                 actionId,
                 displayName,
@@ -43,7 +53,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 cooldown,
                 CreateSingleDamageEffect(damageMultiplier, damageType),
                 resolutionOffset,
-                ResolveEffect(damageMultiplier, resolutionEffect))
+                ResolveEffect(damageMultiplier, resolutionEffect),
+                damageTags)
         {
         }
 
@@ -56,7 +67,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int staminaCost,
             int cooldown,
             DamageEffectDefinition damageEffect,
-            int? resolutionOffset = null)
+            int? resolutionOffset = null,
+            DamageResolutionTag damageTags = DamageResolutionTag.None)
             : this(
                 actionId,
                 displayName,
@@ -69,7 +81,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionOffset,
                 damageEffect != null
                     ? ActionResolutionEffect.Damage
-                    : ActionResolutionEffect.None)
+                    : ActionResolutionEffect.None,
+                damageTags)
         {
         }
 
@@ -83,7 +96,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int cooldown,
             DamageEffectDefinition damageEffect,
             int? resolutionOffset,
-            ActionResolutionEffect resolutionEffect)
+            ActionResolutionEffect resolutionEffect,
+            DamageResolutionTag damageTags)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -104,6 +118,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Cooldown = RequireNonNegative(cooldown, nameof(cooldown));
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
+            DamageTags = ValidateDamageTags(damageEffect, damageTags);
             ResolutionOffset = RequireResolutionOffset(
                 resolutionOffset ?? LoadCost,
                 LoadCost,
@@ -129,6 +144,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool HasDamage => DamageEffect != null;
 
         public ActionResolutionEffect ResolutionEffect { get; }
+
+        public DamageResolutionTag DamageTags { get; }
 
         public int ResolutionOffset { get; }
 
@@ -207,6 +224,31 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return resolutionEffect;
+        }
+
+        private static DamageResolutionTag ValidateDamageTags(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags)
+        {
+            const DamageResolutionTag supportedTags = DamageResolutionTag.Area
+                | DamageResolutionTag.Unguardable
+                | DamageResolutionTag.Overcommit;
+            if ((damageTags & ~supportedTags) != 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(damageTags),
+                    damageTags,
+                    "Unknown Damage Resolution Tag.");
+            }
+
+            if (damageEffect == null && damageTags != DamageResolutionTag.None)
+            {
+                throw new ArgumentException(
+                    "Damage Resolution Tags require a damaging Action.",
+                    nameof(damageTags));
+            }
+
+            return damageTags;
         }
 
         private static int RequireResolutionOffset(

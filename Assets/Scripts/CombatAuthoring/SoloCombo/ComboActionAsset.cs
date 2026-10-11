@@ -56,6 +56,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Tooltip("Prototype effect resolved at the fixed Resolution Point. Damage requires a positive Damage Multiplier.")]
         private ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None;
 
+        [SerializeField]
+        [Tooltip("Tags that alter how a Damage Resolution Point interacts with Guard and Evade.")]
+        private DamageResolutionTag damageTags = DamageResolutionTag.None;
+
         public string ActionId => actionId;
 
         public string DisplayName => displayName;
@@ -77,6 +81,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public DamageType DamageType => damageType;
 
         public ActionResolutionEffect ResolutionEffect => resolutionEffect;
+
+        public DamageResolutionTag DamageTags => damageTags;
 
         public bool TryCreateDefinition(
             out ComboActionDefinition definition,
@@ -128,6 +134,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (damageMultiplier <= 0f && damageTags != DamageResolutionTag.None)
+            {
+                validationError = $"{name} uses Damage Tags without damage.";
+                return false;
+            }
+
             definition = new ComboActionDefinition(
                 actionId.Trim(),
                 displayName.Trim(),
@@ -139,7 +151,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 damageMultiplier,
                 resolutionOffset,
                 damageType,
-                resolutionEffect);
+                resolutionEffect,
+                damageTags);
 
             validationError = null;
             return true;

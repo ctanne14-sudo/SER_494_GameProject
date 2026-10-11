@@ -37,7 +37,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 cooldown: 4,
                 damageMultiplier: 0.60f,
                 damageType: DamageType.Fire,
-                resolutionEffect: ActionResolutionEffect.Damage);
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.Area | DamageResolutionTag.Unguardable);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -57,6 +58,9 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(0.60d).Within(0.000001d));
             Assert.That(definition.DamageEffect.Components[0].Type, Is.EqualTo(DamageType.Fire));
             Assert.That(definition.ResolutionEffect, Is.EqualTo(ActionResolutionEffect.Damage));
+            Assert.That(
+                definition.DamageTags,
+                Is.EqualTo(DamageResolutionTag.Area | DamageResolutionTag.Unguardable));
         }
 
         [Test]
@@ -73,7 +77,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 cooldown: 0,
                 damageMultiplier: 0f,
                 damageType: DamageType.Slashing,
-                resolutionEffect: ActionResolutionEffect.None);
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -98,7 +103,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 cooldown: 1,
                 damageMultiplier: 0f,
                 damageType: DamageType.Blunt,
-                resolutionEffect: ActionResolutionEffect.Guard);
+                resolutionEffect: ActionResolutionEffect.Guard,
+                damageTags: DamageResolutionTag.None);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -125,7 +131,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 cooldown: 0,
                 damageMultiplier: 0f,
                 damageType: DamageType.Slashing,
-                resolutionEffect: ActionResolutionEffect.Damage);
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -134,6 +141,32 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(succeeded, Is.False);
             Assert.That(definition, Is.Null);
             Assert.That(validationError, Does.Contain("without damage"));
+        }
+
+        [Test]
+        public void TryCreateDefinition_DamageTagsWithoutDamage_ReturnsValidationError()
+        {
+            ConfigureAsset(
+                actionId: "invalid-tags",
+                displayName: "Invalid Tags",
+                category: ComboActionCategory.Main,
+                loadCost: 2,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.Area);
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("Damage Tags without damage"));
         }
 
         private void ConfigureAsset(
@@ -147,7 +180,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             int cooldown,
             float damageMultiplier,
             DamageType damageType,
-            ActionResolutionEffect resolutionEffect)
+            ActionResolutionEffect resolutionEffect,
+            DamageResolutionTag damageTags)
         {
             var serializedAsset = new SerializedObject(_asset);
             serializedAsset.FindProperty("actionId").stringValue = actionId;
@@ -161,6 +195,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             serializedAsset.FindProperty("damageMultiplier").floatValue = damageMultiplier;
             serializedAsset.FindProperty("damageType").enumValueIndex = (int)damageType;
             serializedAsset.FindProperty("resolutionEffect").enumValueIndex = (int)resolutionEffect;
+            serializedAsset.FindProperty("damageTags").intValue = (int)damageTags;
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
         }
     }

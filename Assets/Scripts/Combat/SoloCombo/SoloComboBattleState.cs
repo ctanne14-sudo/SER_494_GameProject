@@ -31,7 +31,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int timeStep,
             int damageDealt,
             ActionResolutionEffect resolutionEffect,
-            DamageAvoidanceResult damageAvoidance)
+            DamageAvoidanceResult damageAvoidance,
+            DamageResolutionTag damageTags)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -40,6 +41,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageDealt = damageDealt;
             ResolutionEffect = resolutionEffect;
             DamageAvoidance = damageAvoidance;
+            DamageTags = damageTags;
         }
 
         public TimelineActorSide Side { get; }
@@ -55,6 +57,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionResolutionEffect ResolutionEffect { get; }
 
         public DamageAvoidanceResult DamageAvoidance { get; }
+
+        public DamageResolutionTag DamageTags { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -337,7 +341,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         ? enemyDefense
                         : playerDefense;
                     DamageAvoidanceResult avoidance = action.HasDamage
-                        ? ToDamageAvoidance(targetDefense)
+                        ? ResolveDamageAvoidance(targetDefense, action.DamageTags)
                         : DamageAvoidanceResult.None;
                     int damage = action.HasDamage
                         && avoidance == DamageAvoidanceResult.None
@@ -350,7 +354,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         step.TimeStep,
                         damage,
                         action.ResolutionEffect,
-                        avoidance));
+                        avoidance,
+                        action.DamageTags));
 
                     if (action.Side == TimelineActorSide.Player)
                     {
@@ -402,15 +407,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return defense;
         }
 
-        private static DamageAvoidanceResult ToDamageAvoidance(
-            ActionResolutionEffect defensiveEffect)
+        private static DamageAvoidanceResult ResolveDamageAvoidance(
+            ActionResolutionEffect defensiveEffect,
+            DamageResolutionTag damageTags)
         {
             switch (defensiveEffect)
             {
                 case ActionResolutionEffect.Guard:
-                    return DamageAvoidanceResult.Guarded;
+                    return (damageTags & (DamageResolutionTag.Unguardable
+                            | DamageResolutionTag.Overcommit)) == 0
+                        ? DamageAvoidanceResult.Guarded
+                        : DamageAvoidanceResult.None;
                 case ActionResolutionEffect.Evade:
-                    return DamageAvoidanceResult.Evaded;
+                    return (damageTags & DamageResolutionTag.Area) == 0
+                        ? DamageAvoidanceResult.Evaded
+                        : DamageAvoidanceResult.None;
                 default:
                     return DamageAvoidanceResult.None;
             }

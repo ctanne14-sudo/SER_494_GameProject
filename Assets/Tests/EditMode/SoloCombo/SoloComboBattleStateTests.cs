@@ -82,6 +82,83 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ExecuteCombo_UnguardableDamage_BypassesGuard()
+        {
+            SoloComboBattleState battle = CreateBattleAgainstTaggedDamage(
+                ActionResolutionEffect.Guard,
+                DamageResolutionTag.Unguardable);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            SoloComboActionResolution enemyDamage = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy
+                    && resolution.ResolutionEffect == ActionResolutionEffect.Damage);
+            Assert.That(enemyDamage.DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(enemyDamage.DamageTags, Is.EqualTo(DamageResolutionTag.Unguardable));
+            Assert.That(enemyDamage.DamageDealt, Is.EqualTo(16));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(44));
+        }
+
+        [Test]
+        public void ExecuteCombo_OvercommitDamage_BypassesGuard()
+        {
+            SoloComboBattleState battle = CreateBattleAgainstTaggedDamage(
+                ActionResolutionEffect.Guard,
+                DamageResolutionTag.Overcommit);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            SoloComboActionResolution enemyDamage = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy
+                    && resolution.ResolutionEffect == ActionResolutionEffect.Damage);
+            Assert.That(enemyDamage.DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(enemyDamage.DamageDealt, Is.EqualTo(16));
+        }
+
+        [Test]
+        public void ExecuteCombo_AreaDamage_BypassesEvade()
+        {
+            SoloComboBattleState battle = CreateBattleAgainstTaggedDamage(
+                ActionResolutionEffect.Evade,
+                DamageResolutionTag.Area);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            SoloComboActionResolution enemyDamage = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy
+                    && resolution.ResolutionEffect == ActionResolutionEffect.Damage);
+            Assert.That(enemyDamage.DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(enemyDamage.DamageDealt, Is.EqualTo(16));
+        }
+
+        [Test]
+        public void ExecuteCombo_DamageTags_DoNotBypassUnrelatedDefense()
+        {
+            SoloComboBattleState guardBattle = CreateBattleAgainstTaggedDamage(
+                ActionResolutionEffect.Guard,
+                DamageResolutionTag.Area);
+            SoloComboBattleState evadeBattle = CreateBattleAgainstTaggedDamage(
+                ActionResolutionEffect.Evade,
+                DamageResolutionTag.Unguardable);
+
+            SoloComboTurnResult guardResult = guardBattle.ExecuteCombo(0);
+            SoloComboTurnResult evadeResult = evadeBattle.ExecuteCombo(0);
+
+            Assert.That(
+                guardResult.ActionResolutions.Single(
+                    resolution => resolution.Side == TimelineActorSide.Enemy
+                        && resolution.ResolutionEffect == ActionResolutionEffect.Damage)
+                    .DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.Guarded));
+            Assert.That(
+                evadeResult.ActionResolutions.Single(
+                    resolution => resolution.Side == TimelineActorSide.Enemy
+                        && resolution.ResolutionEffect == ActionResolutionEffect.Damage)
+                    .DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.Evaded));
+        }
+
+        [Test]
         public void ExecuteCombo_GuardAtDifferentTime_DoesNotBlockDamage()
         {
             SoloComboBattleState battle = CreateBattle(
@@ -353,6 +430,38 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 player,
                 enemy,
                 combos,
+                enemySequence,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2);
+        }
+
+        private static SoloComboBattleState CreateBattleAgainstTaggedDamage(
+            ActionResolutionEffect defensiveEffect,
+            DamageResolutionTag damageTags)
+        {
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(60, 12, 14, 50, 50));
+            var enemy = new CombatantState(
+                "Training Enemy",
+                new CombatantStats(100, 0, 0, 60, 60));
+            var enemySequence = new EnemyActionSequence(
+                "tagged-attack",
+                "Tagged Attack",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "tagged-strike",
+                        "Tagged Strike",
+                        loadCost: 2,
+                        resolutionOffset: 2,
+                        damageMultiplier: 0.40d,
+                        damageTags: damageTags)
+                });
+            return new SoloComboBattleState(
+                player,
+                enemy,
+                new[] { DefensiveCombo(defensiveEffect, resolutionOffset: 2) },
                 enemySequence,
                 manaRecoveryPerTurn: 1,
                 staminaRecoveryPerTurn: 2);

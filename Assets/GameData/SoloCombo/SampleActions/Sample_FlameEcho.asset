@@ -23,3 +23,4 @@ MonoBehaviour:
   damageMultiplier: 0.3
   damageType: 3
   resolutionEffect: 1
+  damageTags: 1

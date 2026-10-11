@@ -366,9 +366,12 @@ namespace SER494.Gameplay.CombatSandbox
                 }
                 else if (resolution.ResolutionEffect == ActionResolutionEffect.Damage)
                 {
+                    string tags = resolution.DamageTags == DamageResolutionTag.None
+                        ? string.Empty
+                        : $" [{resolution.DamageTags}]";
                     AppendLog(
                         $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
-                        + $"{resolution.DamageDealt} damage.");
+                        + $"{resolution.DamageDealt} damage{tags}.");
                 }
                 else
                 {

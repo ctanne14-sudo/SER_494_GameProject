@@ -12,14 +12,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int resolutionOffset,
             double damageMultiplier = 0d,
             DamageType damageType = DamageType.Slashing,
-            ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None)
+            ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
+            DamageResolutionTag damageTags = DamageResolutionTag.None)
             : this(
                 actionId,
                 displayName,
                 loadCost,
                 resolutionOffset,
                 CreateSingleDamageEffect(damageMultiplier, damageType),
-                ResolveEffect(damageMultiplier, resolutionEffect))
+                ResolveEffect(damageMultiplier, resolutionEffect),
+                damageTags)
         {
         }
 
@@ -28,7 +30,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string displayName,
             int loadCost,
             int resolutionOffset,
-            DamageEffectDefinition damageEffect)
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags = DamageResolutionTag.None)
             : this(
                 actionId,
                 displayName,
@@ -37,7 +40,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 damageEffect != null
                     ? ActionResolutionEffect.Damage
-                    : ActionResolutionEffect.None)
+                    : ActionResolutionEffect.None,
+                damageTags)
         {
         }
 
@@ -47,7 +51,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int loadCost,
             int resolutionOffset,
             DamageEffectDefinition damageEffect,
-            ActionResolutionEffect resolutionEffect)
+            ActionResolutionEffect resolutionEffect,
+            DamageResolutionTag damageTags)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -83,6 +88,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ResolutionOffset = resolutionOffset;
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
+            DamageTags = ValidateDamageTags(damageEffect, damageTags);
         }
 
         public string ActionId { get; }
@@ -98,6 +104,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool HasDamage => DamageEffect != null;
 
         public ActionResolutionEffect ResolutionEffect { get; }
+
+        public DamageResolutionTag DamageTags { get; }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,
@@ -151,6 +159,31 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return resolutionEffect;
+        }
+
+        private static DamageResolutionTag ValidateDamageTags(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags)
+        {
+            const DamageResolutionTag supportedTags = DamageResolutionTag.Area
+                | DamageResolutionTag.Unguardable
+                | DamageResolutionTag.Overcommit;
+            if ((damageTags & ~supportedTags) != 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(damageTags),
+                    damageTags,
+                    "Unknown Damage Resolution Tag.");
+            }
+
+            if (damageEffect == null && damageTags != DamageResolutionTag.None)
+            {
+                throw new ArgumentException(
+                    "Damage Resolution Tags require a damaging enemy Action.",
+                    nameof(damageTags));
+            }
+
+            return damageTags;
         }
     }
 }
