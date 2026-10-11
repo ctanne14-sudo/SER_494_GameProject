@@ -15,8 +15,20 @@ MonoBehaviour:
   actionId: sample.focus-stance
   displayName: Focus Stance
   category: 0
-  loadCost: 2
-  resolutionOffset: 2
+  loadCost: 5
+  resolutionOffset: 5
+  useResolutionWindow: 0
+  resolutionWindowStart: 5
+  resolutionWindowEnd: 5
+  chargeLevels: []
+  activeWindows:
+  - windowId: focus.defense
+    displayName: Focused Defense
+    startOffset: 1
+    endOffset: 5
+    effect: 0
+    damageReduction: 0.3
+    disruptionPolicy: 0
   manaCost: 0
   staminaCost: 1
   cooldown: 1

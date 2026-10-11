@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
@@ -15,7 +16,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
-            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
             : this(
                 actionId,
                 displayName,
@@ -25,7 +27,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ResolveEffect(damageMultiplier, resolutionEffect),
                 damageTags,
                 statusEffect,
-                statusTarget)
+                statusTarget,
+                activeWindows)
         {
         }
 
@@ -37,7 +40,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
-            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
             : this(
                 actionId,
                 displayName,
@@ -49,7 +53,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     : ActionResolutionEffect.None,
                 damageTags,
                 statusEffect,
-                statusTarget)
+                statusTarget,
+                activeWindows)
         {
         }
 
@@ -62,7 +67,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionResolutionEffect resolutionEffect,
             DamageResolutionTag damageTags,
             CombatStatusDefinition statusEffect,
-            ActionStatusTarget statusTarget)
+            ActionStatusTarget statusTarget,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -101,6 +107,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageTags = ValidateDamageTags(damageEffect, damageTags);
             StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
             StatusTarget = ValidateStatusTarget(statusTarget);
+            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
         }
 
         public string ActionId { get; }
@@ -122,6 +129,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public CombatStatusDefinition StatusEffect { get; }
 
         public ActionStatusTarget StatusTarget { get; }
+
+        public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,
@@ -233,6 +242,37 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return statusTarget;
+        }
+
+        private static IReadOnlyList<ActionActiveWindowDefinition> CopyAndValidateActiveWindows(
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
+            int loadCost)
+        {
+            if (activeWindows == null || activeWindows.Count == 0)
+            {
+                return Array.Empty<ActionActiveWindowDefinition>();
+            }
+
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var copy = new ActionActiveWindowDefinition[activeWindows.Count];
+            for (int index = 0; index < activeWindows.Count; index++)
+            {
+                ActionActiveWindowDefinition window = activeWindows[index]
+                    ?? throw new ArgumentException(
+                        "Active Window entries cannot be null.",
+                        nameof(activeWindows));
+                window.ValidateForActionLoad(loadCost);
+                if (!ids.Add(window.WindowId))
+                {
+                    throw new ArgumentException(
+                        "One enemy Action cannot contain duplicate Active Window IDs.",
+                        nameof(activeWindows));
+                }
+
+                copy[index] = window;
+            }
+
+            return Array.AsReadOnly(copy);
         }
     }
 }

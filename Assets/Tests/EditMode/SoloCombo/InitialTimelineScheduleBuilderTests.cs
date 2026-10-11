@@ -208,6 +208,72 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(schedule.CompletionTime, Is.EqualTo(5));
         }
 
+        [Test]
+        public void Build_ConvertsActiveWindowFromActionLocalTimeToTimelineTime()
+        {
+            var activeWindow = new ActionActiveWindowDefinition(
+                "focus.defense",
+                "Focused Defense",
+                startOffset: 1,
+                endOffset: 3,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.30d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption);
+            var opening = new ComboActionDefinition(
+                "focus",
+                "Focus",
+                ComboActionCategory.Opening,
+                loadCost: 3,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                activeWindows: new[] { activeWindow });
+            ComboConfiguration combo = new ComboConfiguration(
+                "combo1",
+                opening,
+                PlayerAction("main", ComboActionCategory.Main, load: 2, resolution: 2),
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+
+            InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
+                combo,
+                EnemySequence(EnemyAction("enemy", load: 2, resolution: 2)));
+
+            ScheduledActiveWindow scheduledWindow = schedule.Actions
+                .Single(action => action.ActionId == "focus")
+                .ActiveWindows.Single();
+            Assert.That(scheduledWindow.StartTime, Is.EqualTo(1));
+            Assert.That(scheduledWindow.EndTime, Is.EqualTo(3));
+            Assert.That(scheduledWindow.IsActiveAt(1), Is.True);
+            Assert.That(scheduledWindow.IsActiveAt(3), Is.True);
+            Assert.That(scheduledWindow.IsActiveAt(4), Is.False);
+            Assert.That(scheduledWindow.DamageReduction, Is.EqualTo(0.30d));
+        }
+
+        [Test]
+        public void ComboAction_ActiveWindowOutsideActionLoad_IsRejected()
+        {
+            var activeWindow = new ActionActiveWindowDefinition(
+                "invalid.window",
+                "Invalid Window",
+                startOffset: 1,
+                endOffset: 4,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.30d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption);
+
+            Assert.Throws<ArgumentException>(() => new ComboActionDefinition(
+                "main",
+                "Main",
+                ComboActionCategory.Main,
+                loadCost: 3,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                activeWindows: new[] { activeWindow }));
+        }
+
         private static ComboConfiguration MainOnlyCombo(ComboActionDefinition main)
         {
             return new ComboConfiguration(

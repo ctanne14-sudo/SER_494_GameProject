@@ -195,6 +195,51 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(validationError, Does.Contain("requires Status authoring"));
         }
 
+        [Test]
+        public void TryCreateDefinition_ActiveWindow_CopiesSerializedValues()
+        {
+            ConfigureAsset(
+                actionId: "focus",
+                displayName: "Focus",
+                category: ComboActionCategory.Opening,
+                loadCost: 5,
+                resolutionOffset: 5,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 1,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty activeWindows = serializedAsset.FindProperty("activeWindows");
+            activeWindows.arraySize = 1;
+            SerializedProperty window = activeWindows.GetArrayElementAtIndex(0);
+            window.FindPropertyRelative("windowId").stringValue = "focus.defense";
+            window.FindPropertyRelative("displayName").stringValue = "Focused Defense";
+            window.FindPropertyRelative("startOffset").intValue = 1;
+            window.FindPropertyRelative("endOffset").intValue = 5;
+            window.FindPropertyRelative("effect").enumValueIndex =
+                (int)ActiveWindowEffect.DefensiveState;
+            window.FindPropertyRelative("damageReduction").floatValue = 0.30f;
+            window.FindPropertyRelative("disruptionPolicy").enumValueIndex =
+                (int)ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(definition.ActiveWindows[0].WindowId, Is.EqualTo("focus.defense"));
+            Assert.That(definition.ActiveWindows[0].StartOffset, Is.EqualTo(1));
+            Assert.That(definition.ActiveWindows[0].EndOffset, Is.EqualTo(5));
+            Assert.That(definition.ActiveWindows[0].DamageReduction,
+                Is.EqualTo(0.30d).Within(0.000001d));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

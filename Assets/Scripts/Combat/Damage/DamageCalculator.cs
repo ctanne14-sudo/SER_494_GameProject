@@ -53,11 +53,19 @@ namespace SER494.Gameplay.Combat.Damage
             IReadOnlyList<DamageModifier> damageDealtModifiers,
             IReadOnlyList<DamageModifier> damageTakenModifiers,
             double clashDamageReduction,
-            BattleDamageConfiguration configuration)
+            BattleDamageConfiguration configuration,
+            double additionalApplicableDamageModifier = 0d)
         {
             if (effect == null)
             {
                 throw new ArgumentNullException(nameof(effect));
+            }
+
+            if (double.IsNaN(additionalApplicableDamageModifier)
+                || double.IsInfinity(additionalApplicableDamageModifier))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(additionalApplicableDamageModifier));
             }
 
             IReadOnlyList<DamageModifier> dealt = damageDealtModifiers ?? NoModifiers;
@@ -69,7 +77,8 @@ namespace SER494.Gameplay.Combat.Damage
             {
                 DamageComponentDefinition component = effect.Components[index];
                 double applicableModifier = SumApplicable(dealt, component)
-                    + SumApplicable(taken, component);
+                    + SumApplicable(taken, component)
+                    + additionalApplicableDamageModifier;
                 DamageFormulaResult componentResult = CalculateOrdinaryComponent(
                     new DamageFormulaInput(
                         component.ActionMultiplier,

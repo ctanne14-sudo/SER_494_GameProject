@@ -21,6 +21,29 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             public float damageMultiplierScale = 1f;
         }
 
+        [Serializable]
+        private sealed class ActiveWindowAuthoringData
+        {
+            [Tooltip("Stable ID used to prevent the same named effect from stacking.")]
+            public string windowId = string.Empty;
+
+            public string displayName = string.Empty;
+
+            [Min(1)]
+            public int startOffset = 1;
+
+            [Min(1)]
+            public int endOffset = 1;
+
+            public ActiveWindowEffect effect = ActiveWindowEffect.DefensiveState;
+
+            [Range(0.01f, 0.99f)]
+            public float damageReduction = 0.30f;
+
+            public ActiveWindowDisruptionPolicy disruptionPolicy =
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+        }
+
         [Header("Identity")]
         [SerializeField]
         [Tooltip("Stable internal ID. It must be unique across all owned Actions.")]
@@ -59,6 +82,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Tooltip("Optional Charge Levels. Level 0 always uses the base Action values.")]
         private ChargeLevelAuthoringData[] chargeLevels =
             Array.Empty<ChargeLevelAuthoringData>();
+
+        [SerializeField]
+        [Tooltip("Continuous effects active over inclusive Action Local Time ranges.")]
+        private ActiveWindowAuthoringData[] activeWindows =
+            Array.Empty<ActiveWindowAuthoringData>();
 
         [SerializeField]
         [Min(0)]
@@ -108,6 +136,28 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public int ResolutionWindowEnd => resolutionWindowEnd;
 
         public int ChargeLevelCount => chargeLevels?.Length ?? 0;
+
+        public int ActiveWindowCount => activeWindows?.Length ?? 0;
+
+        public string GetActiveWindowDisplayName(int index)
+        {
+            return GetActiveWindow(index).displayName;
+        }
+
+        public int GetActiveWindowStartOffset(int index)
+        {
+            return GetActiveWindow(index).startOffset;
+        }
+
+        public int GetActiveWindowEndOffset(int index)
+        {
+            return GetActiveWindow(index).endOffset;
+        }
+
+        public float GetActiveWindowDamageReduction(int index)
+        {
+            return GetActiveWindow(index).damageReduction;
+        }
 
         public int GetChargeAdditionalLoad(int chargeLevel)
         {
@@ -184,6 +234,20 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (!TryCreateActiveWindows(
+                    out IReadOnlyList<ActionActiveWindowDefinition> activeWindowDefinitions,
+                    out validationError))
+            {
+                return false;
+            }
+
+            if (chargeDefinitions.Count > 0 && activeWindowDefinitions.Count > 0)
+            {
+                validationError = $"{name} cannot use both Charge Levels and Active Windows "
+                    + "until charge timing for Active Windows is defined.";
+                return false;
+            }
+
             if (manaCost < 0 || staminaCost < 0 || cooldown < 0 || damageMultiplier < 0f)
             {
                 validationError = $"{name} contains a negative cost or Damage Multiplier value.";
@@ -237,7 +301,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 resolutionWindowEnd: useResolutionWindow
                     ? (int?)resolutionWindowEnd
                     : null,
-                chargeLevels: chargeDefinitions);
+                chargeLevels: chargeDefinitions,
+                activeWindows: activeWindowDefinitions);
 
             validationError = null;
             return true;
@@ -268,6 +333,24 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
                 level.additionalLoad = Mathf.Max(1, level.additionalLoad);
                 level.damageMultiplierScale = Mathf.Max(0.01f, level.damageMultiplierScale);
+            }
+
+            if (activeWindows == null)
+            {
+                activeWindows = Array.Empty<ActiveWindowAuthoringData>();
+            }
+
+            for (int index = 0; index < activeWindows.Length; index++)
+            {
+                ActiveWindowAuthoringData window = activeWindows[index];
+                if (window == null)
+                {
+                    continue;
+                }
+
+                window.startOffset = Mathf.Clamp(window.startOffset, 1, loadCost);
+                window.endOffset = Mathf.Clamp(window.endOffset, window.startOffset, loadCost);
+                window.damageReduction = Mathf.Clamp(window.damageReduction, 0.01f, 0.99f);
             }
         }
 
@@ -318,6 +401,69 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             }
 
             return chargeLevels[chargeLevel - 1];
+        }
+
+        private bool TryCreateActiveWindows(
+            out IReadOnlyList<ActionActiveWindowDefinition> definitions,
+            out string validationError)
+        {
+            if (activeWindows == null || activeWindows.Length == 0)
+            {
+                definitions = Array.Empty<ActionActiveWindowDefinition>();
+                validationError = null;
+                return true;
+            }
+
+            var created = new ActionActiveWindowDefinition[activeWindows.Length];
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < activeWindows.Length; index++)
+            {
+                ActiveWindowAuthoringData window = activeWindows[index];
+                if (window == null
+                    || string.IsNullOrWhiteSpace(window.windowId)
+                    || string.IsNullOrWhiteSpace(window.displayName)
+                    || window.startOffset < 1
+                    || window.endOffset < window.startOffset
+                    || window.endOffset > loadCost
+                    || window.damageReduction <= 0f
+                    || window.damageReduction >= 1f)
+                {
+                    definitions = null;
+                    validationError = $"{name} contains an invalid Active Window.";
+                    return false;
+                }
+
+                string trimmedId = window.windowId.Trim();
+                if (!ids.Add(trimmedId))
+                {
+                    definitions = null;
+                    validationError = $"{name} contains duplicate Active Window IDs.";
+                    return false;
+                }
+
+                created[index] = new ActionActiveWindowDefinition(
+                    trimmedId,
+                    window.displayName.Trim(),
+                    window.startOffset,
+                    window.endOffset,
+                    window.effect,
+                    window.damageReduction,
+                    window.disruptionPolicy);
+            }
+
+            definitions = Array.AsReadOnly(created);
+            validationError = null;
+            return true;
+        }
+
+        private ActiveWindowAuthoringData GetActiveWindow(int index)
+        {
+            if (activeWindows == null || index < 0 || index >= activeWindows.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return activeWindows[index];
         }
     }
 }

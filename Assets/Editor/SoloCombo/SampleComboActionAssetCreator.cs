@@ -27,14 +27,23 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.focus-stance",
                     "Focus Stance",
                     ComboActionCategory.Opening,
-                    loadCost: 2,
-                    resolutionOffset: 2,
+                    loadCost: 5,
+                    resolutionOffset: 5,
                     manaCost: 0,
                     staminaCost: 1,
                     cooldown: 1,
                     damageMultiplier: 0f,
                     damageType: DamageType.Slashing,
-                    resolutionEffect: ActionResolutionEffect.None),
+                    resolutionEffect: ActionResolutionEffect.None,
+                    activeWindows: new[]
+                    {
+                        new SampleActiveWindow(
+                            "focus.defense",
+                            "Focused Defense",
+                            startOffset: 1,
+                            endOffset: 5,
+                            damageReduction: 0.30f)
+                    }),
                 new SampleAction(
                     "Sample_QuickGuard",
                     "sample.quick-guard",
@@ -311,6 +320,23 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 level.FindPropertyRelative("damageMultiplierScale").floatValue =
                     sample.ChargeLevels[index].DamageMultiplierScale;
             }
+            SerializedProperty activeWindows = serializedAsset.FindProperty("activeWindows");
+            activeWindows.arraySize = sample.ActiveWindows.Length;
+            for (int index = 0; index < sample.ActiveWindows.Length; index++)
+            {
+                SerializedProperty window = activeWindows.GetArrayElementAtIndex(index);
+                SampleActiveWindow sampleWindow = sample.ActiveWindows[index];
+                window.FindPropertyRelative("windowId").stringValue = sampleWindow.WindowId;
+                window.FindPropertyRelative("displayName").stringValue = sampleWindow.DisplayName;
+                window.FindPropertyRelative("startOffset").intValue = sampleWindow.StartOffset;
+                window.FindPropertyRelative("endOffset").intValue = sampleWindow.EndOffset;
+                window.FindPropertyRelative("effect").enumValueIndex =
+                    (int)sampleWindow.Effect;
+                window.FindPropertyRelative("damageReduction").floatValue =
+                    sampleWindow.DamageReduction;
+                window.FindPropertyRelative("disruptionPolicy").enumValueIndex =
+                    (int)sampleWindow.DisruptionPolicy;
+            }
             serializedAsset.FindProperty("manaCost").intValue = sample.ManaCost;
             serializedAsset.FindProperty("staminaCost").intValue = sample.StaminaCost;
             serializedAsset.FindProperty("cooldown").intValue = sample.Cooldown;
@@ -361,7 +387,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 DamageResolutionTag damageTags = DamageResolutionTag.None,
                 int? resolutionWindowStart = null,
                 int? resolutionWindowEnd = null,
-                SampleChargeLevel[] chargeLevels = null)
+                SampleChargeLevel[] chargeLevels = null,
+                SampleActiveWindow[] activeWindows = null)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -379,6 +406,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ResolutionWindowStart = resolutionWindowStart;
                 ResolutionWindowEnd = resolutionWindowEnd;
                 ChargeLevels = chargeLevels ?? new SampleChargeLevel[0];
+                ActiveWindows = activeWindows ?? new SampleActiveWindow[0];
             }
 
             public string FileName { get; }
@@ -412,6 +440,44 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public int? ResolutionWindowEnd { get; }
 
             public SampleChargeLevel[] ChargeLevels { get; }
+
+            public SampleActiveWindow[] ActiveWindows { get; }
+        }
+
+        private sealed class SampleActiveWindow
+        {
+            public SampleActiveWindow(
+                string windowId,
+                string displayName,
+                int startOffset,
+                int endOffset,
+                float damageReduction,
+                ActiveWindowEffect effect = ActiveWindowEffect.DefensiveState,
+                ActiveWindowDisruptionPolicy disruptionPolicy =
+                    ActiveWindowDisruptionPolicy.PersistThroughDisruption)
+            {
+                WindowId = windowId;
+                DisplayName = displayName;
+                StartOffset = startOffset;
+                EndOffset = endOffset;
+                DamageReduction = damageReduction;
+                Effect = effect;
+                DisruptionPolicy = disruptionPolicy;
+            }
+
+            public string WindowId { get; }
+
+            public string DisplayName { get; }
+
+            public int StartOffset { get; }
+
+            public int EndOffset { get; }
+
+            public float DamageReduction { get; }
+
+            public ActiveWindowEffect Effect { get; }
+
+            public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
         }
 
         private sealed class SampleChargeLevel

@@ -92,7 +92,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         action.ResolutionEffect,
                         action.DamageTags,
                         action.StatusEffect,
-                        action.StatusTarget);
+                        action.StatusTarget,
+                        resolutionWindowStartTime: null,
+                        resolutionWindowEndTime: null,
+                        chargeLevels: action.ChargeLevels,
+                        activeWindows: action.ActiveWindows);
                     replaced = true;
                 }
 
@@ -280,7 +284,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.ResolutionWindowEnd.HasValue
                         ? (int?)checked(currentTime + definition.ResolutionWindowEnd.Value)
                         : null,
-                    definition.ChargeLevels));
+                    definition.ChargeLevels,
+                    ScheduleActiveWindows(definition.ActiveWindows, currentTime)));
                 currentTime = endTime;
             }
 
@@ -308,7 +313,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.ResolutionEffect,
                     definition.DamageTags,
                     definition.StatusEffect,
-                    definition.StatusTarget));
+                    definition.StatusTarget,
+                    activeWindows: ScheduleActiveWindows(
+                        definition.ActiveWindows,
+                        currentTime)));
                 currentTime = endTime;
             }
 
@@ -344,7 +352,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     : null,
                 keepChargeLevels
                     ? action.ChargeLevels
-                    : Array.Empty<ComboActionChargeLevelDefinition>());
+                    : Array.Empty<ComboActionChargeLevelDefinition>(),
+                ShiftActiveWindows(action.ActiveWindows, resolutionShift));
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(
@@ -366,6 +375,58 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return new DamageEffectDefinition(components);
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindow> ScheduleActiveWindows(
+            IReadOnlyList<ActionActiveWindowDefinition> definitions,
+            int actionStartTime)
+        {
+            if (definitions.Count == 0)
+            {
+                return Array.Empty<ScheduledActiveWindow>();
+            }
+
+            var windows = new ScheduledActiveWindow[definitions.Count];
+            for (int index = 0; index < definitions.Count; index++)
+            {
+                ActionActiveWindowDefinition definition = definitions[index];
+                windows[index] = new ScheduledActiveWindow(
+                    definition.WindowId,
+                    definition.DisplayName,
+                    checked(actionStartTime + definition.StartOffset),
+                    checked(actionStartTime + definition.EndOffset),
+                    definition.Effect,
+                    definition.DamageReduction,
+                    definition.DisruptionPolicy);
+            }
+
+            return Array.AsReadOnly(windows);
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindow> ShiftActiveWindows(
+            IReadOnlyList<ScheduledActiveWindow> windows,
+            int shift)
+        {
+            if (windows.Count == 0 || shift == 0)
+            {
+                return windows;
+            }
+
+            var shifted = new ScheduledActiveWindow[windows.Count];
+            for (int index = 0; index < windows.Count; index++)
+            {
+                ScheduledActiveWindow window = windows[index];
+                shifted[index] = new ScheduledActiveWindow(
+                    window.WindowId,
+                    window.DisplayName,
+                    checked(window.StartTime + shift),
+                    checked(window.EndTime + shift),
+                    window.Effect,
+                    window.DamageReduction,
+                    window.DisruptionPolicy);
+            }
+
+            return Array.AsReadOnly(shifted);
         }
     }
 }

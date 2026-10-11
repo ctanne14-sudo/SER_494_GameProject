@@ -28,6 +28,101 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Opponent
     }
 
+    public enum ActiveWindowEffect
+    {
+        DefensiveState
+    }
+
+    public enum ActiveWindowDisruptionPolicy
+    {
+        PersistThroughDisruption,
+        BreakOnDisruption,
+        SuppressDuringDisruption
+    }
+
+    public sealed class ActionActiveWindowDefinition
+    {
+        public ActionActiveWindowDefinition(
+            string windowId,
+            string displayName,
+            int startOffset,
+            int endOffset,
+            ActiveWindowEffect effect,
+            double damageReduction,
+            ActiveWindowDisruptionPolicy disruptionPolicy)
+        {
+            if (string.IsNullOrWhiteSpace(windowId))
+            {
+                throw new ArgumentException("An Active Window must have a stable ID.", nameof(windowId));
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                throw new ArgumentException(
+                    "An Active Window must have a display name.",
+                    nameof(displayName));
+            }
+
+            if (startOffset < 1 || endOffset < startOffset)
+            {
+                throw new ArgumentException(
+                    "An Active Window must use an ordered Local Time range beginning at 1 or later.");
+            }
+
+            if (!Enum.IsDefined(typeof(ActiveWindowEffect), effect))
+            {
+                throw new ArgumentOutOfRangeException(nameof(effect));
+            }
+
+            if (double.IsNaN(damageReduction)
+                || double.IsInfinity(damageReduction)
+                || damageReduction <= 0d
+                || damageReduction >= 1d)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(damageReduction),
+                    damageReduction,
+                    "Defensive State reduction must be greater than zero and less than one.");
+            }
+
+            if (!Enum.IsDefined(typeof(ActiveWindowDisruptionPolicy), disruptionPolicy))
+            {
+                throw new ArgumentOutOfRangeException(nameof(disruptionPolicy));
+            }
+
+            WindowId = windowId;
+            DisplayName = displayName;
+            StartOffset = startOffset;
+            EndOffset = endOffset;
+            Effect = effect;
+            DamageReduction = damageReduction;
+            DisruptionPolicy = disruptionPolicy;
+        }
+
+        public string WindowId { get; }
+
+        public string DisplayName { get; }
+
+        public int StartOffset { get; }
+
+        public int EndOffset { get; }
+
+        public ActiveWindowEffect Effect { get; }
+
+        public double DamageReduction { get; }
+
+        public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
+
+        internal void ValidateForActionLoad(int loadCost)
+        {
+            if (EndOffset > loadCost)
+            {
+                throw new ArgumentException(
+                    $"Active Window '{DisplayName}' ends outside its Action Load.");
+            }
+        }
+    }
+
     public sealed class ComboActionChargeLevelDefinition
     {
         public ComboActionChargeLevelDefinition(
@@ -89,7 +184,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             int? resolutionWindowStart = null,
             int? resolutionWindowEnd = null,
-            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
             : this(
                 actionId,
                 displayName,
@@ -106,7 +202,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusTarget,
                 resolutionWindowStart,
                 resolutionWindowEnd,
-                chargeLevels)
+                chargeLevels,
+                activeWindows)
         {
         }
 
@@ -125,7 +222,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             int? resolutionWindowStart = null,
             int? resolutionWindowEnd = null,
-            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
             : this(
                 actionId,
                 displayName,
@@ -144,7 +242,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusTarget,
                 resolutionWindowStart,
                 resolutionWindowEnd,
-                chargeLevels)
+                chargeLevels,
+                activeWindows)
         {
         }
 
@@ -164,7 +263,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget,
             int? resolutionWindowStart,
             int? resolutionWindowEnd,
-            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels)
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -201,6 +301,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ChargeLevels = CopyAndValidateChargeLevels(
                 chargeLevels,
                 HasResolutionWindow);
+            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
+            if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
+            {
+                throw new ArgumentException(
+                    "The MVP does not yet combine Charge Levels and Active Windows on one Action.");
+            }
         }
 
         public string ActionId { get; }
@@ -240,6 +346,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ComboActionChargeLevelDefinition> ChargeLevels { get; }
 
         public bool IsChargeable => ChargeLevels.Count > 0;
+
+        public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
 
         private static int RequirePositive(int value, string parameterName)
         {
@@ -450,6 +558,37 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
                 copy[index] = level;
                 previousAdditionalLoad = level.AdditionalLoad;
+            }
+
+            return Array.AsReadOnly(copy);
+        }
+
+        private static IReadOnlyList<ActionActiveWindowDefinition> CopyAndValidateActiveWindows(
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
+            int loadCost)
+        {
+            if (activeWindows == null || activeWindows.Count == 0)
+            {
+                return Array.Empty<ActionActiveWindowDefinition>();
+            }
+
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var copy = new ActionActiveWindowDefinition[activeWindows.Count];
+            for (int index = 0; index < activeWindows.Count; index++)
+            {
+                ActionActiveWindowDefinition window = activeWindows[index]
+                    ?? throw new ArgumentException(
+                        "Active Window entries cannot be null.",
+                        nameof(activeWindows));
+                window.ValidateForActionLoad(loadCost);
+                if (!ids.Add(window.WindowId))
+                {
+                    throw new ArgumentException(
+                        "One Action cannot contain duplicate Active Window IDs.",
+                        nameof(activeWindows));
+                }
+
+                copy[index] = window;
             }
 
             return Array.AsReadOnly(copy);

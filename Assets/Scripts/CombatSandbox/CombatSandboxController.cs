@@ -335,6 +335,10 @@ namespace SER494.Gameplay.CombatSandbox
                 displayEnd,
                 new Color(0.88f, 0.28f, 0.24f, 0.82f));
             DrawTimelineRuler(displayEnd);
+            GUILayout.Label(
+                "Green: Active Window   Yellow: Resolution Point   "
+                + "Orange: Resolution Window   Cyan: Current Time",
+                _timelineTickStyle);
         }
 
         private void DrawTimelineTrack(
@@ -386,6 +390,24 @@ namespace SER494.Gameplay.CombatSandbox
                     ? $"{action.DisplayName} [Charge]"
                     : action.DisplayName;
                 GUI.Label(actionRect, actionLabel, _timelineActionStyle);
+
+                for (int windowIndex = 0;
+                    windowIndex < action.ActiveWindows.Count;
+                    windowIndex++)
+                {
+                    ScheduledActiveWindow window = action.ActiveWindows[windowIndex];
+                    float activeStart = window.StartTime / (float)displayEnd;
+                    float activeEnd = window.EndTime / (float)displayEnd;
+                    GUI.color = new Color(0.25f, 0.92f, 0.48f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * activeStart,
+                            actionRect.y,
+                            Mathf.Max(3f, trackRect.width * (activeEnd - activeStart)),
+                            5f),
+                        Texture2D.whiteTexture);
+                    GUI.color = previousColor;
+                }
 
                 if (action.HasResolutionWindow)
                 {
@@ -1085,9 +1107,12 @@ namespace SER494.Gameplay.CombatSandbox
                 string tags = resolution.DamageTags == DamageResolutionTag.None
                     ? string.Empty
                     : $" [{resolution.DamageTags}]";
+                string defense = resolution.DefensiveDamageReduction > 0d
+                    ? $" [Defensive State -{resolution.DefensiveDamageReduction * 100d:0}%]"
+                    : string.Empty;
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
-                    + $"{resolution.DamageDealt} damage{tags}.");
+                    + $"{resolution.DamageDealt} damage{tags}{defense}.");
             }
             else if (resolution.StatusDisplayName != null)
             {

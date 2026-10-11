@@ -27,7 +27,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         [Header("Character Limits")]
         [SerializeField]
         [Min(0)]
-        private int maximumLoad = 12;
+        private int maximumLoad = 30;
 
         [SerializeField]
         [Min(0)]
@@ -609,6 +609,22 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                             .Append(" Load x")
                             .Append(action.GetChargeDamageMultiplierScale(level).ToString("0.00"));
                     }
+                }
+
+                for (int windowIndex = 0;
+                    windowIndex < action.ActiveWindowCount;
+                    windowIndex++)
+                {
+                    builder.Append(" | Active: ")
+                        .Append(action.GetActiveWindowDisplayName(windowIndex))
+                        .Append(" Local T+")
+                        .Append(action.GetActiveWindowStartOffset(windowIndex))
+                        .Append('–')
+                        .Append(action.GetActiveWindowEndOffset(windowIndex))
+                        .Append(" (-")
+                        .Append((action.GetActiveWindowDamageReduction(windowIndex) * 100f)
+                            .ToString("0"))
+                        .Append("% Damage Taken)");
                 }
             }
 

@@ -703,6 +703,26 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(SoloComboExecutionFailure.ComboIndexOutOfRange));
         }
 
+        [Test]
+        public void DefensiveActiveWindow_ReducesOnlyDamageInsideInclusiveWindow()
+        {
+            SoloComboBattleState battle = CreateBattleWithDefensiveActiveWindow();
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            SoloComboActionResolution[] enemyDamage = result.ActionResolutions
+                .Where(resolution => resolution.Side == TimelineActorSide.Enemy)
+                .ToArray();
+            Assert.That(enemyDamage, Has.Length.EqualTo(2));
+            Assert.That(enemyDamage[0].TimeStep, Is.EqualTo(2));
+            Assert.That(enemyDamage[0].DamageDealt, Is.EqualTo(11));
+            Assert.That(enemyDamage[0].DefensiveDamageReduction, Is.EqualTo(0.30d));
+            Assert.That(enemyDamage[1].TimeStep, Is.EqualTo(5));
+            Assert.That(enemyDamage[1].DamageDealt, Is.EqualTo(16));
+            Assert.That(enemyDamage[1].DefensiveDamageReduction, Is.Zero);
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(73));
+        }
+
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
             var player = new CombatantState(
@@ -727,6 +747,60 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 player,
                 enemy,
                 combos,
+                enemySequence,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2);
+        }
+
+        private static SoloComboBattleState CreateBattleWithDefensiveActiveWindow()
+        {
+            var activeWindow = new ActionActiveWindowDefinition(
+                "focus.defense",
+                "Focused Defense",
+                startOffset: 1,
+                endOffset: 3,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.30d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption);
+            var focus = new ComboActionDefinition(
+                "focus",
+                "Focus",
+                ComboActionCategory.Main,
+                loadCost: 5,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                activeWindows: new[] { activeWindow });
+            var combo = new ComboConfiguration(
+                "defensive-window",
+                openingAction: null,
+                mainAction: focus,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var enemySequence = new EnemyActionSequence(
+                "double-strike",
+                "Double Strike",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "first-strike",
+                        "First Strike",
+                        loadCost: 2,
+                        resolutionOffset: 2,
+                        damageMultiplier: 0.40d),
+                    new EnemyActionDefinition(
+                        "second-strike",
+                        "Second Strike",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.40d)
+                });
+
+            return new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(50, 0, 0, 60, 60)),
+                new[] { combo },
                 enemySequence,
                 manaRecoveryPerTurn: 1,
                 staminaRecoveryPerTurn: 2);

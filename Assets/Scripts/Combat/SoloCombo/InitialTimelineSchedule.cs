@@ -10,6 +10,46 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Enemy
     }
 
+    public sealed class ScheduledActiveWindow
+    {
+        internal ScheduledActiveWindow(
+            string windowId,
+            string displayName,
+            int startTime,
+            int endTime,
+            ActiveWindowEffect effect,
+            double damageReduction,
+            ActiveWindowDisruptionPolicy disruptionPolicy)
+        {
+            WindowId = windowId;
+            DisplayName = displayName;
+            StartTime = startTime;
+            EndTime = endTime;
+            Effect = effect;
+            DamageReduction = damageReduction;
+            DisruptionPolicy = disruptionPolicy;
+        }
+
+        public string WindowId { get; }
+
+        public string DisplayName { get; }
+
+        public int StartTime { get; }
+
+        public int EndTime { get; }
+
+        public ActiveWindowEffect Effect { get; }
+
+        public double DamageReduction { get; }
+
+        public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
+
+        public bool IsActiveAt(int timeStep)
+        {
+            return timeStep >= StartTime && timeStep <= EndTime;
+        }
+    }
+
     public sealed class ScheduledTimelineAction
     {
         internal ScheduledTimelineAction(
@@ -27,7 +67,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget,
             int? resolutionWindowStartTime = null,
             int? resolutionWindowEndTime = null,
-            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
+            IReadOnlyList<ScheduledActiveWindow> activeWindows = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -45,6 +86,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ResolutionWindowEndTime = resolutionWindowEndTime;
             ChargeLevels = chargeLevels
                 ?? Array.Empty<ComboActionChargeLevelDefinition>();
+            ActiveWindows = activeWindows ?? Array.Empty<ScheduledActiveWindow>();
         }
 
         public TimelineActorSide Side { get; }
@@ -82,6 +124,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ComboActionChargeLevelDefinition> ChargeLevels { get; }
 
         public bool IsChargeable => ChargeLevels.Count > 0;
+
+        public IReadOnlyList<ScheduledActiveWindow> ActiveWindows { get; }
     }
 
     public sealed class TimelineResolutionStep

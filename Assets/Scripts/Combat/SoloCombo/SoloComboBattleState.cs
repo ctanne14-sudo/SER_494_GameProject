@@ -36,7 +36,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageResolutionTag damageTags,
             string statusDisplayName,
             ActionStatusTarget statusTarget,
-            bool statusApplied)
+            bool statusApplied,
+            double defensiveDamageReduction = 0d)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -49,6 +50,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StatusDisplayName = statusDisplayName;
             StatusTarget = statusTarget;
             StatusApplied = statusApplied;
+            DefensiveDamageReduction = defensiveDamageReduction;
         }
 
         public TimelineActorSide Side { get; }
@@ -72,6 +74,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionStatusTarget StatusTarget { get; }
 
         public bool StatusApplied { get; }
+
+        public double DefensiveDamageReduction { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -644,9 +648,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 DamageAvoidanceResult avoidance = action.HasDamage
                     ? ResolveDamageAvoidance(targetDefense, action.DamageTags)
                     : DamageAvoidanceResult.None;
+                TimelineActorSide targetSide = action.Side == TimelineActorSide.Player
+                    ? TimelineActorSide.Enemy
+                    : TimelineActorSide.Player;
+                double defensiveDamageReduction = action.HasDamage
+                    && avoidance == DamageAvoidanceResult.None
+                        ? GetActiveDefensiveDamageReduction(targetSide, step.TimeStep)
+                        : 0d;
                 int damage = action.HasDamage
                     && avoidance == DamageAvoidanceResult.None
-                        ? CalculateDamage(actor, target, action.DamageEffect)
+                        ? CalculateDamage(
+                            actor,
+                            target,
+                            action.DamageEffect,
+                            defensiveDamageReduction)
                         : 0;
                 resolutions.Add(new SoloComboActionResolution(
                     action.Side,
@@ -659,7 +674,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     action.DamageTags,
                     statusDisplayName: null,
                     statusTarget: ActionStatusTarget.Self,
-                    statusApplied: false));
+                    statusApplied: false,
+                    defensiveDamageReduction));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -878,7 +894,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private int CalculateDamage(
             CombatantState attacker,
             CombatantState defender,
-            DamageEffectDefinition damageEffect)
+            DamageEffectDefinition damageEffect,
+            double defensiveDamageReduction)
         {
             return DamageCalculator.CalculateEffect(
                 damageEffect,
@@ -889,7 +906,42 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageDealtModifiers: attacker.DamageDealtModifiers,
                 damageTakenModifiers: defender.DamageTakenModifiers,
                 clashDamageReduction: 0d,
-                configuration: _damageConfiguration).FinalDamage;
+                configuration: _damageConfiguration,
+                additionalApplicableDamageModifier: -defensiveDamageReduction).FinalDamage;
+        }
+
+        private double GetActiveDefensiveDamageReduction(
+            TimelineActorSide defendedSide,
+            int timeStep)
+        {
+            var appliedWindowIds = new HashSet<string>(StringComparer.Ordinal);
+            double totalReduction = 0d;
+
+            for (int actionIndex = 0; actionIndex < _activeSchedule.Actions.Count; actionIndex++)
+            {
+                ScheduledTimelineAction action = _activeSchedule.Actions[actionIndex];
+                if (action.Side != defendedSide)
+                {
+                    continue;
+                }
+
+                for (int windowIndex = 0;
+                    windowIndex < action.ActiveWindows.Count;
+                    windowIndex++)
+                {
+                    ScheduledActiveWindow window = action.ActiveWindows[windowIndex];
+                    if (window.Effect != ActiveWindowEffect.DefensiveState
+                        || !window.IsActiveAt(timeStep)
+                        || !appliedWindowIds.Add(window.WindowId))
+                    {
+                        continue;
+                    }
+
+                    totalReduction += window.DamageReduction;
+                }
+            }
+
+            return Math.Min(1d, totalReduction);
         }
 
         private void AdvanceExistingCooldowns()
