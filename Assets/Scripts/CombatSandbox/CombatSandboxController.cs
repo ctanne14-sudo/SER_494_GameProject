@@ -15,6 +15,7 @@ namespace SER494.Gameplay.CombatSandbox
         private const int ManaRecoveryPerTurn = 1;
         private const int StaminaRecoveryPerTurn = 2;
         private const int IntentTimelineLength = 30;
+        private const float WideLayoutThreshold = 1050f;
 
         [Header("Prepared Combo Handoff")]
         [SerializeField]
@@ -90,8 +91,8 @@ namespace SER494.Gameplay.CombatSandbox
         {
             InitializeStyles();
 
-            float width = Mathf.Clamp(Screen.width - 40f, 360f, 820f);
-            float height = Mathf.Clamp(Screen.height - 40f, 460f, 780f);
+            float width = Mathf.Clamp(Screen.width * 0.92f, 360f, 1600f);
+            float height = Mathf.Clamp(Screen.height * 0.92f, 460f, 1100f);
             float left = Mathf.Max(0f, (Screen.width - width) * 0.5f);
             float top = Mathf.Max(0f, (Screen.height - height) * 0.5f);
 
@@ -107,6 +108,57 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
+            if (width >= WideLayoutThreshold)
+            {
+                DrawWideBattleLayout(width);
+            }
+            else
+            {
+                DrawNarrowBattleLayout();
+            }
+
+            GUILayout.Space(6f);
+            DrawFooterControls();
+            GUILayout.EndArea();
+        }
+
+        private void DrawWideBattleLayout(float availableWidth)
+        {
+            DrawCombatantStatus();
+            GUILayout.Space(8f);
+            DrawEnemyIntent();
+            GUILayout.Space(10f);
+
+            float logWidth = Mathf.Clamp(availableWidth * 0.36f, 380f, 560f);
+            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(true));
+
+            GUILayout.BeginVertical(
+                GUI.skin.box,
+                GUILayout.MinWidth(520f),
+                GUILayout.ExpandWidth(true),
+                GUILayout.ExpandHeight(true));
+            _contentScrollPosition = GUILayout.BeginScrollView(
+                _contentScrollPosition,
+                GUILayout.ExpandHeight(true));
+            DrawTimelinePlayback();
+            GUILayout.Space(12f);
+            DrawComboActions();
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+
+            GUILayout.Space(10f);
+            GUILayout.BeginVertical(
+                GUI.skin.box,
+                GUILayout.Width(logWidth),
+                GUILayout.ExpandHeight(true));
+            DrawCombatLog(expandHeight: true);
+            GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawNarrowBattleLayout()
+        {
             _contentScrollPosition = GUILayout.BeginScrollView(
                 _contentScrollPosition,
                 GUILayout.ExpandHeight(true));
@@ -118,9 +170,12 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.Space(10f);
             DrawComboActions();
             GUILayout.Space(10f);
-            DrawCombatLog();
+            DrawCombatLog(expandHeight: false);
             GUILayout.EndScrollView();
-            GUILayout.Space(6f);
+        }
+
+        private void DrawFooterControls()
+        {
 
             GUILayout.Label(_outcomeStatus, _sectionStyle);
             GUILayout.BeginHorizontal();
@@ -138,7 +193,6 @@ namespace SER494.Gameplay.CombatSandbox
 
             GUI.enabled = previousEnabledState;
             GUILayout.EndHorizontal();
-            GUILayout.EndArea();
         }
 
         private void DrawMissingSetup()
@@ -432,14 +486,17 @@ namespace SER494.Gameplay.CombatSandbox
             }
         }
 
-        private void DrawCombatLog()
+        private void DrawCombatLog(bool expandHeight)
         {
             GUILayout.Label("Combat Log", _sectionStyle);
+            GUILayoutOption heightOption = expandHeight
+                ? GUILayout.ExpandHeight(true)
+                : GUILayout.MinHeight(240f);
             _logScrollPosition = GUILayout.BeginScrollView(
                 _logScrollPosition,
                 GUI.skin.box,
-                GUILayout.MinHeight(150f),
-                GUILayout.ExpandHeight(true));
+                GUILayout.MinHeight(expandHeight ? 300f : 240f),
+                heightOption);
             GUILayout.Label(_combatLogText, _logStyle);
             GUILayout.EndScrollView();
         }
