@@ -177,3 +177,29 @@
 .secondary-button:hover {
     background-color: #35465f;
 }
+
+.spaced-button {
+    margin-left: 8px;
+}
+
+.primary-button {
+    min-width: 180px;
+    min-height: 36px;
+    margin-left: 8px;
+    color: #17120b;
+    background-color: var(--accent);
+    border-width: 1px;
+    border-color: var(--accent-hover);
+    border-radius: 4px;
+    -unity-font-style: bold;
+}
+
+.primary-button:hover {
+    background-color: var(--accent-hover);
+}
+
+.primary-button:disabled {
+    color: #7f8792;
+    background-color: #2a303a;
+    border-color: #3b4554;
+}

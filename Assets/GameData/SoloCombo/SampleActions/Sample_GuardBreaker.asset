@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Guard Breaker
   category: 1
   loadCost: 4
+  resolutionOffset: 3
   manaCost: 0
   staminaCost: 5
   cooldown: 2
+  damageMultiplier: 0.5
+  damageType: 1
+  resolutionEffect: 1

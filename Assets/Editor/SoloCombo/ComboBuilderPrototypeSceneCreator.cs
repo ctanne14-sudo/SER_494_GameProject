@@ -13,7 +13,9 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
     public static class ComboBuilderPrototypeSceneCreator
     {
         private const string ScenePath = "Assets/Scenes/ComboBuilderSandbox.unity";
+        private const string CombatScenePath = "Assets/Scenes/CombatSandbox.unity";
         private const string PanelSettingsPath = "Assets/UI/SoloCombo/ComboBuilderPanelSettings.asset";
+        private const string LoadoutSessionPath = "Assets/GameData/SoloCombo/SoloComboLoadoutSession.asset";
         private const string VisualTreePath = "Assets/UI/SoloCombo/SoloComboBuilder.uxml";
         private const string SampleActionFolder = "Assets/GameData/SoloCombo/SampleActions";
 
@@ -26,6 +28,13 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             }
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+            SoloComboLoadoutSession loadoutSession = GetOrCreateLoadoutSession();
+            if (loadoutSession == null)
+            {
+                Debug.LogError($"Could not load runtime loadout session at {LoadoutSessionPath}.");
+                return;
+            }
 
             PanelSettings panelSettings = GetOrCreatePanelSettings();
             VisualTreeAsset visualTree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(VisualTreePath);
@@ -55,7 +64,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             SoloComboBuilderController controller =
                 GetOrAddComponent<SoloComboBuilderController>(builderObject);
-            ConfigureController(controller, sampleActions);
+            ConfigureController(controller, sampleActions, loadoutSession);
             EnsureCamera(scene);
 
             if (document.panelSettings == null)
@@ -69,6 +78,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
+
+            ConfigureCombatSandbox(loadoutSession);
+            EnsurePrototypeScenesInBuildSettings();
+            AssetDatabase.SaveAssets();
+            scene = EditorSceneManager.OpenScene(ScenePath);
+            builderObject = FindBuilderObject(scene);
 
             Selection.activeGameObject = builderObject;
             EditorGUIUtility.PingObject(builderObject);
@@ -91,8 +106,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
         private static void ConfigureController(
             SoloComboBuilderController controller,
-            ComboActionAsset[] sampleActions)
+            ComboActionAsset[] sampleActions,
+            SoloComboLoadoutSession loadoutSession)
         {
+            Undo.RecordObject(controller, "Assign Solo Combo Loadout Session");
+            controller.LoadoutSession = loadoutSession;
+
             var serializedController = new SerializedObject(controller);
             SerializedProperty actionArray = serializedController.FindProperty("availableActions");
             actionArray.arraySize = sampleActions.Length;
@@ -104,6 +123,94 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             serializedController.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(controller);
+
+            if (controller.LoadoutSession == null)
+            {
+                Debug.LogError("Failed to assign the runtime loadout session to SoloComboBuilderController.");
+            }
+        }
+
+        private static void ConfigureCombatSandbox(SoloComboLoadoutSession loadoutSession)
+        {
+            SceneAsset combatSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(CombatScenePath);
+            if (combatSceneAsset == null)
+            {
+                Debug.LogError($"Could not find Combat Sandbox scene at {CombatScenePath}.");
+                return;
+            }
+
+            Scene combatScene = EditorSceneManager.OpenScene(CombatScenePath);
+            MonoBehaviour controller = FindCombatSandboxController(combatScene);
+            if (controller == null)
+            {
+                Debug.LogError("CombatSandbox scene has no CombatSandboxController component.");
+                return;
+            }
+
+            System.Reflection.PropertyInfo sessionProperty =
+                controller.GetType().GetProperty("LoadoutSession");
+            if (sessionProperty == null || !sessionProperty.CanWrite)
+            {
+                Debug.LogError("CombatSandboxController has no writable LoadoutSession property.");
+                return;
+            }
+
+            Undo.RecordObject(controller, "Assign Solo Combo Loadout Session");
+            sessionProperty.SetValue(controller, loadoutSession);
+            EditorUtility.SetDirty(controller);
+
+            if (sessionProperty.GetValue(controller) as SoloComboLoadoutSession == null)
+            {
+                Debug.LogError("Failed to assign the runtime loadout session to CombatSandboxController.");
+                return;
+            }
+
+            EditorSceneManager.MarkSceneDirty(combatScene);
+            EditorSceneManager.SaveScene(combatScene, CombatScenePath);
+        }
+
+        private static MonoBehaviour FindCombatSandboxController(Scene scene)
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int rootIndex = 0; rootIndex < roots.Length; rootIndex++)
+            {
+                MonoBehaviour[] behaviours = roots[rootIndex].GetComponentsInChildren<MonoBehaviour>(true);
+                for (int behaviourIndex = 0; behaviourIndex < behaviours.Length; behaviourIndex++)
+                {
+                    MonoBehaviour behaviour = behaviours[behaviourIndex];
+                    if (behaviour != null
+                        && behaviour.GetType().FullName
+                            == "SER494.Gameplay.CombatSandbox.CombatSandboxController")
+                    {
+                        return behaviour;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static void EnsurePrototypeScenesInBuildSettings()
+        {
+            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            AddBuildSceneIfMissing(scenes, ScenePath);
+            AddBuildSceneIfMissing(scenes, CombatScenePath);
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        private static void AddBuildSceneIfMissing(
+            ICollection<EditorBuildSettingsScene> scenes,
+            string scenePath)
+        {
+            foreach (EditorBuildSettingsScene scene in scenes)
+            {
+                if (scene.path == scenePath)
+                {
+                    return;
+                }
+            }
+
+            scenes.Add(new EditorBuildSettingsScene(scenePath, true));
         }
 
         private static GameObject FindBuilderObject(Scene scene)
@@ -165,6 +272,25 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             AssetDatabase.CreateAsset(settings, PanelSettingsPath);
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
+        }
+
+        private static SoloComboLoadoutSession GetOrCreateLoadoutSession()
+        {
+            SoloComboLoadoutSession existingSession =
+                AssetDatabase.LoadAssetAtPath<SoloComboLoadoutSession>(LoadoutSessionPath);
+            if (existingSession != null)
+            {
+                return existingSession;
+            }
+
+            SoloComboLoadoutSession session = ScriptableObject.CreateInstance<SoloComboLoadoutSession>();
+            session.name = "SoloComboLoadoutSession";
+            AssetDatabase.CreateAsset(session, LoadoutSessionPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(
+                LoadoutSessionPath,
+                ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<SoloComboLoadoutSession>(LoadoutSessionPath);
         }
 
         private static ComboActionAsset[] LoadSampleActions()

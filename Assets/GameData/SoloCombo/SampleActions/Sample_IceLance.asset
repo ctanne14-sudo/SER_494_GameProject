@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Ice Lance
   category: 1
   loadCost: 5
+  resolutionOffset: 5
   manaCost: 4
   staminaCost: 0
   cooldown: 3
+  damageMultiplier: 0.7
+  damageType: 4
+  resolutionEffect: 1

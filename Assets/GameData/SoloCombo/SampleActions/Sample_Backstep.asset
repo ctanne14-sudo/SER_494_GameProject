@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Backstep
   category: 2
   loadCost: 2
+  resolutionOffset: 1
   manaCost: 0
   staminaCost: 2
   cooldown: 1
+  damageMultiplier: 0
+  damageType: 0
+  resolutionEffect: 3

@@ -412,6 +412,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cfb161ef9b37e0d4790a0e26f28e40b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SER494.Gameplay.CombatSandbox.CombatSandboxController
+  loadoutSession: {fileID: 11400000, guid: ba0fe5856911c414f99e97d6d91ae85a, type: 2}
 --- !u!4 &1097888647
 Transform:
   m_ObjectHideFlags: 0

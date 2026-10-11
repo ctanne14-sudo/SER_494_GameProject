@@ -41,8 +41,7 @@ namespace SER494.Gameplay.Combat.Tests
                 maxMana: 10,
                 maxStamina: 10,
                 attack,
-                defense,
-                speed: 5);
+                defense);
 
             return new CombatantState(name, stats);
         }

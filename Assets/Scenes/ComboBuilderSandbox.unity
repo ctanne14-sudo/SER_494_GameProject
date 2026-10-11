@@ -149,14 +149,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57600110062967f478d3867ced18dc49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SER494.Combat.UI::SER494.Gameplay.Combat.UI.SoloCombo.SoloComboBuilderController
+  loadoutSession: {fileID: 11400000, guid: ba0fe5856911c414f99e97d6d91ae85a, type: 2}
   availableActions:
-  - {fileID: 11400000, guid: 65a0ad44fc71db5449dd0b0eb97c905a, type: 2}
-  - {fileID: 11400000, guid: 41398bc77b4d6d345bed2b6dee2b3f83, type: 2}
-  - {fileID: 11400000, guid: deeda4c6f9b17ca47886f1a4d0c9a05b, type: 2}
+  - {fileID: 11400000, guid: e9d5acae73984f5c84770f9f8315116c, type: 2}
   - {fileID: 11400000, guid: b635a567939f3c3408ea21caa690614b, type: 2}
-  - {fileID: 11400000, guid: a0f0a5b4cfe02ac40bdd47e5dd618cbc, type: 2}
-  - {fileID: 11400000, guid: e916306f4ee93cf469ac238bca203d7a, type: 2}
+  - {fileID: 11400000, guid: b6fddfc82b2b4fdab34a646ac903a052, type: 2}
+  - {fileID: 11400000, guid: d9eb2e82c43f466783d52ffa52b3d0e1, type: 2}
   - {fileID: 11400000, guid: 6003aa5a77759f643b4fca534c9aea8b, type: 2}
+  - {fileID: 11400000, guid: deeda4c6f9b17ca47886f1a4d0c9a05b, type: 2}
+  - {fileID: 11400000, guid: 41398bc77b4d6d345bed2b6dee2b3f83, type: 2}
+  - {fileID: 11400000, guid: 65a0ad44fc71db5449dd0b0eb97c905a, type: 2}
+  - {fileID: 11400000, guid: e916306f4ee93cf469ac238bca203d7a, type: 2}
+  - {fileID: 11400000, guid: 6ee7aba5409a4322ba58121ebc3224dd, type: 2}
+  - {fileID: 11400000, guid: af2f46a54c0c481291d25abae089ff15, type: 2}
+  - {fileID: 11400000, guid: 64eaf9f27ba04458b6cbc84ae70e9e2f, type: 2}
+  - {fileID: 11400000, guid: a0f0a5b4cfe02ac40bdd47e5dd618cbc, type: 2}
+  - {fileID: 11400000, guid: 67fc963fbf084965bfb2dfb44451a034, type: 2}
+  - {fileID: 11400000, guid: df609958289745d3b9a038ad6b81311f, type: 2}
+  - {fileID: 11400000, guid: ab478a11930443d7b098bf79e5b06f78, type: 2}
   maximumLoad: 12
   maximumMana: 12
   maximumStamina: 14

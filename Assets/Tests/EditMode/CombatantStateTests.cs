@@ -34,7 +34,7 @@ namespace SER494.Gameplay.Combat.Tests
         {
             return new CombatantState(
                 "Combatant",
-                new CombatantStats(100, 10, 10, 5, 2, 5));
+                new CombatantStats(100, 10, 10, 5, 2));
         }
     }
 }

@@ -52,6 +52,8 @@
 
                 <ui:VisualElement class="button-row">
                     <ui:Button name="resetComboButton" text="Reset Current Combo" class="secondary-button" />
+                    <ui:Button name="fillSampleLoadoutButton" text="Fill Valid Sample Loadout" class="secondary-button spaced-button" />
+                    <ui:Button name="startBattleButton" text="Start Test Battle" class="primary-button" />
                 </ui:VisualElement>
             </ui:ScrollView>
         </ui:VisualElement>

@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Focus Stance
   category: 0
   loadCost: 2
+  resolutionOffset: 2
   manaCost: 0
   staminaCost: 1
   cooldown: 1
+  damageMultiplier: 0
+  damageType: 0
+  resolutionEffect: 0

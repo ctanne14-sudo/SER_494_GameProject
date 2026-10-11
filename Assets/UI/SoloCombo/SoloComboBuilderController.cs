@@ -4,6 +4,7 @@ using System.Text;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 namespace SER494.Gameplay.Combat.UI.SoloCombo
@@ -13,6 +14,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
     {
         private const int ComboCount = 4;
         private const string EmptyOption = "— None —";
+        private const string CombatSceneName = "CombatSandbox";
+
+        [Header("Runtime Handoff")]
+        [SerializeField]
+        private SoloComboLoadoutSession loadoutSession = null;
 
         [Header("Available Actions")]
         [SerializeField]
@@ -50,6 +56,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private Label _loadoutStatusLabel;
         private Label _actionLibraryLabel;
         private Button _resetComboButton;
+        private Button _fillSampleLoadoutButton;
+        private Button _startBattleButton;
 
         private List<ComboActionAsset> _openingOptions;
         private List<ComboActionAsset> _mainOptions;
@@ -58,11 +66,22 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private int _selectedComboIndex;
         private bool _isBound;
 
+        public SoloComboLoadoutSession LoadoutSession
+        {
+            get => loadoutSession;
+            set => loadoutSession = value;
+        }
+
         private void Awake()
         {
             for (int index = 0; index < _drafts.Length; index++)
             {
                 _drafts[index] = ComboDraft.CreateDefault(index);
+            }
+
+            if (loadoutSession != null)
+            {
+                loadoutSession.Clear();
             }
         }
 
@@ -113,6 +132,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _loadoutStatusLabel = _root.Q<Label>("loadoutStatusLabel");
             _actionLibraryLabel = _root.Q<Label>("actionLibraryLabel");
             _resetComboButton = _root.Q<Button>("resetComboButton");
+            _fillSampleLoadoutButton = _root.Q<Button>("fillSampleLoadoutButton");
+            _startBattleButton = _root.Q<Button>("startBattleButton");
 
             if (!HasRequiredElements())
             {
@@ -145,6 +166,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _linkedActionField.UnregisterValueChangedCallback(OnLinkedActionChanged);
             _linkedPlacementField.UnregisterValueChangedCallback(OnLinkedPlacementChanged);
             _resetComboButton.clicked -= ResetCurrentCombo;
+            _fillSampleLoadoutButton.clicked -= FillSampleLoadout;
+            _startBattleButton.clicked -= StartTestBattle;
             _isBound = false;
         }
 
@@ -171,7 +194,9 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 && _currentComboStatusLabel != null
                 && _loadoutStatusLabel != null
                 && _actionLibraryLabel != null
-                && _resetComboButton != null;
+                && _resetComboButton != null
+                && _fillSampleLoadoutButton != null
+                && _startBattleButton != null;
         }
 
         private void BuildActionOptions()
@@ -222,6 +247,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _linkedActionField.RegisterValueChangedCallback(OnLinkedActionChanged);
             _linkedPlacementField.RegisterValueChangedCallback(OnLinkedPlacementChanged);
             _resetComboButton.clicked += ResetCurrentCombo;
+            _fillSampleLoadoutButton.clicked += FillSampleLoadout;
+            _startBattleButton.clicked += StartTestBattle;
         }
 
         private void SelectCombo1() => SelectCombo(0);
@@ -286,6 +313,83 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             RefreshSummaryAndValidation();
         }
 
+        private void FillSampleLoadout()
+        {
+            string[,] presetActionIds =
+            {
+                { "sample.focus-stance", "sample.arcane-slash", "sample.backstep", "sample.flame-echo" },
+                { "sample.quick-guard", "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
+                { "sample.sidestep", "sample.ice-lance", "sample.parting-slash", "sample.vanish-step" },
+                { "sample.ember-primer", "sample.precise-shot", "sample.steady-finish", "sample.spark-echo" }
+            };
+            var presetActions = new ComboActionAsset[ComboCount, 4];
+            var linkedPlacements = new[]
+            {
+                LinkedActionPlacement.AfterMain,
+                LinkedActionPlacement.AfterOpening,
+                LinkedActionPlacement.AfterOpening,
+                LinkedActionPlacement.AfterMain
+            };
+
+            for (int comboIndex = 0; comboIndex < ComboCount; comboIndex++)
+            {
+                for (int slotIndex = 0; slotIndex < 4; slotIndex++)
+                {
+                    string actionId = presetActionIds[comboIndex, slotIndex];
+                    presetActions[comboIndex, slotIndex] = FindAvailableAction(actionId);
+                    if (presetActions[comboIndex, slotIndex] == null)
+                    {
+                        string message = $"Quick Fill requires the sample Action '{actionId}'. Repair the Combo Builder prototype scene.";
+                        SetStatus(_loadoutStatusLabel, $"Loadout: {message}", isValid: false);
+                        _startBattleButton.SetEnabled(false);
+                        Debug.LogError(message, this);
+                        return;
+                    }
+                }
+            }
+
+            for (int comboIndex = 0; comboIndex < ComboCount; comboIndex++)
+            {
+                _drafts[comboIndex] = ComboDraft.CreatePreset(
+                    comboIndex,
+                    presetActions[comboIndex, 0],
+                    presetActions[comboIndex, 1],
+                    presetActions[comboIndex, 2],
+                    presetActions[comboIndex, 3],
+                    linkedPlacements[comboIndex]);
+            }
+
+            RefreshTabs();
+            RefreshEditorFields();
+            RefreshSummaryAndValidation();
+        }
+
+        private void StartTestBattle()
+        {
+            if (loadoutSession == null)
+            {
+                Debug.LogError("Solo Combo Builder has no runtime loadout session assigned.", this);
+                return;
+            }
+
+            if (!TryBuildLoadout(out List<ComboConfiguration> configurations, out string error))
+            {
+                Debug.LogError($"Cannot start the test battle: {error}", this);
+                return;
+            }
+
+            var limits = new ComboValidationLimits(maximumLoad, maximumMana, maximumStamina);
+            ComboValidationResult result = ComboLoadoutValidator.Validate(configurations, limits);
+            if (!result.IsValid)
+            {
+                Debug.LogError("Cannot start the test battle while the Combo loadout is invalid.", this);
+                return;
+            }
+
+            loadoutSession.Prepare(configurations);
+            SceneManager.LoadScene(CombatSceneName);
+        }
+
         private void RefreshTabs()
         {
             for (int index = 0; index < _comboButtons.Length; index++)
@@ -335,33 +439,55 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     currentResult.IsValid);
             }
 
-            var configurations = new List<ComboConfiguration>(ComboCount);
-            string loadoutAuthoringError = null;
-
-            for (int index = 0; index < _drafts.Length; index++)
-            {
-                if (!TryBuildConfiguration(_drafts[index], out ComboConfiguration configuration, out string error))
-                {
-                    loadoutAuthoringError = $"combo{index + 1}: {error}";
-                    break;
-                }
-
-                configurations.Add(configuration);
-            }
-
-            if (loadoutAuthoringError != null)
+            if (!TryBuildLoadout(out List<ComboConfiguration> configurations, out string loadoutAuthoringError))
             {
                 SetStatus(_loadoutStatusLabel, $"Loadout: {loadoutAuthoringError}", isValid: false);
+                _startBattleButton.SetEnabled(false);
                 return;
             }
 
             ComboValidationResult loadoutResult = ComboLoadoutValidator.Validate(configurations, limits);
+            if (loadoutSession == null)
+            {
+                SetStatus(
+                    _loadoutStatusLabel,
+                    "Loadout: Runtime session is not assigned. Run the Combo Builder scene setup tool.",
+                    isValid: false);
+                _startBattleButton.SetEnabled(false);
+                return;
+            }
+
             SetStatus(
                 _loadoutStatusLabel,
                 loadoutResult.IsValid
                     ? "Loadout: All four Combos are valid"
                     : $"Loadout:\n{FormatIssues(loadoutResult.Issues, includeComboName: true)}",
                 loadoutResult.IsValid);
+            _startBattleButton.SetEnabled(loadoutResult.IsValid);
+        }
+
+        private bool TryBuildLoadout(
+            out List<ComboConfiguration> configurations,
+            out string validationError)
+        {
+            configurations = new List<ComboConfiguration>(ComboCount);
+
+            for (int index = 0; index < _drafts.Length; index++)
+            {
+                if (!TryBuildConfiguration(
+                        _drafts[index],
+                        out ComboConfiguration configuration,
+                        out string error))
+                {
+                    validationError = $"combo{index + 1}: {error}";
+                    return false;
+                }
+
+                configurations.Add(configuration);
+            }
+
+            validationError = null;
+            return true;
         }
 
         private bool TryBuildConfiguration(
@@ -438,7 +564,23 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     .Append(" | Stamina ")
                     .Append(action.StaminaCost)
                     .Append(" | CD ")
-                    .Append(action.Cooldown);
+                    .Append(action.Cooldown)
+                    .Append(" | Resolution Point — Local T+")
+                    .Append(action.ResolutionOffset)
+                    .Append(": ")
+                    .Append(action.ResolutionEffect);
+                if (action.ResolutionEffect == ActionResolutionEffect.Damage)
+                {
+                    builder.Append(" (")
+                        .Append(action.DamageType)
+                        .Append(" x")
+                        .Append(action.DamageMultiplier.ToString("0.00"))
+                        .Append(')');
+                }
+                else if (action.ResolutionEffect == ActionResolutionEffect.None)
+                {
+                    builder.Append(" (no Damage / Guard / Evade prototype effect)");
+                }
             }
 
             _actionLibraryLabel.text = builder.Length == 0
@@ -466,6 +608,21 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 if (OptionLabel(options[index]) == selectedLabel)
                 {
                     return options[index];
+                }
+            }
+
+            return null;
+        }
+
+        private ComboActionAsset FindAvailableAction(string actionId)
+        {
+            for (int index = 0; index < availableActions.Length; index++)
+            {
+                ComboActionAsset action = availableActions[index];
+                if (action != null
+                    && string.Equals(action.ActionId, actionId, StringComparison.Ordinal))
+                {
+                    return action;
                 }
             }
 
@@ -572,6 +729,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     return "Mana Cost exceeds Max Mana.";
                 case ComboValidationErrorCode.StaminaCostExceeded:
                     return "Stamina Cost exceeds Max Stamina.";
+                case ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap:
+                    return "Damage, Guard, and Evade Resolution Points cannot overlap.";
                 case ComboValidationErrorCode.ActionAssignedMoreThanOnce:
                     return "The same Action is assigned more than once.";
                 case ComboValidationErrorCode.EmptyLoadout:
@@ -612,6 +771,25 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 return new ComboDraft
                 {
                     Name = $"combo{zeroBasedIndex + 1}"
+                };
+            }
+
+            public static ComboDraft CreatePreset(
+                int zeroBasedIndex,
+                ComboActionAsset opening,
+                ComboActionAsset main,
+                ComboActionAsset closing,
+                ComboActionAsset linked,
+                LinkedActionPlacement linkedPlacement)
+            {
+                return new ComboDraft
+                {
+                    Name = $"combo{zeroBasedIndex + 1}",
+                    OpeningAction = opening,
+                    MainAction = main,
+                    ClosingAction = closing,
+                    LinkedAction = linked,
+                    LinkedPlacement = linkedPlacement
                 };
             }
 

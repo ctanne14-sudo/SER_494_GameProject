@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Flame Echo
   category: 3
   loadCost: 2
+  resolutionOffset: 2
   manaCost: 2
   staminaCost: 0
   cooldown: 2
+  damageMultiplier: 0.3
+  damageType: 3
+  resolutionEffect: 1

@@ -98,6 +98,45 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Contains.Item(ComboValidationErrorCode.ActionAssignedMoreThanOnce));
         }
 
+        [Test]
+        public void Validate_DamageAndGuardAtSameTime_IsInvalid()
+        {
+            var damage = new ComboActionDefinition(
+                "opening-damage",
+                "Opening Damage",
+                ComboActionCategory.Opening,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.20d,
+                resolutionOffset: 1);
+            var guard = new ComboActionDefinition(
+                "main-guard",
+                "Main Guard",
+                ComboActionCategory.Main,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0d,
+                resolutionOffset: 0,
+                resolutionEffect: ActionResolutionEffect.Guard);
+            var combo = new ComboConfiguration(
+                "invalid-overlap",
+                damage,
+                guard,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+
+            ComboValidationResult result = ComboValidator.Validate(combo, GenerousLimits);
+
+            Assert.That(
+                result.Issues.Select(issue => issue.Code),
+                Contains.Item(ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap));
+        }
+
         private static ComboConfiguration MainOnlyCombo(
             string comboName,
             ComboActionDefinition mainAction)

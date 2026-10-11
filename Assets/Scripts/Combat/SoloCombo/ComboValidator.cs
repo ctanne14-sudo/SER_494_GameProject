@@ -18,6 +18,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         LoadCostExceeded,
         ManaCostExceeded,
         StaminaCostExceeded,
+        MutuallyExclusiveResolutionEffectsOverlap,
         ActionAssignedMoreThanOnce
     }
 
@@ -108,6 +109,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ValidateActionSlots(combo, result);
             ValidateLinkedAction(combo, result);
             ValidateCosts(combo, limits, result);
+            ValidateResolutionPointExclusivity(combo, result);
             return result;
         }
 
@@ -225,6 +227,47 @@ namespace SER494.Gameplay.Combat.SoloCombo
             {
                 result.Add(ComboValidationErrorCode.StaminaCostExceeded, combo.Name);
             }
+        }
+
+        private static void ValidateResolutionPointExclusivity(
+            ComboConfiguration combo,
+            ComboValidationResult result)
+        {
+            IReadOnlyList<ComboActionDefinition> executionOrder = combo.BuildExecutionOrder();
+            var occupiedResolutionTimes = new Dictionary<int, ComboActionDefinition>();
+            int actionStartTime = 0;
+
+            for (int index = 0; index < executionOrder.Count; index++)
+            {
+                ComboActionDefinition action = executionOrder[index];
+                if (IsMutuallyExclusiveResolutionEffect(action.ResolutionEffect))
+                {
+                    int resolutionTime = checked(actionStartTime + action.ResolutionOffset);
+                    if (occupiedResolutionTimes.TryGetValue(
+                            resolutionTime,
+                            out ComboActionDefinition existingAction))
+                    {
+                        result.Add(
+                            ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap,
+                            combo.Name,
+                            $"{existingAction.ActionId}|{action.ActionId}");
+                    }
+                    else
+                    {
+                        occupiedResolutionTimes.Add(resolutionTime, action);
+                    }
+                }
+
+                actionStartTime = checked(actionStartTime + action.LoadCost);
+            }
+        }
+
+        private static bool IsMutuallyExclusiveResolutionEffect(
+            ActionResolutionEffect resolutionEffect)
+        {
+            return resolutionEffect == ActionResolutionEffect.Damage
+                || resolutionEffect == ActionResolutionEffect.Guard
+                || resolutionEffect == ActionResolutionEffect.Evade;
         }
     }
 

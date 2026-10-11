@@ -9,15 +9,13 @@ namespace SER494.Gameplay.Combat
             int maxMana,
             int maxStamina,
             int attack,
-            int defense,
-            int speed)
+            int defense)
         {
             MaxHealth = RequirePositive(maxHealth, nameof(maxHealth));
             MaxMana = RequireNonNegative(maxMana, nameof(maxMana));
             MaxStamina = RequireNonNegative(maxStamina, nameof(maxStamina));
             Attack = RequireNonNegative(attack, nameof(attack));
             Defense = RequireNonNegative(defense, nameof(defense));
-            Speed = RequireNonNegative(speed, nameof(speed));
         }
 
         public int MaxHealth { get; }
@@ -29,8 +27,6 @@ namespace SER494.Gameplay.Combat
         public int Attack { get; }
 
         public int Defense { get; }
-
-        public int Speed { get; }
 
         private static int RequirePositive(int value, string parameterName)
         {

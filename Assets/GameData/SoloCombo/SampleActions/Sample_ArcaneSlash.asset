@@ -16,6 +16,10 @@ MonoBehaviour:
   displayName: Arcane Slash
   category: 1
   loadCost: 5
+  resolutionOffset: 4
   manaCost: 3
   staminaCost: 4
   cooldown: 3
+  damageMultiplier: 0.7
+  damageType: 0
+  resolutionEffect: 1

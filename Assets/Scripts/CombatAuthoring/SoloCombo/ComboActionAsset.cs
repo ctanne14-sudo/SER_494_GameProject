@@ -1,4 +1,5 @@
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Damage;
 using UnityEngine;
 
 namespace SER494.Gameplay.Combat.Authoring.SoloCombo
@@ -22,8 +23,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         [Header("Costs")]
         [SerializeField]
+        [Min(1)]
+        private int loadCost = 1;
+
+        [SerializeField]
         [Min(0)]
-        private int loadCost;
+        [Tooltip("Fixed Resolution Point in Action Local Time. Zero resolves when the Action starts.")]
+        private int resolutionOffset = 1;
 
         [SerializeField]
         [Min(0)]
@@ -37,6 +43,19 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Min(0)]
         private int cooldown;
 
+        [Header("Prototype Effect")]
+        [SerializeField]
+        [Min(0)]
+        [Tooltip("Ordinary damage multiplier. For example, 0.50 means 50% of relevant Weapon Attack before the remaining damage buckets.")]
+        private float damageMultiplier;
+
+        [SerializeField]
+        private DamageType damageType = DamageType.Slashing;
+
+        [SerializeField]
+        [Tooltip("Prototype effect resolved at the fixed Resolution Point. Damage requires a positive Damage Multiplier.")]
+        private ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None;
+
         public string ActionId => actionId;
 
         public string DisplayName => displayName;
@@ -47,9 +66,17 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public int ManaCost => manaCost;
 
+        public int ResolutionOffset => resolutionOffset;
+
         public int StaminaCost => staminaCost;
 
         public int Cooldown => cooldown;
+
+        public float DamageMultiplier => damageMultiplier;
+
+        public DamageType DamageType => damageType;
+
+        public ActionResolutionEffect ResolutionEffect => resolutionEffect;
 
         public bool TryCreateDefinition(
             out ComboActionDefinition definition,
@@ -69,9 +96,35 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (loadCost < 0 || manaCost < 0 || staminaCost < 0 || cooldown < 0)
+            if (loadCost <= 0)
             {
-                validationError = $"{name} contains a negative cost.";
+                validationError = $"{name} must have a Load Cost greater than zero.";
+                return false;
+            }
+
+            if (resolutionOffset < 0 || resolutionOffset > loadCost)
+            {
+                validationError = $"{name} has a Resolution Offset outside its Action Load.";
+                return false;
+            }
+
+            if (manaCost < 0 || staminaCost < 0 || cooldown < 0 || damageMultiplier < 0f)
+            {
+                validationError = $"{name} contains a negative cost or Damage Multiplier value.";
+                return false;
+            }
+
+            if (damageMultiplier > 0f
+                && resolutionEffect != ActionResolutionEffect.Damage)
+            {
+                validationError = $"{name} has damage but its Resolution Effect is not Damage.";
+                return false;
+            }
+
+            if (damageMultiplier <= 0f
+                && resolutionEffect == ActionResolutionEffect.Damage)
+            {
+                validationError = $"{name} uses a Damage Resolution Effect without damage.";
                 return false;
             }
 
@@ -82,7 +135,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 loadCost,
                 manaCost,
                 staminaCost,
-                cooldown);
+                cooldown,
+                damageMultiplier,
+                resolutionOffset,
+                damageType,
+                resolutionEffect);
 
             validationError = null;
             return true;
@@ -90,10 +147,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         private void OnValidate()
         {
-            loadCost = Mathf.Max(0, loadCost);
+            loadCost = Mathf.Max(1, loadCost);
+            resolutionOffset = Mathf.Clamp(resolutionOffset, 0, loadCost);
             manaCost = Mathf.Max(0, manaCost);
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);
+            damageMultiplier = Mathf.Max(0f, damageMultiplier);
         }
     }
 }
