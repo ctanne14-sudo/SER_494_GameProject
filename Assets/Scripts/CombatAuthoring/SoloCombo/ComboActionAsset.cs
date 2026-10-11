@@ -32,6 +32,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         private int resolutionOffset = 1;
 
         [SerializeField]
+        [Tooltip("When enabled, the player selects a Resolution Point from a local-time window during Timeline Resolution.")]
+        private bool useResolutionWindow = false;
+
+        [SerializeField]
+        [Min(0)]
+        private int resolutionWindowStart = 1;
+
+        [SerializeField]
+        [Min(0)]
+        private int resolutionWindowEnd = 1;
+
+        [SerializeField]
         [Min(0)]
         private int manaCost;
 
@@ -72,6 +84,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public int ResolutionOffset => resolutionOffset;
 
+        public bool UsesResolutionWindow => useResolutionWindow;
+
+        public int ResolutionWindowStart => resolutionWindowStart;
+
+        public int ResolutionWindowEnd => resolutionWindowEnd;
+
         public int StaminaCost => staminaCost;
 
         public int Cooldown => cooldown;
@@ -111,6 +129,16 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             if (resolutionOffset < 0 || resolutionOffset > loadCost)
             {
                 validationError = $"{name} has a Resolution Offset outside its Action Load.";
+                return false;
+            }
+
+            if (useResolutionWindow
+                && (resolutionWindowStart < 0
+                    || resolutionWindowEnd > loadCost
+                    || resolutionWindowStart >= resolutionWindowEnd))
+            {
+                validationError = $"{name} must have an ordered Resolution Window with "
+                    + "at least two Time Steps inside its Action Load.";
                 return false;
             }
 
@@ -160,7 +188,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 resolutionOffset,
                 damageType,
                 resolutionEffect,
-                damageTags);
+                damageTags,
+                resolutionWindowStart: useResolutionWindow
+                    ? (int?)resolutionWindowStart
+                    : null,
+                resolutionWindowEnd: useResolutionWindow
+                    ? (int?)resolutionWindowEnd
+                    : null);
 
             validationError = null;
             return true;
@@ -170,6 +204,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         {
             loadCost = Mathf.Max(1, loadCost);
             resolutionOffset = Mathf.Clamp(resolutionOffset, 0, loadCost);
+            resolutionWindowStart = Mathf.Clamp(resolutionWindowStart, 0, loadCost);
+            resolutionWindowEnd = Mathf.Clamp(resolutionWindowEnd, 0, loadCost);
             manaCost = Mathf.Max(0, manaCost);
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);

@@ -25,6 +25,14 @@ namespace SER494.Gameplay.CombatSandbox
         [Min(0.01f)]
         private float secondsPerTimeStep = 0.2f;
 
+        [SerializeField]
+        [Min(0.1f)]
+        private float timingInputLimit = 3f;
+
+        [SerializeField]
+        [Min(0.05f)]
+        private float timingCandidateSeconds = 0.35f;
+
         private readonly List<string> _combatLog = new List<string>();
 
         private SoloComboBattleState _battle;
@@ -43,6 +51,10 @@ namespace SER494.Gameplay.CombatSandbox
         private bool _isTimelinePlaying;
         private int _playbackTimeStep;
         private int _playbackEndTimeStep;
+        private SoloComboTimingRequest _timingRequest;
+        private float _timingElapsed;
+        private bool _timingSelectionRequested;
+        private int _timingSelectedTimeStep;
 
         public SoloComboLoadoutSession LoadoutSession
         {
@@ -202,6 +214,58 @@ namespace SER494.Gameplay.CombatSandbox
                 ? $"Resolving T{_playbackTimeStep} / T{_playbackEndTimeStep}"
                 : "Ready — choose a Combo after reviewing Enemy Intent";
             GUI.Label(progressRect, label, _timelineStyle);
+
+            if (_timingRequest != null)
+            {
+                DrawResolutionTimingQte();
+            }
+        }
+
+        private void DrawResolutionTimingQte()
+        {
+            GUILayout.Space(6f);
+            GUILayout.Label(
+                $"Resolution Timing QTE — {_timingRequest.DisplayName}",
+                _sectionStyle);
+            int candidate = CurrentTimingCandidate();
+            int candidateCount = _timingRequest.MaximumTimeStep
+                - _timingRequest.MinimumTimeStep + 1;
+            Rect selectorRect = GUILayoutUtility.GetRect(
+                100f,
+                34f,
+                GUILayout.ExpandWidth(true));
+            float segmentWidth = selectorRect.width / candidateCount;
+            Color previousColor = GUI.color;
+            for (int index = 0; index < candidateCount; index++)
+            {
+                int timeStep = _timingRequest.MinimumTimeStep + index;
+                GUI.color = timeStep == candidate
+                    ? new Color(0.95f, 0.65f, 0.20f, 1f)
+                    : new Color(0.25f, 0.30f, 0.40f, 1f);
+                Rect segment = new Rect(
+                    selectorRect.x + segmentWidth * index,
+                    selectorRect.y,
+                    segmentWidth - 2f,
+                    selectorRect.height);
+                GUI.Box(segment, $"T{timeStep}");
+            }
+
+            GUI.color = previousColor;
+            float remaining = Mathf.Max(0f, timingInputLimit - _timingElapsed);
+            if (GUILayout.Button(
+                    $"Lock T{candidate}  |  Space  |  {remaining:0.0}s",
+                    GUILayout.Height(34f)))
+            {
+                RequestTimingSelection(candidate);
+            }
+
+            Event currentEvent = Event.current;
+            if (currentEvent.type == EventType.KeyDown
+                && currentEvent.keyCode == KeyCode.Space)
+            {
+                RequestTimingSelection(candidate);
+                currentEvent.Use();
+            }
         }
 
         private void DrawEnemyIntent()
@@ -332,6 +396,9 @@ namespace SER494.Gameplay.CombatSandbox
             _isTimelinePlaying = false;
             _playbackTimeStep = 0;
             _playbackEndTimeStep = 0;
+            _timingRequest = null;
+            _timingElapsed = 0f;
+            _timingSelectionRequested = false;
             _battle = null;
             _setupError = null;
             _combatLog.Clear();
@@ -476,6 +543,12 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 yield return wait;
                 SoloComboTimelineAdvanceResult advance = _battle.AdvanceTimeline();
+                if (advance.RequiresTimingInput)
+                {
+                    yield return RunResolutionTimingQte(advance.TimingRequest);
+                    continue;
+                }
+
                 _playbackTimeStep = advance.TimeStep;
 
                 for (int index = 0; index < advance.ActionResolutions.Count; index++)
@@ -489,6 +562,53 @@ namespace SER494.Gameplay.CombatSandbox
                     CompleteTimelinePlayback(advance.CompletedTurn);
                 }
             }
+        }
+
+        private IEnumerator RunResolutionTimingQte(SoloComboTimingRequest request)
+        {
+            _timingRequest = request;
+            _timingElapsed = 0f;
+            _timingSelectionRequested = false;
+            _timingSelectedTimeStep = request.MinimumTimeStep;
+
+            while (!_timingSelectionRequested && _timingElapsed < timingInputLimit)
+            {
+                _timingElapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            int selectedTimeStep = _timingSelectionRequested
+                ? _timingSelectedTimeStep
+                : request.MinimumTimeStep;
+            _battle.SelectResolutionPoint(selectedTimeStep);
+            AppendLog(
+                _timingSelectionRequested
+                    ? $"  Timing QTE: {request.DisplayName} locked to T{selectedTimeStep}."
+                    : $"  Timing QTE timed out: {request.DisplayName} defaulted to "
+                        + $"T{selectedTimeStep}.");
+            _timingRequest = null;
+            _timingElapsed = 0f;
+            _timingSelectionRequested = false;
+        }
+
+        private int CurrentTimingCandidate()
+        {
+            int count = _timingRequest.MaximumTimeStep
+                - _timingRequest.MinimumTimeStep + 1;
+            int index = Mathf.FloorToInt(
+                _timingElapsed / Mathf.Max(0.05f, timingCandidateSeconds)) % count;
+            return _timingRequest.MinimumTimeStep + index;
+        }
+
+        private void RequestTimingSelection(int timeStep)
+        {
+            if (_timingRequest == null || _timingSelectionRequested)
+            {
+                return;
+            }
+
+            _timingSelectedTimeStep = timeStep;
+            _timingSelectionRequested = true;
         }
 
         private void CompleteTimelinePlayback(SoloComboTurnResult result)

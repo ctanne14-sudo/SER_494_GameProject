@@ -242,19 +242,26 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ComboActionDefinition action = executionOrder[index];
                 if (IsMutuallyExclusiveResolutionEffect(action.ResolutionEffect))
                 {
-                    int resolutionTime = checked(actionStartTime + action.ResolutionOffset);
-                    if (occupiedResolutionTimes.TryGetValue(
-                            resolutionTime,
-                            out ComboActionDefinition existingAction))
+                    int firstOffset = action.ResolutionWindowStart
+                        ?? action.ResolutionOffset;
+                    int lastOffset = action.ResolutionWindowEnd
+                        ?? action.ResolutionOffset;
+                    for (int offset = firstOffset; offset <= lastOffset; offset++)
                     {
-                        result.Add(
-                            ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap,
-                            combo.Name,
-                            $"{existingAction.ActionId}|{action.ActionId}");
-                    }
-                    else
-                    {
-                        occupiedResolutionTimes.Add(resolutionTime, action);
+                        int resolutionTime = checked(actionStartTime + offset);
+                        if (occupiedResolutionTimes.TryGetValue(
+                                resolutionTime,
+                                out ComboActionDefinition existingAction))
+                        {
+                            result.Add(
+                                ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap,
+                                combo.Name,
+                                $"{existingAction.ActionId}|{action.ActionId}");
+                        }
+                        else
+                        {
+                            occupiedResolutionTimes.Add(resolutionTime, action);
+                        }
                     }
                 }
 

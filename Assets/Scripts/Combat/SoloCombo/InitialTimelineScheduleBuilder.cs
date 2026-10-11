@@ -52,6 +52,58 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return CreateSchedule(actions, completionTime);
         }
 
+        public static InitialTimelineSchedule SelectResolutionTime(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int selectedTime)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            var actions = new List<ScheduledTimelineAction>(schedule.Actions.Count);
+            bool replaced = false;
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    if (!action.HasResolutionWindow
+                        || selectedTime < action.ResolutionWindowStartTime.Value
+                        || selectedTime > action.ResolutionWindowEndTime.Value)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(selectedTime));
+                    }
+
+                    action = new ScheduledTimelineAction(
+                        action.Side,
+                        action.SequenceIndex,
+                        action.ActionId,
+                        action.DisplayName,
+                        action.StartTime,
+                        action.EndTime,
+                        selectedTime,
+                        action.DamageEffect,
+                        action.ResolutionEffect,
+                        action.DamageTags,
+                        action.StatusEffect,
+                        action.StatusTarget);
+                    replaced = true;
+                }
+
+                actions.Add(action);
+            }
+
+            if (!replaced)
+            {
+                throw new ArgumentException("The requested Resolution Window was not found.");
+            }
+
+            return CreateSchedule(actions, schedule.CompletionTime);
+        }
+
         private static InitialTimelineSchedule CreateSchedule(
             List<ScheduledTimelineAction> actions,
             int completionTime)
@@ -129,12 +181,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.DisplayName,
                     currentTime,
                     endTime,
-                    checked(currentTime + definition.ResolutionOffset),
+                    checked(currentTime + (definition.ResolutionWindowStart
+                        ?? definition.ResolutionOffset)),
                     definition.DamageEffect,
                     definition.ResolutionEffect,
                     definition.DamageTags,
                     definition.StatusEffect,
-                    definition.StatusTarget));
+                    definition.StatusTarget,
+                    definition.ResolutionWindowStart.HasValue
+                        ? (int?)checked(currentTime + definition.ResolutionWindowStart.Value)
+                        : null,
+                    definition.ResolutionWindowEnd.HasValue
+                        ? (int?)checked(currentTime + definition.ResolutionWindowEnd.Value)
+                        : null));
                 currentTime = endTime;
             }
 

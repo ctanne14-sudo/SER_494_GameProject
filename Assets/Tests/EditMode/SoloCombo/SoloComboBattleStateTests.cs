@@ -114,6 +114,55 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void AdvanceTimeline_ResolutionWindowPausesBeforeItsFirstCandidate()
+        {
+            SoloComboBattleState battle = CreateBattleWithTimingWindow();
+            battle.BeginCombo(0);
+
+            SoloComboTimelineAdvanceResult advance = battle.AdvanceTimeline();
+
+            Assert.That(advance.RequiresTimingInput, Is.True);
+            Assert.That(advance.TimeStep, Is.Zero);
+            Assert.That(advance.TimingRequest.DisplayName, Is.EqualTo("Timed Strike"));
+            Assert.That(advance.TimingRequest.MinimumTimeStep, Is.EqualTo(1));
+            Assert.That(advance.TimingRequest.MaximumTimeStep, Is.EqualTo(3));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void SelectResolutionPoint_MovesEffectWithoutMovingActionCompletion()
+        {
+            SoloComboBattleState battle = CreateBattleWithTimingWindow();
+            battle.BeginCombo(0);
+            battle.AdvanceTimeline();
+            battle.SelectResolutionPoint(3);
+
+            Assert.That(
+                battle.AdvanceTimeline().ActionResolutions.Any(
+                    resolution => resolution.Side == TimelineActorSide.Player),
+                Is.False);
+            Assert.That(battle.AdvanceTimeline().ActionResolutions, Is.Empty);
+            SoloComboTimelineAdvanceResult thirdStep = battle.AdvanceTimeline();
+
+            Assert.That(thirdStep.ActionResolutions, Has.Count.EqualTo(1));
+            Assert.That(thirdStep.ActionResolutions[0].TimeStep, Is.EqualTo(3));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(87));
+            Assert.That(thirdStep.RoundCompleted, Is.True);
+        }
+
+        [Test]
+        public void ExecuteCombo_ResolutionWindowWithoutInputDefaultsToMinimumTime()
+        {
+            SoloComboBattleState battle = CreateBattleWithTimingWindow();
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.ActionResolutions[0].TimeStep, Is.EqualTo(1));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(87));
+        }
+
+        [Test]
         public void ExecuteCombo_PaysWholeComboThenRecoversResourcesAfterEnemyTurn()
         {
             SoloComboBattleState battle = CreateBattle(
@@ -606,6 +655,49 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 player,
                 enemy,
                 combos,
+                enemySequence,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2);
+        }
+
+        private static SoloComboBattleState CreateBattleWithTimingWindow()
+        {
+            var timedStrike = new ComboActionDefinition(
+                "timed-strike",
+                "Timed Strike",
+                ComboActionCategory.Main,
+                loadCost: 3,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.40d,
+                resolutionOffset: 3,
+                resolutionWindowStart: 1,
+                resolutionWindowEnd: 3);
+            var combo = new ComboConfiguration(
+                "timed-combo",
+                openingAction: null,
+                mainAction: timedStrike,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var enemySequence = new EnemyActionSequence(
+                "observe",
+                "Observe",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "observe-action",
+                        "Observe",
+                        loadCost: 1,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0d)
+                });
+
+            return new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(60, 12, 14, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
                 enemySequence,
                 manaRecoveryPerTurn: 1,
                 staminaRecoveryPerTurn: 2);

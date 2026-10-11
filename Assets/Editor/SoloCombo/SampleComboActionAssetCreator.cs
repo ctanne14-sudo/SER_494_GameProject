@@ -127,7 +127,9 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     cooldown: 2,
                     damageMultiplier: 0.60f,
                     damageType: DamageType.Piercing,
-                    resolutionEffect: ActionResolutionEffect.Damage),
+                    resolutionEffect: ActionResolutionEffect.Damage,
+                    resolutionWindowStart: 2,
+                    resolutionWindowEnd: 4),
                 new SampleAction(
                     "Sample_Backstep",
                     "sample.backstep",
@@ -288,6 +290,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serializedAsset.FindProperty("category").enumValueIndex = (int)sample.Category;
             serializedAsset.FindProperty("loadCost").intValue = sample.LoadCost;
             serializedAsset.FindProperty("resolutionOffset").intValue = sample.ResolutionOffset;
+            serializedAsset.FindProperty("useResolutionWindow").boolValue =
+                sample.ResolutionWindowStart.HasValue;
+            serializedAsset.FindProperty("resolutionWindowStart").intValue =
+                sample.ResolutionWindowStart ?? sample.ResolutionOffset;
+            serializedAsset.FindProperty("resolutionWindowEnd").intValue =
+                sample.ResolutionWindowEnd ?? sample.ResolutionOffset;
             serializedAsset.FindProperty("manaCost").intValue = sample.ManaCost;
             serializedAsset.FindProperty("staminaCost").intValue = sample.StaminaCost;
             serializedAsset.FindProperty("cooldown").intValue = sample.Cooldown;
@@ -335,7 +343,9 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 float damageMultiplier,
                 DamageType damageType,
                 ActionResolutionEffect resolutionEffect,
-                DamageResolutionTag damageTags = DamageResolutionTag.None)
+                DamageResolutionTag damageTags = DamageResolutionTag.None,
+                int? resolutionWindowStart = null,
+                int? resolutionWindowEnd = null)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -350,6 +360,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 DamageType = damageType;
                 ResolutionEffect = resolutionEffect;
                 DamageTags = damageTags;
+                ResolutionWindowStart = resolutionWindowStart;
+                ResolutionWindowEnd = resolutionWindowEnd;
             }
 
             public string FileName { get; }
@@ -377,6 +389,10 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public ActionResolutionEffect ResolutionEffect { get; }
 
             public DamageResolutionTag DamageTags { get; }
+
+            public int? ResolutionWindowStart { get; }
+
+            public int? ResolutionWindowEnd { get; }
         }
     }
 }

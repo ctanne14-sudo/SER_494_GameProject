@@ -565,8 +565,12 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     .Append(action.StaminaCost)
                     .Append(" | CD ")
                     .Append(action.Cooldown)
-                    .Append(" | Resolution Point — Local T+")
-                    .Append(action.ResolutionOffset)
+                    .Append(action.UsesResolutionWindow
+                        ? " | Resolution Window — Local T+"
+                        : " | Resolution Point — Local T+")
+                    .Append(action.UsesResolutionWindow
+                        ? $"{action.ResolutionWindowStart}–{action.ResolutionWindowEnd}"
+                        : action.ResolutionOffset.ToString())
                     .Append(": ")
                     .Append(action.ResolutionEffect);
                 if (action.ResolutionEffect == ActionResolutionEffect.Damage)

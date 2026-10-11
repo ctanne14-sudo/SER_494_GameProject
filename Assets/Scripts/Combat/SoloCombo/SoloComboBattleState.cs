@@ -173,12 +173,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
         internal SoloComboTimelineAdvanceResult(
             int timeStep,
             IReadOnlyList<SoloComboActionResolution> actionResolutions,
-            SoloComboTurnResult completedTurn)
+            SoloComboTurnResult completedTurn,
+            SoloComboTimingRequest timingRequest = null)
         {
             TimeStep = timeStep;
             ActionResolutions = actionResolutions
                 ?? throw new ArgumentNullException(nameof(actionResolutions));
             CompletedTurn = completedTurn;
+            TimingRequest = timingRequest;
         }
 
         public int TimeStep { get; }
@@ -187,7 +189,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public SoloComboTurnResult CompletedTurn { get; }
 
+        public SoloComboTimingRequest TimingRequest { get; }
+
         public bool RoundCompleted => CompletedTurn != null;
+
+        public bool RequiresTimingInput => TimingRequest != null;
+    }
+
+    public sealed class SoloComboTimingRequest
+    {
+        internal SoloComboTimingRequest(ScheduledTimelineAction action)
+        {
+            Side = action.Side;
+            SequenceIndex = action.SequenceIndex;
+            ActionId = action.ActionId;
+            DisplayName = action.DisplayName;
+            MinimumTimeStep = action.ResolutionWindowStartTime.Value;
+            MaximumTimeStep = action.ResolutionWindowEndTime.Value;
+        }
+
+        public TimelineActorSide Side { get; }
+
+        public int SequenceIndex { get; }
+
+        public string ActionId { get; }
+
+        public string DisplayName { get; }
+
+        public int MinimumTimeStep { get; }
+
+        public int MaximumTimeStep { get; }
     }
 
     public sealed class SoloComboBattleState
@@ -210,6 +241,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private int _currentTimelineTimeStep;
         private EnemyActionSequence _currentEnemySequence;
         private string _previousEnemySequenceId;
+        private SoloComboTimingRequest _pendingTimingRequest;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -414,6 +446,27 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 throw new InvalidOperationException("No Solo Combo timeline is currently resolving.");
             }
 
+            if (_pendingTimingRequest != null)
+            {
+                return new SoloComboTimelineAdvanceResult(
+                    _currentTimelineTimeStep,
+                    NoResolutions,
+                    completedTurn: null,
+                    timingRequest: _pendingTimingRequest);
+            }
+
+            ScheduledTimelineAction pendingWindow = FindWindowStartingAt(
+                _currentTimelineTimeStep + 1);
+            if (pendingWindow != null)
+            {
+                _pendingTimingRequest = new SoloComboTimingRequest(pendingWindow);
+                return new SoloComboTimelineAdvanceResult(
+                    _currentTimelineTimeStep,
+                    NoResolutions,
+                    completedTurn: null,
+                    timingRequest: _pendingTimingRequest);
+            }
+
             _currentTimelineTimeStep++;
             IReadOnlyList<SoloComboActionResolution> stepResolutions = NoResolutions;
 
@@ -442,6 +495,35 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 _currentTimelineTimeStep,
                 stepResolutions,
                 completedTurn);
+        }
+
+        public void SelectResolutionPoint(int selectedTimeStep)
+        {
+            if (_pendingTimingRequest == null)
+            {
+                throw new InvalidOperationException("No Resolution Timing input is pending.");
+            }
+
+            if (selectedTimeStep < _pendingTimingRequest.MinimumTimeStep
+                || selectedTimeStep > _pendingTimingRequest.MaximumTimeStep)
+            {
+                throw new ArgumentOutOfRangeException(nameof(selectedTimeStep));
+            }
+
+            _activeSchedule = InitialTimelineScheduleBuilder.SelectResolutionTime(
+                _activeSchedule,
+                _pendingTimingRequest.Side,
+                _pendingTimingRequest.SequenceIndex,
+                selectedTimeStep);
+            _activeResolutionStepIndex = 0;
+            while (_activeResolutionStepIndex < _activeSchedule.ResolutionSteps.Count
+                && _activeSchedule.ResolutionSteps[_activeResolutionStepIndex].TimeStep
+                    <= _currentTimelineTimeStep)
+            {
+                _activeResolutionStepIndex++;
+            }
+
+            _pendingTimingRequest = null;
         }
 
         private IReadOnlyList<SoloComboActionResolution> ResolveTimelineStep(
@@ -558,6 +640,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ?? throw new ArgumentNullException(nameof(schedule));
             _activeResolutionStepIndex = 0;
             _currentTimelineTimeStep = 0;
+            _pendingTimingRequest = null;
             _activeResolutions.Clear();
         }
 
@@ -566,7 +649,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
             SoloComboTurnResult completedTurn = null;
             while (IsTimelineResolving)
             {
-                completedTurn = AdvanceTimeline().CompletedTurn;
+                SoloComboTimelineAdvanceResult advance = AdvanceTimeline();
+                if (advance.RequiresTimingInput)
+                {
+                    SelectResolutionPoint(advance.TimingRequest.MinimumTimeStep);
+                }
+                else
+                {
+                    completedTurn = advance.CompletedTurn;
+                }
             }
 
             return completedTurn;
@@ -590,6 +681,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             _activeSchedule = null;
             _activeResolutionStepIndex = 0;
+            _pendingTimingRequest = null;
             _activeResolutions.Clear();
 
             if (Outcome == BattleOutcome.Ongoing)
@@ -598,6 +690,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return result;
+        }
+
+        private ScheduledTimelineAction FindWindowStartingAt(int timeStep)
+        {
+            for (int index = 0; index < _activeSchedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = _activeSchedule.Actions[index];
+                if (action.Side == TimelineActorSide.Player
+                    && action.ResolutionWindowStartTime == timeStep)
+                {
+                    return action;
+                }
+            }
+
+            return null;
         }
 
         private void SelectAndLockEnemyIntent()

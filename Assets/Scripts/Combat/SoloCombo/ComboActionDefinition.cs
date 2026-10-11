@@ -52,7 +52,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionResolutionEffect resolutionEffect = ActionResolutionEffect.None,
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
-            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+            int? resolutionWindowStart = null,
+            int? resolutionWindowEnd = null)
             : this(
                 actionId,
                 displayName,
@@ -66,7 +68,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ResolveEffect(damageMultiplier, resolutionEffect),
                 damageTags,
                 statusEffect,
-                statusTarget)
+                statusTarget,
+                resolutionWindowStart,
+                resolutionWindowEnd)
         {
         }
 
@@ -82,7 +86,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionOffset = null,
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
-            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+            int? resolutionWindowStart = null,
+            int? resolutionWindowEnd = null)
             : this(
                 actionId,
                 displayName,
@@ -98,7 +104,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     : ActionResolutionEffect.None,
                 damageTags,
                 statusEffect,
-                statusTarget)
+                statusTarget,
+                resolutionWindowStart,
+                resolutionWindowEnd)
         {
         }
 
@@ -115,7 +123,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionResolutionEffect resolutionEffect,
             DamageResolutionTag damageTags,
             CombatStatusDefinition statusEffect,
-            ActionStatusTarget statusTarget)
+            ActionStatusTarget statusTarget,
+            int? resolutionWindowStart,
+            int? resolutionWindowEnd)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -143,6 +153,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionOffset ?? LoadCost,
                 LoadCost,
                 nameof(resolutionOffset));
+            ValidateResolutionWindow(
+                resolutionWindowStart,
+                resolutionWindowEnd,
+                LoadCost);
+            ResolutionWindowStart = resolutionWindowStart;
+            ResolutionWindowEnd = resolutionWindowEnd;
         }
 
         public string ActionId { get; }
@@ -172,6 +188,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionStatusTarget StatusTarget { get; }
 
         public int ResolutionOffset { get; }
+
+        public int? ResolutionWindowStart { get; }
+
+        public int? ResolutionWindowEnd { get; }
+
+        public bool HasResolutionWindow => ResolutionWindowStart.HasValue;
 
         private static int RequirePositive(int value, string parameterName)
         {
@@ -322,6 +344,31 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return value;
+        }
+
+        private static void ValidateResolutionWindow(
+            int? start,
+            int? end,
+            int loadCost)
+        {
+            if (start.HasValue != end.HasValue)
+            {
+                throw new ArgumentException(
+                    "Resolution Window start and end must either both be set or both be omitted.");
+            }
+
+            if (!start.HasValue)
+            {
+                return;
+            }
+
+            RequireResolutionOffset(start.Value, loadCost, nameof(start));
+            RequireResolutionOffset(end.Value, loadCost, nameof(end));
+            if (start.Value >= end.Value)
+            {
+                throw new ArgumentException(
+                    "A Resolution Window must contain at least two ordered Time Steps.");
+            }
         }
     }
 }
