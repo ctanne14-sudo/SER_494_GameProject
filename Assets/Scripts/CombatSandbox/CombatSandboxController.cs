@@ -53,6 +53,8 @@ namespace SER494.Gameplay.CombatSandbox
         private GUIStyle _sectionStyle;
         private GUIStyle _logStyle;
         private GUIStyle _timelineStyle;
+        private GUIStyle _timelineActionStyle;
+        private GUIStyle _timelineTickStyle;
         private Vector2 _contentScrollPosition;
         private Vector2 _logScrollPosition;
         private string _playerStatus = string.Empty;
@@ -64,6 +66,7 @@ namespace SER494.Gameplay.CombatSandbox
         private bool _isTimelinePlaying;
         private int _playbackTimeStep;
         private int _playbackEndTimeStep;
+        private InitialTimelineSchedule _lastCompletedTimeline;
         private SoloComboTimingRequest _timingRequest;
         private float _timingElapsed;
         private bool _timingSelectionRequested;
@@ -288,6 +291,15 @@ namespace SER494.Gameplay.CombatSandbox
                 : "Ready — choose a Combo after reviewing Enemy Intent";
             GUI.Label(progressRect, label, _timelineStyle);
 
+            InitialTimelineSchedule displayedSchedule = _battle.ActiveTimeline
+                ?? _lastCompletedTimeline;
+            if (displayedSchedule != null)
+            {
+                DrawActiveTimelineSchedule(
+                    displayedSchedule,
+                    _battle.ActiveTimeline != null);
+            }
+
             if (_timingRequest != null)
             {
                 DrawResolutionTimingQte();
@@ -295,6 +307,165 @@ namespace SER494.Gameplay.CombatSandbox
             else if (_chargeRequest != null)
             {
                 DrawChargeQte();
+            }
+        }
+
+        private void DrawActiveTimelineSchedule(
+            InitialTimelineSchedule schedule,
+            bool isActive)
+        {
+            int displayEnd = Mathf.Max(IntentTimelineLength, schedule.CompletionTime);
+
+            GUILayout.Space(8f);
+            GUILayout.Label(
+                isActive
+                    ? $"Live Action Schedule — T0 to T{displayEnd}"
+                    : $"Previous Round Schedule — T0 to T{displayEnd}",
+                _sectionStyle);
+            DrawTimelineTrack(
+                "Player",
+                TimelineActorSide.Player,
+                schedule,
+                displayEnd,
+                new Color(0.20f, 0.55f, 0.90f, 0.82f));
+            DrawTimelineTrack(
+                "Enemy",
+                TimelineActorSide.Enemy,
+                schedule,
+                displayEnd,
+                new Color(0.88f, 0.28f, 0.24f, 0.82f));
+            DrawTimelineRuler(displayEnd);
+        }
+
+        private void DrawTimelineTrack(
+            string label,
+            TimelineActorSide side,
+            InitialTimelineSchedule schedule,
+            int displayEnd,
+            Color actionColor)
+        {
+            const float labelWidth = 70f;
+            Rect rowRect = GUILayoutUtility.GetRect(
+                100f,
+                42f,
+                GUILayout.ExpandWidth(true));
+            Rect trackRect = new Rect(
+                rowRect.x + labelWidth,
+                rowRect.y,
+                Mathf.Max(1f, rowRect.width - labelWidth),
+                rowRect.height);
+            GUI.Label(
+                new Rect(rowRect.x, rowRect.y, labelWidth - 4f, rowRect.height),
+                label,
+                _timelineStyle);
+            GUI.Box(trackRect, GUIContent.none);
+            DrawTimelineGrid(trackRect, displayEnd);
+
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side != side)
+                {
+                    continue;
+                }
+
+                float startRatio = Mathf.Clamp01(action.StartTime / (float)displayEnd);
+                float endRatio = Mathf.Clamp01(action.EndTime / (float)displayEnd);
+                Rect actionRect = new Rect(
+                    trackRect.x + trackRect.width * startRatio + 1f,
+                    trackRect.y + 3f,
+                    Mathf.Max(3f, trackRect.width * (endRatio - startRatio) - 2f),
+                    trackRect.height - 6f);
+
+                Color previousColor = GUI.color;
+                GUI.color = actionColor;
+                GUI.DrawTexture(actionRect, Texture2D.whiteTexture);
+                GUI.color = previousColor;
+
+                string actionLabel = action.IsChargeable
+                    ? $"{action.DisplayName} [Charge]"
+                    : action.DisplayName;
+                GUI.Label(actionRect, actionLabel, _timelineActionStyle);
+
+                if (action.HasResolutionWindow)
+                {
+                    float windowStart = action.ResolutionWindowStartTime.Value
+                        / (float)displayEnd;
+                    float windowEnd = action.ResolutionWindowEndTime.Value
+                        / (float)displayEnd;
+                    GUI.color = new Color(0.96f, 0.62f, 0.16f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * windowStart,
+                            actionRect.yMax - 5f,
+                            Mathf.Max(3f, trackRect.width * (windowEnd - windowStart)),
+                            5f),
+                        Texture2D.whiteTexture);
+                    GUI.color = previousColor;
+                }
+
+                float resolutionRatio = Mathf.Clamp01(
+                    action.ResolutionTime / (float)displayEnd);
+                GUI.color = new Color(1f, 0.86f, 0.22f, 1f);
+                GUI.DrawTexture(
+                    new Rect(
+                        trackRect.x + trackRect.width * resolutionRatio - 1f,
+                        actionRect.y,
+                        2f,
+                        actionRect.height),
+                    Texture2D.whiteTexture);
+                GUI.color = previousColor;
+            }
+
+            float currentRatio = Mathf.Clamp01(_playbackTimeStep / (float)displayEnd);
+            Color originalColor = GUI.color;
+            GUI.color = new Color(0.35f, 1f, 1f, 1f);
+            GUI.DrawTexture(
+                new Rect(
+                    trackRect.x + trackRect.width * currentRatio - 1f,
+                    trackRect.y,
+                    2f,
+                    trackRect.height),
+                Texture2D.whiteTexture);
+            GUI.color = originalColor;
+        }
+
+        private static void DrawTimelineGrid(Rect trackRect, int displayEnd)
+        {
+            Color previousColor = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, 0.16f);
+            for (int time = 0; time <= displayEnd; time += 5)
+            {
+                float ratio = time / (float)displayEnd;
+                float x = trackRect.x + trackRect.width * ratio;
+                GUI.DrawTexture(
+                    new Rect(x, trackRect.y, 1f, trackRect.height),
+                    Texture2D.whiteTexture);
+            }
+
+            GUI.color = previousColor;
+        }
+
+        private void DrawTimelineRuler(int displayEnd)
+        {
+            const float labelWidth = 70f;
+            Rect rulerRect = GUILayoutUtility.GetRect(
+                100f,
+                18f,
+                GUILayout.ExpandWidth(true));
+            Rect trackRect = new Rect(
+                rulerRect.x + labelWidth,
+                rulerRect.y,
+                Mathf.Max(1f, rulerRect.width - labelWidth),
+                rulerRect.height);
+            for (int time = 0; time <= displayEnd; time += 5)
+            {
+                float ratio = time / (float)displayEnd;
+                float x = trackRect.x + trackRect.width * ratio;
+                GUI.Label(
+                    new Rect(x - 14f, trackRect.y, 28f, trackRect.height),
+                    time.ToString(),
+                    _timelineTickStyle);
             }
         }
 
@@ -541,6 +712,7 @@ namespace SER494.Gameplay.CombatSandbox
             _isTimelinePlaying = false;
             _playbackTimeStep = 0;
             _playbackEndTimeStep = 0;
+            _lastCompletedTimeline = null;
             _timingRequest = null;
             _timingElapsed = 0f;
             _timingSelectionRequested = false;
@@ -862,6 +1034,7 @@ namespace SER494.Gameplay.CombatSandbox
 
         private void CompleteTimelinePlayback(SoloComboTurnResult result)
         {
+            _lastCompletedTimeline = result.Schedule;
             if (result.ManaRecovered > 0 || result.StaminaRecovered > 0)
             {
                 AppendLog(
@@ -977,6 +1150,21 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontStyle = FontStyle.Bold
+            };
+
+            _timelineActionStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                clipping = TextClipping.Clip,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold
+            };
+
+            _timelineTickStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.UpperCenter,
+                clipping = TextClipping.Clip,
+                fontSize = 10
             };
         }
 

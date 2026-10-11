@@ -344,6 +344,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public int TimelineCompletionTime => _activeSchedule?.CompletionTime ?? 0;
 
+        public InitialTimelineSchedule ActiveTimeline => _activeSchedule;
+
         public bool CanWait
         {
             get

@@ -61,6 +61,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(battle.Player.CurrentStamina, Is.EqualTo(10));
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(60));
             Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+            Assert.That(battle.ActiveTimeline, Is.Not.Null);
+            Assert.That(battle.ActiveTimeline.CompletionTime, Is.EqualTo(7));
         }
 
         [Test]
