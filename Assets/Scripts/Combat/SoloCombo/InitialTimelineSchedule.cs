@@ -26,7 +26,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatStatusDefinition statusEffect,
             ActionStatusTarget statusTarget,
             int? resolutionWindowStartTime = null,
-            int? resolutionWindowEndTime = null)
+            int? resolutionWindowEndTime = null,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -42,6 +43,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StatusTarget = statusTarget;
             ResolutionWindowStartTime = resolutionWindowStartTime;
             ResolutionWindowEndTime = resolutionWindowEndTime;
+            ChargeLevels = chargeLevels
+                ?? Array.Empty<ComboActionChargeLevelDefinition>();
         }
 
         public TimelineActorSide Side { get; }
@@ -75,6 +78,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int? ResolutionWindowEndTime { get; }
 
         public bool HasResolutionWindow => ResolutionWindowStartTime.HasValue;
+
+        public IReadOnlyList<ComboActionChargeLevelDefinition> ChargeLevels { get; }
+
+        public bool IsChargeable => ChargeLevels.Count > 0;
     }
 
     public sealed class TimelineResolutionStep

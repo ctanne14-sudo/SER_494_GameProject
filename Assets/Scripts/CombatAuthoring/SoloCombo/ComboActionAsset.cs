@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
 using UnityEngine;
@@ -9,6 +11,16 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         menuName = "SER494/Solo Combo/Action")]
     public sealed class ComboActionAsset : ScriptableObject
     {
+        [Serializable]
+        private sealed class ChargeLevelAuthoringData
+        {
+            [Min(1)]
+            public int additionalLoad = 3;
+
+            [Min(0.01f)]
+            public float damageMultiplierScale = 1f;
+        }
+
         [Header("Identity")]
         [SerializeField]
         [Tooltip("Stable internal ID. It must be unique across all owned Actions.")]
@@ -42,6 +54,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [SerializeField]
         [Min(0)]
         private int resolutionWindowEnd = 1;
+
+        [SerializeField]
+        [Tooltip("Optional Charge Levels. Level 0 always uses the base Action values.")]
+        private ChargeLevelAuthoringData[] chargeLevels =
+            Array.Empty<ChargeLevelAuthoringData>();
 
         [SerializeField]
         [Min(0)]
@@ -89,6 +106,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public int ResolutionWindowStart => resolutionWindowStart;
 
         public int ResolutionWindowEnd => resolutionWindowEnd;
+
+        public int ChargeLevelCount => chargeLevels?.Length ?? 0;
+
+        public int GetChargeAdditionalLoad(int chargeLevel)
+        {
+            return GetChargeLevel(chargeLevel).additionalLoad;
+        }
+
+        public float GetChargeDamageMultiplierScale(int chargeLevel)
+        {
+            return GetChargeLevel(chargeLevel).damageMultiplierScale;
+        }
 
         public int StaminaCost => staminaCost;
 
@@ -139,6 +168,19 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             {
                 validationError = $"{name} must have an ordered Resolution Window with "
                     + "at least two Time Steps inside its Action Load.";
+                return false;
+            }
+
+            if (!TryCreateChargeLevels(
+                    out IReadOnlyList<ComboActionChargeLevelDefinition> chargeDefinitions,
+                    out validationError))
+            {
+                return false;
+            }
+
+            if (useResolutionWindow && chargeDefinitions.Count > 0)
+            {
+                validationError = $"{name} cannot use both a Resolution Window and Charge Levels in the MVP.";
                 return false;
             }
 
@@ -194,7 +236,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     : null,
                 resolutionWindowEnd: useResolutionWindow
                     ? (int?)resolutionWindowEnd
-                    : null);
+                    : null,
+                chargeLevels: chargeDefinitions);
 
             validationError = null;
             return true;
@@ -210,6 +253,71 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);
             damageMultiplier = Mathf.Max(0f, damageMultiplier);
+            if (chargeLevels == null)
+            {
+                chargeLevels = Array.Empty<ChargeLevelAuthoringData>();
+            }
+
+            for (int index = 0; index < chargeLevels.Length; index++)
+            {
+                ChargeLevelAuthoringData level = chargeLevels[index];
+                if (level == null)
+                {
+                    continue;
+                }
+
+                level.additionalLoad = Mathf.Max(1, level.additionalLoad);
+                level.damageMultiplierScale = Mathf.Max(0.01f, level.damageMultiplierScale);
+            }
+        }
+
+        private bool TryCreateChargeLevels(
+            out IReadOnlyList<ComboActionChargeLevelDefinition> definitions,
+            out string validationError)
+        {
+            if (chargeLevels == null || chargeLevels.Length == 0)
+            {
+                definitions = Array.Empty<ComboActionChargeLevelDefinition>();
+                validationError = null;
+                return true;
+            }
+
+            var created = new ComboActionChargeLevelDefinition[chargeLevels.Length];
+            int previousAdditionalLoad = 0;
+            for (int index = 0; index < chargeLevels.Length; index++)
+            {
+                ChargeLevelAuthoringData level = chargeLevels[index];
+                if (level == null
+                    || level.additionalLoad <= previousAdditionalLoad
+                    || level.damageMultiplierScale <= 0f)
+                {
+                    definitions = null;
+                    validationError = $"{name} Charge Levels must be non-null, use a positive "
+                        + "damage scale, and add progressively more Load.";
+                    return false;
+                }
+
+                created[index] = new ComboActionChargeLevelDefinition(
+                    level.additionalLoad,
+                    level.damageMultiplierScale);
+                previousAdditionalLoad = level.additionalLoad;
+            }
+
+            definitions = Array.AsReadOnly(created);
+            validationError = null;
+            return true;
+        }
+
+        private ChargeLevelAuthoringData GetChargeLevel(int chargeLevel)
+        {
+            if (chargeLevels == null
+                || chargeLevel <= 0
+                || chargeLevel > chargeLevels.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chargeLevel));
+            }
+
+            return chargeLevels[chargeLevel - 1];
         }
     }
 }

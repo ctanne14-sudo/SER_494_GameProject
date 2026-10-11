@@ -163,6 +163,76 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void AdvanceTimeline_ChargeableActionPausesBeforeBaseResolutionPoint()
+        {
+            SoloComboBattleState battle = CreateBattleWithChargeAction();
+            battle.BeginCombo(0);
+
+            SoloComboTimelineAdvanceResult advance = battle.AdvanceTimeline();
+
+            Assert.That(advance.RequiresChargeInput, Is.True);
+            Assert.That(advance.TimeStep, Is.Zero);
+            Assert.That(advance.ChargeRequest.DisplayName, Is.EqualTo("Charged Strike"));
+            Assert.That(advance.ChargeRequest.MaximumChargeLevel, Is.EqualTo(2));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void SelectChargeLevel_ExtendsActionAndLaterActionsAndScalesDamage()
+        {
+            SoloComboBattleState battle = CreateBattleWithChargeAction();
+            battle.BeginCombo(0);
+            battle.AdvanceTimeline();
+
+            battle.SelectChargeLevel(2);
+
+            Assert.That(battle.TimelineCompletionTime, Is.EqualTo(10));
+            SoloComboTurnResult result = null;
+            while (battle.IsTimelineResolving)
+            {
+                SoloComboTimelineAdvanceResult advance = battle.AdvanceTimeline();
+                if (advance.RoundCompleted)
+                {
+                    result = advance.CompletedTurn;
+                }
+            }
+
+            Assert.That(result, Is.Not.Null);
+            ScheduledTimelineAction charged = result.Schedule.Actions.Single(
+                action => action.ActionId == "charged-strike");
+            ScheduledTimelineAction closing = result.Schedule.Actions.Single(
+                action => action.ActionId == "charged-closing");
+            Assert.That(
+                (charged.StartTime, charged.EndTime, charged.ResolutionTime),
+                Is.EqualTo((0, 8, 7)));
+            Assert.That(
+                (closing.StartTime, closing.EndTime, closing.ResolutionTime),
+                Is.EqualTo((8, 10, 10)));
+            Assert.That(
+                result.ActionResolutions.Single(
+                    resolution => resolution.ActionId == "charged-strike").DamageDealt,
+                Is.EqualTo(21));
+        }
+
+        [Test]
+        public void ExecuteCombo_ChargeWithoutInputDefaultsToLevelZero()
+        {
+            SoloComboBattleState battle = CreateBattleWithChargeAction();
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            ScheduledTimelineAction charged = result.Schedule.Actions.Single(
+                action => action.ActionId == "charged-strike");
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(charged.EndTime, Is.EqualTo(2));
+            Assert.That(charged.ResolutionTime, Is.EqualTo(1));
+            Assert.That(
+                result.ActionResolutions.Single(
+                    resolution => resolution.ActionId == "charged-strike").DamageDealt,
+                Is.EqualTo(13));
+        }
+
+        [Test]
         public void ExecuteCombo_PaysWholeComboThenRecoversResourcesAfterEnemyTurn()
         {
             SoloComboBattleState battle = CreateBattle(
@@ -679,6 +749,62 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 openingAction: null,
                 mainAction: timedStrike,
                 closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var enemySequence = new EnemyActionSequence(
+                "observe",
+                "Observe",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "observe-action",
+                        "Observe",
+                        loadCost: 1,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0d)
+                });
+
+            return new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(60, 12, 14, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                enemySequence,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2);
+        }
+
+        private static SoloComboBattleState CreateBattleWithChargeAction()
+        {
+            var chargedStrike = new ComboActionDefinition(
+                "charged-strike",
+                "Charged Strike",
+                ComboActionCategory.Main,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.40d,
+                resolutionOffset: 1,
+                chargeLevels: new[]
+                {
+                    new ComboActionChargeLevelDefinition(3, 1.35d),
+                    new ComboActionChargeLevelDefinition(6, 1.70d)
+                });
+            var closing = new ComboActionDefinition(
+                "charged-closing",
+                "Charged Closing",
+                ComboActionCategory.Closing,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.20d,
+                resolutionOffset: 2);
+            var combo = new ComboConfiguration(
+                "charged-combo",
+                openingAction: null,
+                mainAction: chargedStrike,
+                closingAction: closing,
                 linkedAction: null,
                 linkedActionPlacement: null);
             var enemySequence = new EnemyActionSequence(

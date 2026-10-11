@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
@@ -25,6 +26,39 @@ namespace SER494.Gameplay.Combat.SoloCombo
     {
         Self,
         Opponent
+    }
+
+    public sealed class ComboActionChargeLevelDefinition
+    {
+        public ComboActionChargeLevelDefinition(
+            int additionalLoad,
+            double damageMultiplierScale)
+        {
+            if (additionalLoad <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(additionalLoad),
+                    additionalLoad,
+                    "A Charge Level must add at least one Load.");
+            }
+
+            if (double.IsNaN(damageMultiplierScale)
+                || double.IsInfinity(damageMultiplierScale)
+                || damageMultiplierScale <= 0d)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(damageMultiplierScale),
+                    damageMultiplierScale,
+                    "A Charge Level damage scale must be finite and greater than zero.");
+            }
+
+            AdditionalLoad = additionalLoad;
+            DamageMultiplierScale = damageMultiplierScale;
+        }
+
+        public int AdditionalLoad { get; }
+
+        public double DamageMultiplierScale { get; }
     }
 
     [Flags]
@@ -54,7 +88,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatStatusDefinition statusEffect = null,
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             int? resolutionWindowStart = null,
-            int? resolutionWindowEnd = null)
+            int? resolutionWindowEnd = null,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
             : this(
                 actionId,
                 displayName,
@@ -70,7 +105,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusEffect,
                 statusTarget,
                 resolutionWindowStart,
-                resolutionWindowEnd)
+                resolutionWindowEnd,
+                chargeLevels)
         {
         }
 
@@ -88,7 +124,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatStatusDefinition statusEffect = null,
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             int? resolutionWindowStart = null,
-            int? resolutionWindowEnd = null)
+            int? resolutionWindowEnd = null,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null)
             : this(
                 actionId,
                 displayName,
@@ -106,7 +143,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusEffect,
                 statusTarget,
                 resolutionWindowStart,
-                resolutionWindowEnd)
+                resolutionWindowEnd,
+                chargeLevels)
         {
         }
 
@@ -125,7 +163,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatStatusDefinition statusEffect,
             ActionStatusTarget statusTarget,
             int? resolutionWindowStart,
-            int? resolutionWindowEnd)
+            int? resolutionWindowEnd,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -159,6 +198,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 LoadCost);
             ResolutionWindowStart = resolutionWindowStart;
             ResolutionWindowEnd = resolutionWindowEnd;
+            ChargeLevels = CopyAndValidateChargeLevels(
+                chargeLevels,
+                HasResolutionWindow);
         }
 
         public string ActionId { get; }
@@ -194,6 +236,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int? ResolutionWindowEnd { get; }
 
         public bool HasResolutionWindow => ResolutionWindowStart.HasValue;
+
+        public IReadOnlyList<ComboActionChargeLevelDefinition> ChargeLevels { get; }
+
+        public bool IsChargeable => ChargeLevels.Count > 0;
 
         private static int RequirePositive(int value, string parameterName)
         {
@@ -369,6 +415,44 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 throw new ArgumentException(
                     "A Resolution Window must contain at least two ordered Time Steps.");
             }
+        }
+
+        private static IReadOnlyList<ComboActionChargeLevelDefinition> CopyAndValidateChargeLevels(
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels,
+            bool hasResolutionWindow)
+        {
+            if (chargeLevels == null || chargeLevels.Count == 0)
+            {
+                return Array.Empty<ComboActionChargeLevelDefinition>();
+            }
+
+            if (hasResolutionWindow)
+            {
+                throw new ArgumentException(
+                    "The MVP does not allow one Action to use both a Resolution Window and Charge Levels.",
+                    nameof(chargeLevels));
+            }
+
+            var copy = new ComboActionChargeLevelDefinition[chargeLevels.Count];
+            int previousAdditionalLoad = 0;
+            for (int index = 0; index < chargeLevels.Count; index++)
+            {
+                ComboActionChargeLevelDefinition level = chargeLevels[index]
+                    ?? throw new ArgumentException(
+                        "Charge Level entries cannot be null.",
+                        nameof(chargeLevels));
+                if (level.AdditionalLoad <= previousAdditionalLoad)
+                {
+                    throw new ArgumentException(
+                        "Charge Levels must add progressively more Load.",
+                        nameof(chargeLevels));
+                }
+
+                copy[index] = level;
+                previousAdditionalLoad = level.AdditionalLoad;
+            }
+
+            return Array.AsReadOnly(copy);
         }
     }
 }

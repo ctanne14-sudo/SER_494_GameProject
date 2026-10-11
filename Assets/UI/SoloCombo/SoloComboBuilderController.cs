@@ -591,6 +591,25 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 {
                     builder.Append(" (no Damage / Guard / Evade prototype effect)");
                 }
+
+                if (action.ChargeLevelCount > 0)
+                {
+                    builder.Append(" | Charge: ");
+                    for (int level = 1; level <= action.ChargeLevelCount; level++)
+                    {
+                        if (level > 1)
+                        {
+                            builder.Append("; ");
+                        }
+
+                        builder.Append('L')
+                            .Append(level)
+                            .Append(" +")
+                            .Append(action.GetChargeAdditionalLoad(level))
+                            .Append(" Load x")
+                            .Append(action.GetChargeDamageMultiplierScale(level).ToString("0.00"));
+                    }
+                }
             }
 
             _actionLibraryLabel.text = builder.Length == 0

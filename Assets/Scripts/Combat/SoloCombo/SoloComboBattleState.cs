@@ -174,13 +174,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int timeStep,
             IReadOnlyList<SoloComboActionResolution> actionResolutions,
             SoloComboTurnResult completedTurn,
-            SoloComboTimingRequest timingRequest = null)
+            SoloComboTimingRequest timingRequest = null,
+            SoloComboChargeRequest chargeRequest = null)
         {
             TimeStep = timeStep;
             ActionResolutions = actionResolutions
                 ?? throw new ArgumentNullException(nameof(actionResolutions));
             CompletedTurn = completedTurn;
             TimingRequest = timingRequest;
+            ChargeRequest = chargeRequest;
         }
 
         public int TimeStep { get; }
@@ -194,6 +196,34 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool RoundCompleted => CompletedTurn != null;
 
         public bool RequiresTimingInput => TimingRequest != null;
+
+        public SoloComboChargeRequest ChargeRequest { get; }
+
+        public bool RequiresChargeInput => ChargeRequest != null;
+    }
+
+    public sealed class SoloComboChargeRequest
+    {
+        internal SoloComboChargeRequest(ScheduledTimelineAction action)
+        {
+            Side = action.Side;
+            SequenceIndex = action.SequenceIndex;
+            ActionId = action.ActionId;
+            DisplayName = action.DisplayName;
+            ChargeLevels = action.ChargeLevels;
+        }
+
+        public TimelineActorSide Side { get; }
+
+        public int SequenceIndex { get; }
+
+        public string ActionId { get; }
+
+        public string DisplayName { get; }
+
+        public IReadOnlyList<ComboActionChargeLevelDefinition> ChargeLevels { get; }
+
+        public int MaximumChargeLevel => ChargeLevels.Count;
     }
 
     public sealed class SoloComboTimingRequest
@@ -242,6 +272,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private EnemyActionSequence _currentEnemySequence;
         private string _previousEnemySequenceId;
         private SoloComboTimingRequest _pendingTimingRequest;
+        private SoloComboChargeRequest _pendingChargeRequest;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -455,6 +486,27 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     timingRequest: _pendingTimingRequest);
             }
 
+            if (_pendingChargeRequest != null)
+            {
+                return new SoloComboTimelineAdvanceResult(
+                    _currentTimelineTimeStep,
+                    NoResolutions,
+                    completedTurn: null,
+                    chargeRequest: _pendingChargeRequest);
+            }
+
+            ScheduledTimelineAction pendingCharge = FindChargeStartingAt(
+                _currentTimelineTimeStep + 1);
+            if (pendingCharge != null)
+            {
+                _pendingChargeRequest = new SoloComboChargeRequest(pendingCharge);
+                return new SoloComboTimelineAdvanceResult(
+                    _currentTimelineTimeStep,
+                    NoResolutions,
+                    completedTurn: null,
+                    chargeRequest: _pendingChargeRequest);
+            }
+
             ScheduledTimelineAction pendingWindow = FindWindowStartingAt(
                 _currentTimelineTimeStep + 1);
             if (pendingWindow != null)
@@ -524,6 +576,27 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             _pendingTimingRequest = null;
+        }
+
+        public void SelectChargeLevel(int chargeLevel)
+        {
+            if (_pendingChargeRequest == null)
+            {
+                throw new InvalidOperationException("No Charge input is pending.");
+            }
+
+            if (chargeLevel < 0 || chargeLevel > _pendingChargeRequest.MaximumChargeLevel)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chargeLevel));
+            }
+
+            _activeSchedule = InitialTimelineScheduleBuilder.ApplyChargeLevel(
+                _activeSchedule,
+                _pendingChargeRequest.Side,
+                _pendingChargeRequest.SequenceIndex,
+                chargeLevel);
+            RecalculateActiveResolutionStepIndex();
+            _pendingChargeRequest = null;
         }
 
         private IReadOnlyList<SoloComboActionResolution> ResolveTimelineStep(
@@ -641,6 +714,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             _activeResolutionStepIndex = 0;
             _currentTimelineTimeStep = 0;
             _pendingTimingRequest = null;
+            _pendingChargeRequest = null;
             _activeResolutions.Clear();
         }
 
@@ -653,6 +727,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 if (advance.RequiresTimingInput)
                 {
                     SelectResolutionPoint(advance.TimingRequest.MinimumTimeStep);
+                }
+                else if (advance.RequiresChargeInput)
+                {
+                    SelectChargeLevel(0);
                 }
                 else
                 {
@@ -682,6 +760,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             _activeSchedule = null;
             _activeResolutionStepIndex = 0;
             _pendingTimingRequest = null;
+            _pendingChargeRequest = null;
             _activeResolutions.Clear();
 
             if (Outcome == BattleOutcome.Ongoing)
@@ -705,6 +784,33 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return null;
+        }
+
+        private ScheduledTimelineAction FindChargeStartingAt(int timeStep)
+        {
+            for (int index = 0; index < _activeSchedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = _activeSchedule.Actions[index];
+                if (action.Side == TimelineActorSide.Player
+                    && action.IsChargeable
+                    && action.ResolutionTime == timeStep)
+                {
+                    return action;
+                }
+            }
+
+            return null;
+        }
+
+        private void RecalculateActiveResolutionStepIndex()
+        {
+            _activeResolutionStepIndex = 0;
+            while (_activeResolutionStepIndex < _activeSchedule.ResolutionSteps.Count
+                && _activeSchedule.ResolutionSteps[_activeResolutionStepIndex].TimeStep
+                    <= _currentTimelineTimeStep)
+            {
+                _activeResolutionStepIndex++;
+            }
         }
 
         private void SelectAndLockEnemyIntent()

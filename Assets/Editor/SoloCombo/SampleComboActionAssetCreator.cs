@@ -87,7 +87,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     damageMultiplier: 0.70f,
                     damageType: DamageType.Slashing,
                     resolutionEffect: ActionResolutionEffect.Damage,
-                    damageTags: DamageResolutionTag.Overcommit),
+                    damageTags: DamageResolutionTag.Overcommit,
+                    chargeLevels: new[]
+                    {
+                        new SampleChargeLevel(additionalLoad: 3, damageMultiplierScale: 1.35f),
+                        new SampleChargeLevel(additionalLoad: 6, damageMultiplierScale: 1.70f)
+                    }),
                 new SampleAction(
                     "Sample_GuardBreaker",
                     "sample.guard-breaker",
@@ -296,6 +301,16 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 sample.ResolutionWindowStart ?? sample.ResolutionOffset;
             serializedAsset.FindProperty("resolutionWindowEnd").intValue =
                 sample.ResolutionWindowEnd ?? sample.ResolutionOffset;
+            SerializedProperty chargeLevels = serializedAsset.FindProperty("chargeLevels");
+            chargeLevels.arraySize = sample.ChargeLevels.Length;
+            for (int index = 0; index < sample.ChargeLevels.Length; index++)
+            {
+                SerializedProperty level = chargeLevels.GetArrayElementAtIndex(index);
+                level.FindPropertyRelative("additionalLoad").intValue =
+                    sample.ChargeLevels[index].AdditionalLoad;
+                level.FindPropertyRelative("damageMultiplierScale").floatValue =
+                    sample.ChargeLevels[index].DamageMultiplierScale;
+            }
             serializedAsset.FindProperty("manaCost").intValue = sample.ManaCost;
             serializedAsset.FindProperty("staminaCost").intValue = sample.StaminaCost;
             serializedAsset.FindProperty("cooldown").intValue = sample.Cooldown;
@@ -345,7 +360,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ActionResolutionEffect resolutionEffect,
                 DamageResolutionTag damageTags = DamageResolutionTag.None,
                 int? resolutionWindowStart = null,
-                int? resolutionWindowEnd = null)
+                int? resolutionWindowEnd = null,
+                SampleChargeLevel[] chargeLevels = null)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -362,6 +378,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 DamageTags = damageTags;
                 ResolutionWindowStart = resolutionWindowStart;
                 ResolutionWindowEnd = resolutionWindowEnd;
+                ChargeLevels = chargeLevels ?? new SampleChargeLevel[0];
             }
 
             public string FileName { get; }
@@ -393,6 +410,21 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public int? ResolutionWindowStart { get; }
 
             public int? ResolutionWindowEnd { get; }
+
+            public SampleChargeLevel[] ChargeLevels { get; }
+        }
+
+        private sealed class SampleChargeLevel
+        {
+            public SampleChargeLevel(int additionalLoad, float damageMultiplierScale)
+            {
+                AdditionalLoad = additionalLoad;
+                DamageMultiplierScale = damageMultiplierScale;
+            }
+
+            public int AdditionalLoad { get; }
+
+            public float DamageMultiplierScale { get; }
         }
     }
 }

@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
 {
     public static class InitialTimelineScheduleBuilder
     {
+        public const int AbsoluteTimelineLimit = 100;
+
         public static InitialTimelineSchedule Build(
             ComboConfiguration playerCombo,
             EnemyActionSequence enemySequence)
@@ -104,6 +107,89 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return CreateSchedule(actions, schedule.CompletionTime);
         }
 
+        public static InitialTimelineSchedule ApplyChargeLevel(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int chargeLevel)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            ScheduledTimelineAction selectedAction = null;
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    selectedAction = action;
+                    break;
+                }
+            }
+
+            if (selectedAction == null || !selectedAction.IsChargeable)
+            {
+                throw new ArgumentException("The requested chargeable Action was not found.");
+            }
+
+            if (chargeLevel < 0 || chargeLevel > selectedAction.ChargeLevels.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chargeLevel));
+            }
+
+            int additionalLoad = chargeLevel == 0
+                ? 0
+                : selectedAction.ChargeLevels[chargeLevel - 1].AdditionalLoad;
+            double damageScale = chargeLevel == 0
+                ? 1d
+                : selectedAction.ChargeLevels[chargeLevel - 1].DamageMultiplierScale;
+            var actions = new List<ScheduledTimelineAction>(schedule.Actions.Count);
+            int completionTime = 0;
+
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                int shift = action.Side == side && action.SequenceIndex > sequenceIndex
+                    ? additionalLoad
+                    : 0;
+
+                if (action == selectedAction)
+                {
+                    action = CopyScheduledAction(
+                        action,
+                        startShift: 0,
+                        endShift: additionalLoad,
+                        resolutionShift: additionalLoad,
+                        damageScale,
+                        keepChargeLevels: false);
+                }
+                else if (shift > 0)
+                {
+                    action = CopyScheduledAction(
+                        action,
+                        startShift: shift,
+                        endShift: shift,
+                        resolutionShift: shift,
+                        damageScale: 1d,
+                        keepChargeLevels: true);
+                }
+
+                actions.Add(action);
+                completionTime = Math.Max(completionTime, action.EndTime);
+            }
+
+            if (completionTime > AbsoluteTimelineLimit)
+            {
+                throw new InvalidOperationException(
+                    $"Charge Level {chargeLevel} would extend the Timeline beyond "
+                    + $"the absolute limit of {AbsoluteTimelineLimit}.");
+            }
+
+            return CreateSchedule(actions, completionTime);
+        }
+
         private static InitialTimelineSchedule CreateSchedule(
             List<ScheduledTimelineAction> actions,
             int completionTime)
@@ -193,7 +279,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         : null,
                     definition.ResolutionWindowEnd.HasValue
                         ? (int?)checked(currentTime + definition.ResolutionWindowEnd.Value)
-                        : null));
+                        : null,
+                    definition.ChargeLevels));
                 currentTime = endTime;
             }
 
@@ -226,6 +313,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return currentTime;
+        }
+
+        private static ScheduledTimelineAction CopyScheduledAction(
+            ScheduledTimelineAction action,
+            int startShift,
+            int endShift,
+            int resolutionShift,
+            double damageScale,
+            bool keepChargeLevels)
+        {
+            return new ScheduledTimelineAction(
+                action.Side,
+                action.SequenceIndex,
+                action.ActionId,
+                action.DisplayName,
+                checked(action.StartTime + startShift),
+                checked(action.EndTime + endShift),
+                checked(action.ResolutionTime + resolutionShift),
+                ScaleDamageEffect(action.DamageEffect, damageScale),
+                action.ResolutionEffect,
+                action.DamageTags,
+                action.StatusEffect,
+                action.StatusTarget,
+                action.ResolutionWindowStartTime.HasValue
+                    ? (int?)checked(action.ResolutionWindowStartTime.Value + resolutionShift)
+                    : null,
+                action.ResolutionWindowEndTime.HasValue
+                    ? (int?)checked(action.ResolutionWindowEndTime.Value + resolutionShift)
+                    : null,
+                keepChargeLevels
+                    ? action.ChargeLevels
+                    : Array.Empty<ComboActionChargeLevelDefinition>());
+        }
+
+        private static DamageEffectDefinition ScaleDamageEffect(
+            DamageEffectDefinition damageEffect,
+            double scale)
+        {
+            if (damageEffect == null || Math.Abs(scale - 1d) < double.Epsilon)
+            {
+                return damageEffect;
+            }
+
+            var components = new DamageComponentDefinition[damageEffect.Components.Count];
+            for (int index = 0; index < components.Length; index++)
+            {
+                DamageComponentDefinition component = damageEffect.Components[index];
+                components[index] = new DamageComponentDefinition(
+                    component.Type,
+                    checked(component.ActionMultiplier * scale));
+            }
+
+            return new DamageEffectDefinition(components);
         }
     }
 }

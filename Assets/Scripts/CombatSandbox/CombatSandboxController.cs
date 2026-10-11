@@ -33,6 +33,18 @@ namespace SER494.Gameplay.CombatSandbox
         [Min(0.05f)]
         private float timingCandidateSeconds = 0.35f;
 
+        [SerializeField]
+        [Min(0.1f)]
+        private float chargeInputLimit = 3f;
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float chargeHoldLimit = 3f;
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float chargeCycleSeconds = 1.5f;
+
         private readonly List<string> _combatLog = new List<string>();
 
         private SoloComboBattleState _battle;
@@ -55,6 +67,13 @@ namespace SER494.Gameplay.CombatSandbox
         private float _timingElapsed;
         private bool _timingSelectionRequested;
         private int _timingSelectedTimeStep;
+        private SoloComboChargeRequest _chargeRequest;
+        private float _chargeInputElapsed;
+        private float _chargeHoldElapsed;
+        private bool _chargeEngaged;
+        private bool _chargeSelectionRequested;
+        private bool _chargeForcedLevelZero;
+        private int _chargeSelectedLevel;
 
         public SoloComboLoadoutSession LoadoutSession
         {
@@ -219,6 +238,10 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 DrawResolutionTimingQte();
             }
+            else if (_chargeRequest != null)
+            {
+                DrawChargeQte();
+            }
         }
 
         private void DrawResolutionTimingQte()
@@ -265,6 +288,71 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 RequestTimingSelection(candidate);
                 currentEvent.Use();
+            }
+        }
+
+        private void DrawChargeQte()
+        {
+            GUILayout.Space(6f);
+            GUILayout.Label($"Charge QTE — {_chargeRequest.DisplayName}", _sectionStyle);
+
+            int candidate = _chargeEngaged ? CurrentChargeLevel() : 0;
+            int segmentCount = _chargeRequest.MaximumChargeLevel + 1;
+            Rect chargeRect = GUILayoutUtility.GetRect(
+                100f,
+                34f,
+                GUILayout.ExpandWidth(true));
+            float segmentWidth = chargeRect.width / segmentCount;
+            Color previousColor = GUI.color;
+            for (int level = 0; level < segmentCount; level++)
+            {
+                GUI.color = level == candidate
+                    ? new Color(0.95f, 0.65f, 0.20f, 1f)
+                    : new Color(0.25f, 0.30f, 0.40f, 1f);
+                GUI.Box(
+                    new Rect(
+                        chargeRect.x + segmentWidth * level,
+                        chargeRect.y,
+                        segmentWidth - 2f,
+                        chargeRect.height),
+                    $"Level {level}");
+            }
+
+            GUI.color = previousColor;
+            Event currentEvent = Event.current;
+            if (!_chargeEngaged)
+            {
+                float remaining = Mathf.Max(0f, chargeInputLimit - _chargeInputElapsed);
+                if (GUILayout.Button(
+                        $"Begin Charging  |  Hold Space  |  {remaining:0.0}s",
+                        GUILayout.Height(34f)))
+                {
+                    BeginCharging();
+                }
+
+                if (currentEvent.type == EventType.KeyDown
+                    && currentEvent.keyCode == KeyCode.Space)
+                {
+                    BeginCharging();
+                    currentEvent.Use();
+                }
+            }
+            else
+            {
+                float remaining = Mathf.Max(0f, chargeHoldLimit - _chargeHoldElapsed);
+                if (GUILayout.Button(
+                        $"Release at Level {candidate}  |  Release Space  |  {remaining:0.0}s",
+                        GUILayout.Height(34f)))
+                {
+                    RequestChargeRelease();
+                }
+
+                if (currentEvent.type == EventType.KeyUp
+                    && currentEvent.keyCode == KeyCode.Space)
+                {
+                    RequestChargeRelease();
+                    currentEvent.Use();
+                }
             }
         }
 
@@ -399,6 +487,13 @@ namespace SER494.Gameplay.CombatSandbox
             _timingRequest = null;
             _timingElapsed = 0f;
             _timingSelectionRequested = false;
+            _chargeRequest = null;
+            _chargeInputElapsed = 0f;
+            _chargeHoldElapsed = 0f;
+            _chargeEngaged = false;
+            _chargeSelectionRequested = false;
+            _chargeForcedLevelZero = false;
+            _chargeSelectedLevel = 0;
             _battle = null;
             _setupError = null;
             _combatLog.Clear();
@@ -549,6 +644,13 @@ namespace SER494.Gameplay.CombatSandbox
                     continue;
                 }
 
+
+                if (advance.RequiresChargeInput)
+                {
+                    yield return RunChargeQte(advance.ChargeRequest);
+                    continue;
+                }
+
                 _playbackTimeStep = advance.TimeStep;
 
                 for (int index = 0; index < advance.ActionResolutions.Count; index++)
@@ -609,6 +711,96 @@ namespace SER494.Gameplay.CombatSandbox
 
             _timingSelectedTimeStep = timeStep;
             _timingSelectionRequested = true;
+        }
+
+        private IEnumerator RunChargeQte(SoloComboChargeRequest request)
+        {
+            _chargeRequest = request;
+            _chargeInputElapsed = 0f;
+            _chargeHoldElapsed = 0f;
+            _chargeEngaged = false;
+            _chargeSelectionRequested = false;
+            _chargeForcedLevelZero = false;
+            _chargeSelectedLevel = 0;
+
+            while (!_chargeSelectionRequested)
+            {
+                if (_chargeEngaged)
+                {
+                    _chargeHoldElapsed += Time.unscaledDeltaTime;
+                    if (_chargeHoldElapsed >= chargeHoldLimit)
+                    {
+                        _chargeSelectedLevel = 0;
+                        _chargeForcedLevelZero = true;
+                        _chargeSelectionRequested = true;
+                    }
+                }
+                else
+                {
+                    _chargeInputElapsed += Time.unscaledDeltaTime;
+                    if (_chargeInputElapsed >= chargeInputLimit)
+                    {
+                        _chargeSelectedLevel = 0;
+                        _chargeSelectionRequested = true;
+                    }
+                }
+
+                yield return null;
+            }
+
+            _battle.SelectChargeLevel(_chargeSelectedLevel);
+            _playbackEndTimeStep = _battle.TimelineCompletionTime;
+            string reason = _chargeForcedLevelZero
+                ? "hold limit reached; forced to Level 0"
+                : !_chargeEngaged
+                    ? "no input; defaulted to Level 0"
+                    : $"released at Level {_chargeSelectedLevel}";
+            AppendLog($"  Charge QTE: {request.DisplayName} {reason}.");
+
+            _chargeRequest = null;
+            _chargeInputElapsed = 0f;
+            _chargeHoldElapsed = 0f;
+            _chargeEngaged = false;
+            _chargeSelectionRequested = false;
+            _chargeForcedLevelZero = false;
+            _chargeSelectedLevel = 0;
+        }
+
+        private int CurrentChargeLevel()
+        {
+            int segmentCount = _chargeRequest.MaximumChargeLevel + 1;
+            float cycle = Mathf.Max(0.1f, chargeCycleSeconds);
+            float normalized = Mathf.Repeat(_chargeHoldElapsed, cycle) / cycle;
+            return Mathf.Clamp(
+                Mathf.FloorToInt(normalized * segmentCount),
+                0,
+                segmentCount - 1);
+        }
+
+        private void BeginCharging()
+        {
+            if (_chargeRequest == null
+                || _chargeEngaged
+                || _chargeSelectionRequested)
+            {
+                return;
+            }
+
+            _chargeEngaged = true;
+            _chargeHoldElapsed = 0f;
+        }
+
+        private void RequestChargeRelease()
+        {
+            if (_chargeRequest == null
+                || !_chargeEngaged
+                || _chargeSelectionRequested)
+            {
+                return;
+            }
+
+            _chargeSelectedLevel = CurrentChargeLevel();
+            _chargeSelectionRequested = true;
         }
 
         private void CompleteTimelinePlayback(SoloComboTurnResult result)
