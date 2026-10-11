@@ -12,7 +12,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         ComboOnCooldown,
         InsufficientMana,
         InsufficientStamina,
-        WaitNotAvailable
+        WaitNotAvailable,
+        TimelineResolving
     }
 
     public enum DamageAvoidanceResult
@@ -167,14 +168,45 @@ namespace SER494.Gameplay.Combat.SoloCombo
         }
     }
 
+    public sealed class SoloComboTimelineAdvanceResult
+    {
+        internal SoloComboTimelineAdvanceResult(
+            int timeStep,
+            IReadOnlyList<SoloComboActionResolution> actionResolutions,
+            SoloComboTurnResult completedTurn)
+        {
+            TimeStep = timeStep;
+            ActionResolutions = actionResolutions
+                ?? throw new ArgumentNullException(nameof(actionResolutions));
+            CompletedTurn = completedTurn;
+        }
+
+        public int TimeStep { get; }
+
+        public IReadOnlyList<SoloComboActionResolution> ActionResolutions { get; }
+
+        public SoloComboTurnResult CompletedTurn { get; }
+
+        public bool RoundCompleted => CompletedTurn != null;
+    }
+
     public sealed class SoloComboBattleState
     {
+        private static readonly IReadOnlyList<SoloComboActionResolution> NoResolutions =
+            Array.Empty<SoloComboActionResolution>();
+
         private readonly ComboConfiguration[] _combos;
         private readonly int[] _cooldowns;
         private readonly EnemyActionSequence _enemySequence;
         private readonly BattleDamageConfiguration _damageConfiguration;
         private readonly int _manaRecoveryPerTurn;
         private readonly int _staminaRecoveryPerTurn;
+        private readonly List<SoloComboActionResolution> _activeResolutions =
+            new List<SoloComboActionResolution>();
+
+        private InitialTimelineSchedule _activeSchedule;
+        private int _activeResolutionStepIndex;
+        private int _currentTimelineTimeStep;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -215,11 +247,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public BattleOutcome Outcome { get; private set; }
 
+        public bool IsTimelineResolving => _activeSchedule != null;
+
+        public int CurrentTimelineTimeStep => _currentTimelineTimeStep;
+
+        public int TimelineCompletionTime => _activeSchedule?.CompletionTime ?? 0;
+
         public bool CanWait
         {
             get
             {
-                if (Outcome != BattleOutcome.Ongoing)
+                if (Outcome != BattleOutcome.Ongoing || IsTimelineResolving)
                 {
                     return false;
                 }
@@ -254,6 +292,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 return SoloComboExecutionFailure.BattleEnded;
             }
 
+            if (IsTimelineResolving)
+            {
+                return SoloComboExecutionFailure.TimelineResolving;
+            }
+
             if (_cooldowns[comboIndex] > 0)
             {
                 return SoloComboExecutionFailure.ComboOnCooldown;
@@ -272,10 +315,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public SoloComboTurnResult ExecuteCombo(int comboIndex)
         {
-            SoloComboExecutionFailure failure = GetExecutionFailure(comboIndex);
+            SoloComboExecutionFailure failure = BeginCombo(comboIndex);
             if (failure != SoloComboExecutionFailure.None)
             {
                 return SoloComboTurnResult.Failed(failure, Outcome);
+            }
+
+            return ResolveActiveTimelineToCompletion();
+        }
+
+        public SoloComboExecutionFailure BeginCombo(int comboIndex)
+        {
+            SoloComboExecutionFailure failure = GetExecutionFailure(comboIndex);
+            if (failure != SoloComboExecutionFailure.None)
+            {
+                return failure;
             }
 
             ComboConfiguration combo = _combos[comboIndex];
@@ -286,169 +340,230 @@ namespace SER494.Gameplay.Combat.SoloCombo
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 combo,
                 _enemySequence);
-            IReadOnlyList<SoloComboActionResolution> resolutions = ResolveTimeline(schedule);
-
-            Outcome = EvaluateOutcome();
-            RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
-            AdvanceRoundStatuses();
-
-            return SoloComboTurnResult.Completed(
-                resolutions,
-                schedule,
-                manaRecovered,
-                staminaRecovered,
-                Outcome);
+            BeginTimeline(schedule);
+            return SoloComboExecutionFailure.None;
         }
 
         public SoloComboTurnResult WaitTurn()
         {
+            SoloComboExecutionFailure failure = BeginWaitTurn();
+            if (failure != SoloComboExecutionFailure.None)
+            {
+                return SoloComboTurnResult.Failed(failure, Outcome);
+            }
+
+            return ResolveActiveTimelineToCompletion();
+        }
+
+        public SoloComboExecutionFailure BeginWaitTurn()
+        {
             if (Outcome != BattleOutcome.Ongoing)
             {
-                return SoloComboTurnResult.Failed(
-                    SoloComboExecutionFailure.BattleEnded,
-                    Outcome);
+                return SoloComboExecutionFailure.BattleEnded;
+            }
+
+            if (IsTimelineResolving)
+            {
+                return SoloComboExecutionFailure.TimelineResolving;
             }
 
             if (!CanWait)
             {
-                return SoloComboTurnResult.Failed(
-                    SoloComboExecutionFailure.WaitNotAvailable,
-                    Outcome);
+                return SoloComboExecutionFailure.WaitNotAvailable;
             }
 
             AdvanceExistingCooldowns();
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.BuildEnemyOnly(
                 _enemySequence);
-            IReadOnlyList<SoloComboActionResolution> resolutions = ResolveTimeline(schedule);
-
-            Outcome = EvaluateOutcome();
-            RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
-            AdvanceRoundStatuses();
-
-            return SoloComboTurnResult.Completed(
-                resolutions,
-                schedule,
-                manaRecovered,
-                staminaRecovered,
-                Outcome);
+            BeginTimeline(schedule);
+            return SoloComboExecutionFailure.None;
         }
 
-        private IReadOnlyList<SoloComboActionResolution> ResolveTimeline(
-            InitialTimelineSchedule schedule)
+        public SoloComboTimelineAdvanceResult AdvanceTimeline()
         {
-            var resolutions = new List<SoloComboActionResolution>(schedule.Actions.Count);
-
-            for (int stepIndex = 0; stepIndex < schedule.ResolutionSteps.Count; stepIndex++)
+            if (!IsTimelineResolving)
             {
-                TimelineResolutionStep step = schedule.ResolutionSteps[stepIndex];
-                int pendingPlayerDamage = 0;
-                int pendingEnemyDamage = 0;
-                var pendingStatuses = new List<ScheduledTimelineAction>();
-                ActionResolutionEffect playerDefense = FindDefensiveResolution(
-                    step,
-                    TimelineActorSide.Player);
-                ActionResolutionEffect enemyDefense = FindDefensiveResolution(
-                    step,
-                    TimelineActorSide.Enemy);
+                throw new InvalidOperationException("No Solo Combo timeline is currently resolving.");
+            }
 
-                for (int actionIndex = 0; actionIndex < step.Actions.Count; actionIndex++)
+            _currentTimelineTimeStep++;
+            IReadOnlyList<SoloComboActionResolution> stepResolutions = NoResolutions;
+
+            if (_activeResolutionStepIndex < _activeSchedule.ResolutionSteps.Count)
+            {
+                TimelineResolutionStep nextStep =
+                    _activeSchedule.ResolutionSteps[_activeResolutionStepIndex];
+                if (nextStep.TimeStep == _currentTimelineTimeStep)
                 {
-                    ScheduledTimelineAction action = step.Actions[actionIndex];
-                    CombatantState actor = action.Side == TimelineActorSide.Player
-                        ? Player
-                        : Enemy;
-                    CombatantState target = action.Side == TimelineActorSide.Player
-                        ? Enemy
-                        : Player;
-
-                    // Defeat at an earlier time step prevents later effects. Effects collected
-                    // at this same step still resolve together.
-                    if (actor.IsDefeated || target.IsDefeated)
-                    {
-                        continue;
-                    }
-
-                    if (action.StatusEffect != null)
-                    {
-                        pendingStatuses.Add(action);
-                        continue;
-                    }
-
-                    ActionResolutionEffect targetDefense = action.Side == TimelineActorSide.Player
-                        ? enemyDefense
-                        : playerDefense;
-                    DamageAvoidanceResult avoidance = action.HasDamage
-                        ? ResolveDamageAvoidance(targetDefense, action.DamageTags)
-                        : DamageAvoidanceResult.None;
-                    int damage = action.HasDamage
-                        && avoidance == DamageAvoidanceResult.None
-                            ? CalculateDamage(actor, target, action.DamageEffect)
-                            : 0;
-                    resolutions.Add(new SoloComboActionResolution(
-                        action.Side,
-                        action.ActionId,
-                        action.DisplayName,
-                        step.TimeStep,
-                        damage,
-                        action.ResolutionEffect,
-                        avoidance,
-                        action.DamageTags,
-                        statusDisplayName: null,
-                        statusTarget: ActionStatusTarget.Self,
-                        statusApplied: false));
-
-                    if (action.Side == TimelineActorSide.Player)
-                    {
-                        pendingEnemyDamage = checked(pendingEnemyDamage + damage);
-                    }
-                    else
-                    {
-                        pendingPlayerDamage = checked(pendingPlayerDamage + damage);
-                    }
-                }
-
-                Enemy.ReceiveDamage(pendingEnemyDamage);
-                Player.ReceiveDamage(pendingPlayerDamage);
-
-                for (int statusIndex = 0; statusIndex < pendingStatuses.Count; statusIndex++)
-                {
-                    ScheduledTimelineAction action = pendingStatuses[statusIndex];
-                    CombatantState actor = action.Side == TimelineActorSide.Player
-                        ? Player
-                        : Enemy;
-                    CombatantState opponent = action.Side == TimelineActorSide.Player
-                        ? Enemy
-                        : Player;
-                    CombatantState recipient = action.StatusTarget == ActionStatusTarget.Self
-                        ? actor
-                        : opponent;
-                    bool applied = !actor.IsDefeated && !recipient.IsDefeated;
-                    if (applied)
-                    {
-                        recipient.ApplyStatus(action.StatusEffect);
-                    }
-
-                    resolutions.Add(new SoloComboActionResolution(
-                        action.Side,
-                        action.ActionId,
-                        action.DisplayName,
-                        step.TimeStep,
-                        damageDealt: 0,
-                        action.ResolutionEffect,
-                        DamageAvoidanceResult.None,
-                        DamageResolutionTag.None,
-                        action.StatusEffect.DisplayName,
-                        action.StatusTarget,
-                        applied));
-                }
-
-                if (EvaluateOutcome() != BattleOutcome.Ongoing)
-                {
-                    break;
+                    stepResolutions = ResolveTimelineStep(nextStep);
+                    _activeResolutions.AddRange(stepResolutions);
+                    _activeResolutionStepIndex++;
                 }
             }
 
+            Outcome = EvaluateOutcome();
+
+            SoloComboTurnResult completedTurn = null;
+            if (Outcome != BattleOutcome.Ongoing
+                || _currentTimelineTimeStep >= _activeSchedule.CompletionTime)
+            {
+                completedTurn = CompleteActiveRound();
+            }
+
+            return new SoloComboTimelineAdvanceResult(
+                _currentTimelineTimeStep,
+                stepResolutions,
+                completedTurn);
+        }
+
+        private IReadOnlyList<SoloComboActionResolution> ResolveTimelineStep(
+            TimelineResolutionStep step)
+        {
+            var resolutions = new List<SoloComboActionResolution>(step.Actions.Count);
+            int pendingPlayerDamage = 0;
+            int pendingEnemyDamage = 0;
+            var pendingStatuses = new List<ScheduledTimelineAction>();
+            ActionResolutionEffect playerDefense = FindDefensiveResolution(
+                step,
+                TimelineActorSide.Player);
+            ActionResolutionEffect enemyDefense = FindDefensiveResolution(
+                step,
+                TimelineActorSide.Enemy);
+
+            for (int actionIndex = 0; actionIndex < step.Actions.Count; actionIndex++)
+            {
+                ScheduledTimelineAction action = step.Actions[actionIndex];
+                CombatantState actor = action.Side == TimelineActorSide.Player
+                    ? Player
+                    : Enemy;
+                CombatantState target = action.Side == TimelineActorSide.Player
+                    ? Enemy
+                    : Player;
+
+                // Defeat at an earlier time step prevents later effects. Effects collected
+                // at this same step still resolve together.
+                if (actor.IsDefeated || target.IsDefeated)
+                {
+                    continue;
+                }
+
+                if (action.StatusEffect != null)
+                {
+                    pendingStatuses.Add(action);
+                    continue;
+                }
+
+                ActionResolutionEffect targetDefense = action.Side == TimelineActorSide.Player
+                    ? enemyDefense
+                    : playerDefense;
+                DamageAvoidanceResult avoidance = action.HasDamage
+                    ? ResolveDamageAvoidance(targetDefense, action.DamageTags)
+                    : DamageAvoidanceResult.None;
+                int damage = action.HasDamage
+                    && avoidance == DamageAvoidanceResult.None
+                        ? CalculateDamage(actor, target, action.DamageEffect)
+                        : 0;
+                resolutions.Add(new SoloComboActionResolution(
+                    action.Side,
+                    action.ActionId,
+                    action.DisplayName,
+                    step.TimeStep,
+                    damage,
+                    action.ResolutionEffect,
+                    avoidance,
+                    action.DamageTags,
+                    statusDisplayName: null,
+                    statusTarget: ActionStatusTarget.Self,
+                    statusApplied: false));
+
+                if (action.Side == TimelineActorSide.Player)
+                {
+                    pendingEnemyDamage = checked(pendingEnemyDamage + damage);
+                }
+                else
+                {
+                    pendingPlayerDamage = checked(pendingPlayerDamage + damage);
+                }
+            }
+
+            Enemy.ReceiveDamage(pendingEnemyDamage);
+            Player.ReceiveDamage(pendingPlayerDamage);
+
+            for (int statusIndex = 0; statusIndex < pendingStatuses.Count; statusIndex++)
+            {
+                ScheduledTimelineAction action = pendingStatuses[statusIndex];
+                CombatantState actor = action.Side == TimelineActorSide.Player
+                    ? Player
+                    : Enemy;
+                CombatantState opponent = action.Side == TimelineActorSide.Player
+                    ? Enemy
+                    : Player;
+                CombatantState recipient = action.StatusTarget == ActionStatusTarget.Self
+                    ? actor
+                    : opponent;
+                bool applied = !actor.IsDefeated && !recipient.IsDefeated;
+                if (applied)
+                {
+                    recipient.ApplyStatus(action.StatusEffect);
+                }
+
+                resolutions.Add(new SoloComboActionResolution(
+                    action.Side,
+                    action.ActionId,
+                    action.DisplayName,
+                    step.TimeStep,
+                    damageDealt: 0,
+                    action.ResolutionEffect,
+                    DamageAvoidanceResult.None,
+                    DamageResolutionTag.None,
+                    action.StatusEffect.DisplayName,
+                    action.StatusTarget,
+                    applied));
+            }
+
             return Array.AsReadOnly(resolutions.ToArray());
+        }
+
+        private void BeginTimeline(InitialTimelineSchedule schedule)
+        {
+            _activeSchedule = schedule
+                ?? throw new ArgumentNullException(nameof(schedule));
+            _activeResolutionStepIndex = 0;
+            _currentTimelineTimeStep = 0;
+            _activeResolutions.Clear();
+        }
+
+        private SoloComboTurnResult ResolveActiveTimelineToCompletion()
+        {
+            SoloComboTurnResult completedTurn = null;
+            while (IsTimelineResolving)
+            {
+                completedTurn = AdvanceTimeline().CompletedTurn;
+            }
+
+            return completedTurn;
+        }
+
+        private SoloComboTurnResult CompleteActiveRound()
+        {
+            InitialTimelineSchedule completedSchedule = _activeSchedule;
+            IReadOnlyList<SoloComboActionResolution> completedResolutions =
+                Array.AsReadOnly(_activeResolutions.ToArray());
+
+            RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
+            AdvanceRoundStatuses();
+
+            var result = SoloComboTurnResult.Completed(
+                completedResolutions,
+                completedSchedule,
+                manaRecovered,
+                staminaRecovered,
+                Outcome);
+
+            _activeSchedule = null;
+            _activeResolutionStepIndex = 0;
+            _activeResolutions.Clear();
+            return result;
         }
 
         private static ActionResolutionEffect FindDefensiveResolution(

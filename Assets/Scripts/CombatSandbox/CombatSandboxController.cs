@@ -295,30 +295,30 @@ namespace SER494.Gameplay.CombatSandbox
         private void ExecuteCombo(int comboIndex)
         {
             ComboConfiguration combo = _battle.Combos[comboIndex];
-            SoloComboTurnResult result = _battle.ExecuteCombo(comboIndex);
+            SoloComboExecutionFailure failure = _battle.BeginCombo(comboIndex);
 
-            if (!result.Succeeded)
+            if (failure != SoloComboExecutionFailure.None)
             {
-                AppendLog($"Could not execute {combo.Name}: {FailureText(result.Failure)}.");
+                AppendLog($"Could not execute {combo.Name}: {FailureText(failure)}.");
                 RefreshPresentation();
                 return;
             }
 
             AppendLog($"Player committed {combo.Name}. Timeline resolution started.");
-            BeginTimelinePlayback(result);
+            BeginTimelinePlayback();
         }
 
         private void WaitTurn()
         {
-            SoloComboTurnResult result = _battle.WaitTurn();
-            if (!result.Succeeded)
+            SoloComboExecutionFailure failure = _battle.BeginWaitTurn();
+            if (failure != SoloComboExecutionFailure.None)
             {
-                AppendLog($"Could not wait: {FailureText(result.Failure)}.");
+                AppendLog($"Could not wait: {FailureText(failure)}.");
                 return;
             }
 
             AppendLog("Player waited. Timeline resolution started.");
-            BeginTimelinePlayback(result);
+            BeginTimelinePlayback();
         }
 
         private void ResetBattle()
@@ -417,39 +417,36 @@ namespace SER494.Gameplay.CombatSandbox
             RefreshPresentation();
         }
 
-        private void BeginTimelinePlayback(SoloComboTurnResult result)
+        private void BeginTimelinePlayback()
         {
             _isTimelinePlaying = true;
             _playbackTimeStep = 0;
-            _playbackEndTimeStep = result.LastResolvedTimeStep;
-            if (_playbackEndTimeStep == 0)
-            {
-                CompleteTimelinePlayback(result);
-                return;
-            }
-
-            _timelinePlayback = StartCoroutine(PlayTimeline(result));
+            _playbackEndTimeStep = _battle.TimelineCompletionTime;
+            RefreshPresentation();
+            _timelinePlayback = StartCoroutine(PlayTimeline());
         }
 
-        private IEnumerator PlayTimeline(SoloComboTurnResult result)
+        private IEnumerator PlayTimeline()
         {
-            int resolutionIndex = 0;
             var wait = new WaitForSecondsRealtime(Mathf.Max(0.01f, secondsPerTimeStep));
 
-            for (int timeStep = 1; timeStep <= _playbackEndTimeStep; timeStep++)
+            while (_battle.IsTimelineResolving)
             {
                 yield return wait;
-                _playbackTimeStep = timeStep;
+                SoloComboTimelineAdvanceResult advance = _battle.AdvanceTimeline();
+                _playbackTimeStep = advance.TimeStep;
 
-                while (resolutionIndex < result.ActionResolutions.Count
-                    && result.ActionResolutions[resolutionIndex].TimeStep == timeStep)
+                for (int index = 0; index < advance.ActionResolutions.Count; index++)
                 {
-                    AppendTimelineResolution(result.ActionResolutions[resolutionIndex]);
-                    resolutionIndex++;
+                    AppendTimelineResolution(advance.ActionResolutions[index]);
+                }
+
+                RefreshPresentation();
+                if (advance.RoundCompleted)
+                {
+                    CompleteTimelinePlayback(advance.CompletedTurn);
                 }
             }
-
-            CompleteTimelinePlayback(result);
         }
 
         private void CompleteTimelinePlayback(SoloComboTurnResult result)
@@ -657,6 +654,8 @@ namespace SER494.Gameplay.CombatSandbox
                     return "not enough Stamina";
                 case SoloComboExecutionFailure.WaitNotAvailable:
                     return "at least one Combo is available";
+                case SoloComboExecutionFailure.TimelineResolving:
+                    return "timeline is already resolving";
                 default:
                     return "available";
             }

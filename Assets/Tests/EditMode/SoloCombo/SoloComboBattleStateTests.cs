@@ -46,6 +46,74 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void BeginCombo_PaysResourcesButDefersTimelineEffects()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3) });
+
+            SoloComboExecutionFailure failure = battle.BeginCombo(0);
+
+            Assert.That(failure, Is.EqualTo(SoloComboExecutionFailure.None));
+            Assert.That(battle.IsTimelineResolving, Is.True);
+            Assert.That(battle.CurrentTimelineTimeStep, Is.Zero);
+            Assert.That(battle.TimelineCompletionTime, Is.EqualTo(7));
+            Assert.That(battle.Player.CurrentMana, Is.EqualTo(8));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(10));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(60));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void AdvanceTimeline_AppliesEffectsOnlyWhenTheirTimeStepArrives()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3) });
+            battle.BeginCombo(0);
+
+            SoloComboTimelineAdvanceResult firstStep = battle.AdvanceTimeline();
+            Assert.That(firstStep.TimeStep, Is.EqualTo(1));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(60));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+
+            SoloComboTimelineAdvanceResult secondStep = battle.AdvanceTimeline();
+            Assert.That(secondStep.TimeStep, Is.EqualTo(2));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(44));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(100));
+
+            battle.AdvanceTimeline();
+            SoloComboTimelineAdvanceResult fourthStep = battle.AdvanceTimeline();
+            Assert.That(fourthStep.TimeStep, Is.EqualTo(4));
+            Assert.That(battle.Enemy.CurrentHealth, Is.EqualTo(87));
+        }
+
+        [Test]
+        public void ActiveTimeline_BlocksAnotherCommitAndCompletesAtActionEnd()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3) });
+            battle.BeginCombo(0);
+
+            Assert.That(
+                battle.BeginCombo(0),
+                Is.EqualTo(SoloComboExecutionFailure.TimelineResolving));
+            Assert.That(battle.CanWait, Is.False);
+
+            SoloComboTimelineAdvanceResult advance = null;
+            while (battle.IsTimelineResolving)
+            {
+                advance = battle.AdvanceTimeline();
+            }
+
+            Assert.That(advance, Is.Not.Null);
+            Assert.That(advance.RoundCompleted, Is.True);
+            Assert.That(advance.CompletedTurn, Is.Not.Null);
+            Assert.That(advance.TimeStep, Is.EqualTo(7));
+            Assert.That(battle.IsTimelineResolving, Is.False);
+            Assert.That(battle.Player.CurrentMana, Is.EqualTo(9));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(12));
+        }
+
+        [Test]
         public void ExecuteCombo_PaysWholeComboThenRecoversResourcesAfterEnemyTurn()
         {
             SoloComboBattleState battle = CreateBattle(
