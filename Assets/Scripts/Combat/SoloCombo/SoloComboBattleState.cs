@@ -197,7 +197,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         private readonly ComboConfiguration[] _combos;
         private readonly int[] _cooldowns;
-        private readonly EnemyActionSequence _enemySequence;
+        private readonly EnemyBehaviorTable _enemyBehavior;
+        private readonly Random _enemyRandom;
         private readonly BattleDamageConfiguration _damageConfiguration;
         private readonly int _manaRecoveryPerTurn;
         private readonly int _staminaRecoveryPerTurn;
@@ -207,6 +208,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private InitialTimelineSchedule _activeSchedule;
         private int _activeResolutionStepIndex;
         private int _currentTimelineTimeStep;
+        private EnemyActionSequence _currentEnemySequence;
+        private string _previousEnemySequenceId;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -216,11 +219,33 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int manaRecoveryPerTurn,
             int staminaRecoveryPerTurn,
             BattleDamageConfiguration damageConfiguration = null)
+            : this(
+                player,
+                enemy,
+                combos,
+                EnemyBehaviorTable.Always(enemySequence),
+                manaRecoveryPerTurn,
+                staminaRecoveryPerTurn,
+                damageConfiguration,
+                enemyRandom: null)
+        {
+        }
+
+        public SoloComboBattleState(
+            CombatantState player,
+            CombatantState enemy,
+            IReadOnlyList<ComboConfiguration> combos,
+            EnemyBehaviorTable enemyBehavior,
+            int manaRecoveryPerTurn,
+            int staminaRecoveryPerTurn,
+            BattleDamageConfiguration damageConfiguration = null,
+            Random enemyRandom = null)
         {
             Player = player ?? throw new ArgumentNullException(nameof(player));
             Enemy = enemy ?? throw new ArgumentNullException(nameof(enemy));
-            _enemySequence = enemySequence
-                ?? throw new ArgumentNullException(nameof(enemySequence));
+            _enemyBehavior = enemyBehavior
+                ?? throw new ArgumentNullException(nameof(enemyBehavior));
+            _enemyRandom = enemyRandom ?? new Random();
             _damageConfiguration = damageConfiguration
                 ?? BattleDamageConfiguration.CreateMvpDefault();
             _manaRecoveryPerTurn = RequireNonNegative(
@@ -231,8 +256,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 nameof(staminaRecoveryPerTurn));
             _combos = CopyAndValidateCombos(combos);
             _cooldowns = new int[_combos.Length];
-            EnemyIntent = InitialTimelineScheduleBuilder.BuildEnemyOnly(_enemySequence);
             Outcome = EvaluateOutcome();
+            if (Outcome == BattleOutcome.Ongoing)
+            {
+                SelectAndLockEnemyIntent();
+            }
         }
 
         public CombatantState Player { get; }
@@ -241,9 +269,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public IReadOnlyList<ComboConfiguration> Combos => _combos;
 
-        public EnemyActionSequence EnemySequence => _enemySequence;
+        public EnemyActionSequence EnemySequence => _currentEnemySequence;
 
-        public InitialTimelineSchedule EnemyIntent { get; }
+        public InitialTimelineSchedule EnemyIntent { get; private set; }
 
         public BattleOutcome Outcome { get; private set; }
 
@@ -339,7 +367,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 combo,
-                _enemySequence);
+                _currentEnemySequence);
             BeginTimeline(schedule);
             return SoloComboExecutionFailure.None;
         }
@@ -374,7 +402,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             AdvanceExistingCooldowns();
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.BuildEnemyOnly(
-                _enemySequence);
+                _currentEnemySequence);
             BeginTimeline(schedule);
             return SoloComboExecutionFailure.None;
         }
@@ -563,7 +591,25 @@ namespace SER494.Gameplay.Combat.SoloCombo
             _activeSchedule = null;
             _activeResolutionStepIndex = 0;
             _activeResolutions.Clear();
+
+            if (Outcome == BattleOutcome.Ongoing)
+            {
+                SelectAndLockEnemyIntent();
+            }
+
             return result;
+        }
+
+        private void SelectAndLockEnemyIntent()
+        {
+            _currentEnemySequence = _enemyBehavior.SelectSequence(
+                Player,
+                Enemy,
+                _previousEnemySequenceId,
+                _enemyRandom.NextDouble());
+            _previousEnemySequenceId = _currentEnemySequence.SequenceId;
+            EnemyIntent = InitialTimelineScheduleBuilder.BuildEnemyOnly(
+                _currentEnemySequence);
         }
 
         private static ActionResolutionEffect FindDefensiveResolution(

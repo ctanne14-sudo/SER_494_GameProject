@@ -536,6 +536,42 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void RoundEnd_SelectsAndLocksANewEligibleEnemyIntent()
+        {
+            var first = new EnemyActionSequence(
+                "first",
+                "First",
+                new[] { new EnemyActionDefinition("first-action", "First", 1, 1) });
+            var second = new EnemyActionSequence(
+                "second",
+                "Second",
+                new[] { new EnemyActionDefinition("second-action", "Second", 1, 1) });
+            var behavior = new EnemyBehaviorTable(
+                new[]
+                {
+                    new EnemyBehaviorEntry(first, 1, preventImmediateRepeat: true),
+                    new EnemyBehaviorEntry(second, 1, preventImmediateRepeat: true)
+                },
+                first);
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(60, 12, 14, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { MainOnlyCombo("safe", 0, 0, 0, 0d) },
+                behavior,
+                manaRecoveryPerTurn: 1,
+                staminaRecoveryPerTurn: 2,
+                enemyRandom: new System.Random(7));
+            string firstIntentId = battle.EnemySequence.SequenceId;
+
+            battle.ExecuteCombo(0);
+
+            Assert.That(battle.EnemySequence.SequenceId, Is.Not.EqualTo(firstIntentId));
+            Assert.That(
+                battle.EnemyIntent.Actions[0].ActionId,
+                Is.EqualTo($"{battle.EnemySequence.SequenceId}-action"));
+        }
+
+        [Test]
         public void GetExecutionFailure_WithInvalidIndex_ReturnsIndexFailure()
         {
             SoloComboBattleState battle = CreateBattle(

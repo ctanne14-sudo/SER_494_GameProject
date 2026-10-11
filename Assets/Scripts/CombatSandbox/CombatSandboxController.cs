@@ -384,7 +384,7 @@ namespace SER494.Gameplay.CombatSandbox
                 CombatStatusModifierDirection.DamageTaken,
                 DamageModifier.All(0.20d));
 
-            var enemySequence = new EnemyActionSequence(
+            var exposeClaw = new EnemyActionSequence(
                 "training.claw-pattern",
                 "Claw Pattern",
                 new[]
@@ -406,13 +406,55 @@ namespace SER494.Gameplay.CombatSandbox
                         damageMultiplier: 0.40d)
                 });
 
+            var heavySwing = new EnemyActionSequence(
+                "training.heavy-swing-pattern",
+                "Heavy Swing",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.heavy-swing",
+                        "Heavy Swing",
+                        loadCost: 5,
+                        resolutionOffset: 5,
+                        damageMultiplier: 0.65d,
+                        damageTags: DamageResolutionTag.Overcommit)
+                });
+
+            var fallbackJab = new EnemyActionSequence(
+                "training.fallback-jab",
+                "Fallback Jab",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.jab",
+                        "Jab",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.30d)
+                });
+
+            var enemyBehavior = new EnemyBehaviorTable(
+                new[]
+                {
+                    new EnemyBehaviorEntry(
+                        exposeClaw,
+                        selectionWeight: 2,
+                        preventImmediateRepeat: true),
+                    new EnemyBehaviorEntry(
+                        heavySwing,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true)
+                },
+                fallbackJab);
+
             _battle = new SoloComboBattleState(
                 player,
                 enemy,
                 combos,
-                enemySequence,
+                enemyBehavior,
                 ManaRecoveryPerTurn,
-                StaminaRecoveryPerTurn);
+                StaminaRecoveryPerTurn,
+                enemyRandom: new System.Random(594));
             AppendLog("Battle started. Choose a prepared Combo.");
             RefreshPresentation();
         }
@@ -461,6 +503,10 @@ namespace SER494.Gameplay.CombatSandbox
             if (result.Outcome != BattleOutcome.Ongoing)
             {
                 AppendLog(OutcomeText(result.Outcome));
+            }
+            else
+            {
+                AppendLog($"Next Enemy Intent locked: {_battle.EnemySequence.DisplayName}.");
             }
 
             _isTimelinePlaying = false;
