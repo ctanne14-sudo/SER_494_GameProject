@@ -50,6 +50,27 @@ namespace SER494.Gameplay.Combat.SoloCombo
         }
     }
 
+    public sealed class ScheduledDisruptionPause
+    {
+        internal ScheduledDisruptionPause(
+            ActionDisruptionType type,
+            int startTime,
+            int duration)
+        {
+            Type = type;
+            StartTime = startTime;
+            Duration = duration;
+        }
+
+        public ActionDisruptionType Type { get; }
+
+        public int StartTime { get; }
+
+        public int Duration { get; }
+
+        public int EndTime => checked(StartTime + Duration);
+    }
+
     public sealed class ScheduledTimelineAction
     {
         internal ScheduledTimelineAction(
@@ -71,7 +92,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ScheduledActiveWindow> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            int accumulatedPauseDuration = 0)
+            int accumulatedPauseDuration = 0,
+            IReadOnlyList<ScheduledDisruptionPause> disruptionPauses = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -94,6 +116,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptionResponseSegments = disruptionResponseSegments
                 ?? Array.Empty<DisruptionResponseSegmentDefinition>();
             AccumulatedPauseDuration = accumulatedPauseDuration;
+            DisruptionPauses = disruptionPauses
+                ?? Array.Empty<ScheduledDisruptionPause>();
         }
 
         public TimelineActorSide Side { get; }
@@ -139,6 +163,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
         public int AccumulatedPauseDuration { get; }
+
+        public IReadOnlyList<ScheduledDisruptionPause> DisruptionPauses { get; }
 
         public int GetLocalTimeAt(int timeStep)
         {

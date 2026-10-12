@@ -304,7 +304,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 TimelineActorSide.Enemy,
                 sequenceIndex: 0,
                 disruptionTime: 2,
-                duration: 2);
+                duration: 2,
+                disruptionType: ActionDisruptionType.Stagger);
 
             ScheduledTimelineAction heavy = delayed.Actions.Single(
                 action => action.ActionId == "heavy");
@@ -314,6 +315,11 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(heavy.EndTime, Is.EqualTo(7));
             Assert.That(heavy.ResolutionTime, Is.EqualTo(7));
             Assert.That(heavy.AccumulatedPauseDuration, Is.EqualTo(2));
+            Assert.That(heavy.DisruptionPauses, Has.Count.EqualTo(1));
+            Assert.That(heavy.DisruptionPauses[0].Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(heavy.DisruptionPauses[0].StartTime, Is.EqualTo(2));
+            Assert.That(heavy.DisruptionPauses[0].EndTime, Is.EqualTo(4));
             Assert.That(followUp.StartTime, Is.EqualTo(7));
             Assert.That(followUp.EndTime, Is.EqualTo(9));
             Assert.That(delayed.CompletionTime, Is.EqualTo(9));

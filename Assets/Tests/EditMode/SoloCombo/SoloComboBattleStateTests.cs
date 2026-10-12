@@ -786,6 +786,11 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(staggerStep.ActionResolutions[0].DisruptionResponse,
                 Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
             Assert.That(battle.TimelineCompletionTime, Is.EqualTo(7));
+            ScheduledTimelineAction delayedEnemyAction = battle.ActiveTimeline.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy);
+            Assert.That(delayedEnemyAction.DisruptionPauses, Has.Count.EqualTo(1));
+            Assert.That(delayedEnemyAction.DisruptionPauses[0].StartTime, Is.EqualTo(2));
+            Assert.That(delayedEnemyAction.DisruptionPauses[0].EndTime, Is.EqualTo(4));
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(100));
 
             while (battle.IsTimelineResolving)
@@ -794,6 +799,130 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             }
 
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(74));
+        }
+
+        [Test]
+        public void OnHitStagger_ZeroRoundedDamageStillDisrupts()
+        {
+            var breaker = new ComboActionDefinition(
+                "light-breaker",
+                "Light Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.01d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var response = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.PauseAndResume)
+            };
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 1, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 100)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "light-breaker-combo",
+                        openingAction: null,
+                        mainAction: breaker,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                new EnemyActionSequence(
+                    "heavy",
+                    "Heavy",
+                    new[]
+                    {
+                        new EnemyActionDefinition(
+                            "heavy-swing",
+                            "Heavy Swing",
+                            loadCost: 5,
+                            resolutionOffset: 5,
+                            damageMultiplier: 0.65d,
+                            disruptionResponseSegments: response)
+                    }),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            Assert.That(battle.BeginCombo(0), Is.EqualTo(SoloComboExecutionFailure.None));
+            battle.AdvanceTimeline();
+            SoloComboTimelineAdvanceResult hitStep = battle.AdvanceTimeline();
+
+            Assert.That(hitStep.ActionResolutions[0].DamageDealt, Is.Zero);
+            Assert.That(hitStep.ActionResolutions[0].DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(hitStep.ActionResolutions[0].AppliedDisruption, Is.Not.Null);
+            Assert.That(battle.TimelineCompletionTime, Is.EqualTo(7));
+        }
+
+        [Test]
+        public void OnHitStagger_GuardedDamageDoesNotDisrupt()
+        {
+            var guard = new ComboActionDefinition(
+                "guard",
+                "Guard",
+                ComboActionCategory.Opening,
+                loadCost: 3,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionOffset: 2,
+                resolutionEffect: ActionResolutionEffect.Guard);
+            var combo = new ComboConfiguration(
+                "guard-combo",
+                openingAction: guard,
+                mainAction: Action(
+                    "main",
+                    ComboActionCategory.Main,
+                    load: 1,
+                    mana: 0,
+                    stamina: 0,
+                    cooldown: 0,
+                    damageMultiplier: 0d),
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var enemySequence = new EnemyActionSequence(
+                "stagger-strike",
+                "Stagger Strike",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "stagger-strike",
+                        "Stagger Strike",
+                        loadCost: 2,
+                        resolutionOffset: 2,
+                        damageMultiplier: 0.40d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2))
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution enemyHit = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy);
+
+            Assert.That(enemyHit.DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.Guarded));
+            Assert.That(enemyHit.AppliedDisruption, Is.Null);
+            Assert.That(result.Schedule.CompletionTime, Is.EqualTo(4));
         }
 
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)

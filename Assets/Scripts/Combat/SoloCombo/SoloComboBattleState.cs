@@ -679,7 +679,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             action.DamageEffect,
                             defensiveDamageReduction)
                         : 0;
-                ScheduledTimelineAction disruptedAction = damage > 0
+                ScheduledTimelineAction disruptedAction = action.HasDamage
+                    && avoidance == DamageAvoidanceResult.None
                     && action.OnHitDisruption != null
                         ? FindOngoingAction(targetSide, step.TimeStep)
                         : null;
@@ -767,7 +768,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     resolution.DisruptedSide,
                     resolution.DisruptedSequenceIndex,
                     step.TimeStep,
-                    resolution.AppliedDisruption.Duration);
+                    resolution.AppliedDisruption.Duration,
+                    resolution.AppliedDisruption.Type);
             }
 
             return Array.AsReadOnly(resolutions.ToArray());

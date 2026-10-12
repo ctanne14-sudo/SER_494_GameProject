@@ -99,7 +99,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         activeWindows: action.ActiveWindows,
                         onHitDisruption: action.OnHitDisruption,
                         disruptionResponseSegments: action.DisruptionResponseSegments,
-                        accumulatedPauseDuration: action.AccumulatedPauseDuration);
+                        accumulatedPauseDuration: action.AccumulatedPauseDuration,
+                        disruptionPauses: action.DisruptionPauses);
                     replaced = true;
                 }
 
@@ -202,7 +203,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             TimelineActorSide side,
             int sequenceIndex,
             int disruptionTime,
-            int duration)
+            int duration,
+            ActionDisruptionType disruptionType)
         {
             if (schedule == null)
             {
@@ -223,7 +225,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 if (action.Side == side && action.SequenceIndex == sequenceIndex)
                 {
                     found = true;
-                    action = PauseScheduledAction(action, disruptionTime, duration);
+                    action = PauseScheduledAction(
+                        action,
+                        disruptionTime,
+                        duration,
+                        disruptionType);
                 }
                 else if (action.Side == side && action.SequenceIndex > sequenceIndex)
                 {
@@ -420,13 +426,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ShiftActiveWindows(action.ActiveWindows, resolutionShift),
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
-                action.AccumulatedPauseDuration);
+                action.AccumulatedPauseDuration,
+                ShiftDisruptionPauses(action.DisruptionPauses, startShift));
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
             ScheduledTimelineAction action,
             int disruptionTime,
-            int duration)
+            int duration,
+            ActionDisruptionType disruptionType)
         {
             int resolutionShift = action.ResolutionTime > disruptionTime ? duration : 0;
             int? windowStart = action.ResolutionWindowStartTime;
@@ -436,6 +444,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 windowStart = checked(windowStart.Value + duration);
                 windowEnd = checked(windowEnd.Value + duration);
             }
+
+            var pauses = new ScheduledDisruptionPause[action.DisruptionPauses.Count + 1];
+            for (int index = 0; index < action.DisruptionPauses.Count; index++)
+            {
+                pauses[index] = action.DisruptionPauses[index];
+            }
+
+            pauses[pauses.Length - 1] = new ScheduledDisruptionPause(
+                disruptionType,
+                disruptionTime,
+                duration);
 
             return new ScheduledTimelineAction(
                 action.Side,
@@ -456,7 +475,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ShiftFutureActiveWindows(action.ActiveWindows, disruptionTime, duration),
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
-                checked(action.AccumulatedPauseDuration + duration));
+                checked(action.AccumulatedPauseDuration + duration),
+                Array.AsReadOnly(pauses));
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(
@@ -555,6 +575,28 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     window.Effect,
                     window.DamageReduction,
                     window.DisruptionPolicy);
+            }
+
+            return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<ScheduledDisruptionPause> ShiftDisruptionPauses(
+            IReadOnlyList<ScheduledDisruptionPause> pauses,
+            int shift)
+        {
+            if (pauses.Count == 0 || shift == 0)
+            {
+                return pauses;
+            }
+
+            var shifted = new ScheduledDisruptionPause[pauses.Count];
+            for (int index = 0; index < pauses.Count; index++)
+            {
+                ScheduledDisruptionPause pause = pauses[index];
+                shifted[index] = new ScheduledDisruptionPause(
+                    pause.Type,
+                    checked(pause.StartTime + shift),
+                    pause.Duration);
             }
 
             return Array.AsReadOnly(shifted);

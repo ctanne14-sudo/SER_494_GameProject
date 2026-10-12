@@ -337,7 +337,8 @@ namespace SER494.Gameplay.CombatSandbox
             DrawTimelineRuler(displayEnd);
             GUILayout.Label(
                 "Green: Active Window   Yellow: Resolution Point   "
-                + "Orange: Resolution Window   Cyan: Current Time",
+                + "Orange: Resolution Window   Purple: Disruption Pause   "
+                + "Cyan: Current Time",
                 _timelineTickStyle);
         }
 
@@ -389,6 +390,11 @@ namespace SER494.Gameplay.CombatSandbox
                 string actionLabel = action.IsChargeable
                     ? $"{action.DisplayName} [Charge]"
                     : action.DisplayName;
+                if (action.AccumulatedPauseDuration > 0)
+                {
+                    actionLabel += $" [Paused +{action.AccumulatedPauseDuration}]";
+                }
+
                 GUI.Label(actionRect, actionLabel, _timelineActionStyle);
 
                 for (int windowIndex = 0;
@@ -404,6 +410,24 @@ namespace SER494.Gameplay.CombatSandbox
                             trackRect.x + trackRect.width * activeStart,
                             actionRect.y,
                             Mathf.Max(3f, trackRect.width * (activeEnd - activeStart)),
+                            5f),
+                        Texture2D.whiteTexture);
+                    GUI.color = previousColor;
+                }
+
+                for (int pauseIndex = 0;
+                    pauseIndex < action.DisruptionPauses.Count;
+                    pauseIndex++)
+                {
+                    ScheduledDisruptionPause pause = action.DisruptionPauses[pauseIndex];
+                    float pauseStart = pause.StartTime / (float)displayEnd;
+                    float pauseEnd = pause.EndTime / (float)displayEnd;
+                    GUI.color = new Color(0.72f, 0.36f, 0.94f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * pauseStart,
+                            actionRect.yMax - 5f,
+                            Mathf.Max(3f, trackRect.width * (pauseEnd - pauseStart)),
                             5f),
                         Texture2D.whiteTexture);
                     GUI.color = previousColor;
@@ -776,7 +800,7 @@ namespace SER494.Gameplay.CombatSandbox
             var enemy = new CombatantState(
                 "Training Enemy",
                 new CombatantStats(
-                    maxHealth: 50,
+                    maxHealth: 100,
                     maxMana: 0,
                     maxStamina: 0,
                     attack: 60,
