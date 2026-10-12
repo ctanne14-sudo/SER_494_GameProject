@@ -326,6 +326,56 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ApplyRestartAction_RestartsWholeActionAndShiftsLaterActions()
+        {
+            ComboConfiguration combo = MainOnlyCombo(
+                PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2));
+            var restartResponse = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.RestartAction,
+                    ActionDisruptionResponse.RestartAction)
+            };
+            EnemyActionSequence enemy = EnemySequence(
+                new EnemyActionDefinition(
+                    "heavy",
+                    "heavy",
+                    loadCost: 5,
+                    resolutionOffset: 1,
+                    damageMultiplier: 0.50d,
+                    disruptionResponseSegments: restartResponse),
+                EnemyAction("follow-up", load: 2, resolution: 2));
+            InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(combo, enemy);
+
+            InitialTimelineSchedule restarted = InitialTimelineScheduleBuilder.ApplyRestartAction(
+                original,
+                TimelineActorSide.Enemy,
+                sequenceIndex: 0,
+                disruptionTime: 2,
+                duration: 2,
+                disruptionType: ActionDisruptionType.Stagger);
+
+            ScheduledTimelineAction heavy = restarted.Actions.Single(
+                action => action.ActionId == "heavy");
+            ScheduledTimelineAction followUp = restarted.Actions.Single(
+                action => action.ActionId == "follow-up");
+            Assert.That(heavy.StartTime, Is.EqualTo(4));
+            Assert.That(heavy.EndTime, Is.EqualTo(9));
+            Assert.That(heavy.ResolutionTime, Is.EqualTo(5));
+            Assert.That(heavy.AccumulatedPauseDuration, Is.Zero);
+            Assert.That(heavy.Restarts, Has.Count.EqualTo(1));
+            Assert.That(heavy.Restarts[0].PreviousStartTime, Is.Zero);
+            Assert.That(heavy.Restarts[0].DisruptionTime, Is.EqualTo(2));
+            Assert.That(heavy.Restarts[0].RestartTime, Is.EqualTo(4));
+            Assert.That(followUp.StartTime, Is.EqualTo(9));
+            Assert.That(followUp.EndTime, Is.EqualTo(11));
+            Assert.That(restarted.CompletionTime, Is.EqualTo(11));
+        }
+
+        [Test]
         public void ActionDefinition_ResponseSegmentsWithGap_AreRejected()
         {
             var segments = new[]

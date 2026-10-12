@@ -552,7 +552,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 {
                     stepResolutions = ResolveTimelineStep(nextStep);
                     _activeResolutions.AddRange(stepResolutions);
-                    _activeResolutionStepIndex++;
+                    RecalculateActiveResolutionStepIndex();
                 }
             }
 
@@ -757,19 +757,32 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int resolutionIndex = 0; resolutionIndex < resolutions.Count; resolutionIndex++)
             {
                 SoloComboActionResolution resolution = resolutions[resolutionIndex];
-                if (resolution.AppliedDisruption == null
-                    || resolution.DisruptionResponse != ActionDisruptionResponse.PauseAndResume)
+                if (resolution.AppliedDisruption == null)
                 {
                     continue;
                 }
 
-                _activeSchedule = InitialTimelineScheduleBuilder.ApplyPauseAndResume(
-                    _activeSchedule,
-                    resolution.DisruptedSide,
-                    resolution.DisruptedSequenceIndex,
-                    step.TimeStep,
-                    resolution.AppliedDisruption.Duration,
-                    resolution.AppliedDisruption.Type);
+                switch (resolution.DisruptionResponse)
+                {
+                    case ActionDisruptionResponse.PauseAndResume:
+                        _activeSchedule = InitialTimelineScheduleBuilder.ApplyPauseAndResume(
+                            _activeSchedule,
+                            resolution.DisruptedSide,
+                            resolution.DisruptedSequenceIndex,
+                            step.TimeStep,
+                            resolution.AppliedDisruption.Duration,
+                            resolution.AppliedDisruption.Type);
+                        break;
+                    case ActionDisruptionResponse.RestartAction:
+                        _activeSchedule = InitialTimelineScheduleBuilder.ApplyRestartAction(
+                            _activeSchedule,
+                            resolution.DisruptedSide,
+                            resolution.DisruptedSequenceIndex,
+                            step.TimeStep,
+                            resolution.AppliedDisruption.Duration,
+                            resolution.AppliedDisruption.Type);
+                        break;
+                }
             }
 
             return Array.AsReadOnly(resolutions.ToArray());

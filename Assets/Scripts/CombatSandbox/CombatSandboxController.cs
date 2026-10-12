@@ -338,7 +338,7 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.Label(
                 "Green: Active Window   Yellow: Resolution Point   "
                 + "Orange: Resolution Window   Purple: Disruption Pause   "
-                + "Cyan: Current Time",
+                + "Magenta: Restart   Cyan: Current Time",
                 _timelineTickStyle);
         }
 
@@ -395,7 +395,51 @@ namespace SER494.Gameplay.CombatSandbox
                     actionLabel += $" [Paused +{action.AccumulatedPauseDuration}]";
                 }
 
+                if (action.Restarts.Count > 0)
+                {
+                    actionLabel += $" [Restarted x{action.Restarts.Count}]";
+                }
+
                 GUI.Label(actionRect, actionLabel, _timelineActionStyle);
+
+                for (int restartIndex = 0;
+                    restartIndex < action.Restarts.Count;
+                    restartIndex++)
+                {
+                    ScheduledActionRestart restart = action.Restarts[restartIndex];
+                    float attemptStart = restart.PreviousStartTime / (float)displayEnd;
+                    float disruptionPoint = restart.DisruptionTime / (float)displayEnd;
+                    float restartPoint = restart.RestartTime / (float)displayEnd;
+                    GUI.color = new Color(0.76f, 0.24f, 0.76f, 0.40f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * attemptStart,
+                            actionRect.y + 6f,
+                            Mathf.Max(
+                                3f,
+                                trackRect.width * (disruptionPoint - attemptStart)),
+                            actionRect.height - 12f),
+                        Texture2D.whiteTexture);
+                    GUI.color = new Color(1f, 0.22f, 0.72f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * disruptionPoint - 1f,
+                            actionRect.y,
+                            2f,
+                            actionRect.height),
+                        Texture2D.whiteTexture);
+                    GUI.color = new Color(0.72f, 0.36f, 0.94f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * disruptionPoint,
+                            actionRect.yMax - 5f,
+                            Mathf.Max(
+                                3f,
+                                trackRect.width * (restartPoint - disruptionPoint)),
+                            5f),
+                        Texture2D.whiteTexture);
+                    GUI.color = previousColor;
+                }
 
                 for (int windowIndex = 0;
                     windowIndex < action.ActiveWindows.Count;
@@ -856,7 +900,7 @@ namespace SER494.Gameplay.CombatSandbox
                         resolutionOffset: 5,
                         damageMultiplier: 0.65d,
                         damageTags: DamageResolutionTag.Overcommit,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 5))
+                        disruptionResponseSegments: RestartOnStagger(loadCost: 5))
                 });
 
             var fallbackJab = new EnemyActionSequence(
@@ -910,6 +954,20 @@ namespace SER494.Gameplay.CombatSandbox
                     flinchResponse: ActionDisruptionResponse.Continue,
                     staggerResponse: ActionDisruptionResponse.PauseAndResume,
                     knockdownResponse: ActionDisruptionResponse.PauseAndResume)
+            };
+        }
+
+        private static IReadOnlyList<DisruptionResponseSegmentDefinition> RestartOnStagger(
+            int loadCost)
+        {
+            return new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    startOffset: 1,
+                    endOffset: loadCost,
+                    flinchResponse: ActionDisruptionResponse.Continue,
+                    staggerResponse: ActionDisruptionResponse.RestartAction,
+                    knockdownResponse: ActionDisruptionResponse.RestartAction)
             };
         }
 
@@ -1160,11 +1218,21 @@ namespace SER494.Gameplay.CombatSandbox
                     string target = resolution.DisruptedSide == TimelineActorSide.Player
                         ? "Player"
                         : "Training Enemy";
-                    string result = resolution.DisruptionResponse
-                        == ActionDisruptionResponse.PauseAndResume
-                            ? $"paused the current Action for "
-                                + $"{resolution.AppliedDisruption.Duration} Time Steps"
-                            : "did not alter the current Action schedule";
+                    string result;
+                    switch (resolution.DisruptionResponse)
+                    {
+                        case ActionDisruptionResponse.PauseAndResume:
+                            result = $"paused the current Action for "
+                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                            break;
+                        case ActionDisruptionResponse.RestartAction:
+                            result = $"restarted the current Action after "
+                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                            break;
+                        default:
+                            result = "did not alter the current Action schedule";
+                            break;
+                    }
                     AppendLog(
                         $"    {resolution.AppliedDisruption.Type} on {target}: {result}.");
                 }

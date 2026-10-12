@@ -100,7 +100,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         onHitDisruption: action.OnHitDisruption,
                         disruptionResponseSegments: action.DisruptionResponseSegments,
                         accumulatedPauseDuration: action.AccumulatedPauseDuration,
-                        disruptionPauses: action.DisruptionPauses);
+                        disruptionPauses: action.DisruptionPauses,
+                        restarts: action.Restarts);
                     replaced = true;
                 }
 
@@ -249,6 +250,71 @@ namespace SER494.Gameplay.Combat.SoloCombo
             if (!found)
             {
                 throw new ArgumentException("The Action to pause was not found.");
+            }
+
+            if (completionTime > AbsoluteTimelineLimit)
+            {
+                throw new InvalidOperationException(
+                    $"Action Disruption would extend the Timeline beyond the absolute limit of {AbsoluteTimelineLimit}.");
+            }
+
+            return CreateSchedule(actions, completionTime);
+        }
+
+        public static InitialTimelineSchedule ApplyRestartAction(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int disruptionTime,
+            int duration,
+            ActionDisruptionType disruptionType)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            if (duration <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(duration));
+            }
+
+            var actions = new List<ScheduledTimelineAction>(schedule.Actions.Count);
+            bool found = false;
+            int scheduleShift = 0;
+            int completionTime = 0;
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    found = true;
+                    int previousEndTime = action.EndTime;
+                    action = RestartScheduledAction(
+                        action,
+                        disruptionTime,
+                        duration,
+                        disruptionType);
+                    scheduleShift = checked(action.EndTime - previousEndTime);
+                }
+                else if (action.Side == side && action.SequenceIndex > sequenceIndex)
+                {
+                    action = CopyScheduledAction(
+                        action,
+                        startShift: scheduleShift,
+                        endShift: scheduleShift,
+                        resolutionShift: scheduleShift,
+                        damageScale: 1d,
+                        keepChargeLevels: true);
+                }
+
+                actions.Add(action);
+                completionTime = Math.Max(completionTime, action.EndTime);
+            }
+
+            if (!found)
+            {
+                throw new ArgumentException("The Action to restart was not found.");
             }
 
             if (completionTime > AbsoluteTimelineLimit)
@@ -427,7 +493,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
                 action.AccumulatedPauseDuration,
-                ShiftDisruptionPauses(action.DisruptionPauses, startShift));
+                ShiftDisruptionPauses(action.DisruptionPauses, startShift),
+                ShiftActionRestarts(action.Restarts, startShift));
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
@@ -476,7 +543,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
                 checked(action.AccumulatedPauseDuration + duration),
-                Array.AsReadOnly(pauses));
+                Array.AsReadOnly(pauses),
+                action.Restarts);
+        }
+
+        private static ScheduledTimelineAction RestartScheduledAction(
+            ScheduledTimelineAction action,
+            int disruptionTime,
+            int duration,
+            ActionDisruptionType disruptionType)
+        {
+            int restartTime = checked(disruptionTime + duration);
+            int actionDuration = action.GetLocalTimeAt(action.EndTime);
+            int resolutionOffset = action.GetLocalTimeAt(action.ResolutionTime);
+            var restarts = new ScheduledActionRestart[action.Restarts.Count + 1];
+            for (int index = 0; index < action.Restarts.Count; index++)
+            {
+                restarts[index] = action.Restarts[index];
+            }
+
+            restarts[restarts.Length - 1] = new ScheduledActionRestart(
+                disruptionType,
+                action.StartTime,
+                disruptionTime,
+                restartTime);
+
+            return new ScheduledTimelineAction(
+                action.Side,
+                action.SequenceIndex,
+                action.ActionId,
+                action.DisplayName,
+                restartTime,
+                checked(restartTime + actionDuration),
+                checked(restartTime + resolutionOffset),
+                action.DamageEffect,
+                action.ResolutionEffect,
+                action.DamageTags,
+                action.StatusEffect,
+                action.StatusTarget,
+                action.ResolutionWindowStartTime.HasValue
+                    ? (int?)checked(restartTime
+                        + action.GetLocalTimeAt(action.ResolutionWindowStartTime.Value))
+                    : null,
+                action.ResolutionWindowEndTime.HasValue
+                    ? (int?)checked(restartTime
+                        + action.GetLocalTimeAt(action.ResolutionWindowEndTime.Value))
+                    : null,
+                action.ChargeLevels,
+                RestartActiveWindows(action.ActiveWindows, action, restartTime),
+                action.OnHitDisruption,
+                action.DisruptionResponseSegments,
+                accumulatedPauseDuration: 0,
+                disruptionPauses: Array.Empty<ScheduledDisruptionPause>(),
+                restarts: Array.AsReadOnly(restarts));
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(
@@ -597,6 +716,56 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     pause.Type,
                     checked(pause.StartTime + shift),
                     pause.Duration);
+            }
+
+            return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindow> RestartActiveWindows(
+            IReadOnlyList<ScheduledActiveWindow> windows,
+            ScheduledTimelineAction action,
+            int restartTime)
+        {
+            if (windows.Count == 0)
+            {
+                return windows;
+            }
+
+            var restarted = new ScheduledActiveWindow[windows.Count];
+            for (int index = 0; index < windows.Count; index++)
+            {
+                ScheduledActiveWindow window = windows[index];
+                restarted[index] = new ScheduledActiveWindow(
+                    window.WindowId,
+                    window.DisplayName,
+                    checked(restartTime + action.GetLocalTimeAt(window.StartTime)),
+                    checked(restartTime + action.GetLocalTimeAt(window.EndTime)),
+                    window.Effect,
+                    window.DamageReduction,
+                    window.DisruptionPolicy);
+            }
+
+            return Array.AsReadOnly(restarted);
+        }
+
+        private static IReadOnlyList<ScheduledActionRestart> ShiftActionRestarts(
+            IReadOnlyList<ScheduledActionRestart> restarts,
+            int shift)
+        {
+            if (restarts.Count == 0 || shift == 0)
+            {
+                return restarts;
+            }
+
+            var shifted = new ScheduledActionRestart[restarts.Count];
+            for (int index = 0; index < restarts.Count; index++)
+            {
+                ScheduledActionRestart restart = restarts[index];
+                shifted[index] = new ScheduledActionRestart(
+                    restart.Type,
+                    checked(restart.PreviousStartTime + shift),
+                    checked(restart.DisruptionTime + shift),
+                    checked(restart.RestartTime + shift));
             }
 
             return Array.AsReadOnly(shifted);

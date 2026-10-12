@@ -50,7 +50,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     public enum ActionDisruptionResponse
     {
         Continue,
-        PauseAndResume
+        PauseAndResume,
+        RestartAction
     }
 
     public sealed class ActionDisruptionDefinition

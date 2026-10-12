@@ -71,6 +71,29 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int EndTime => checked(StartTime + Duration);
     }
 
+    public sealed class ScheduledActionRestart
+    {
+        internal ScheduledActionRestart(
+            ActionDisruptionType type,
+            int previousStartTime,
+            int disruptionTime,
+            int restartTime)
+        {
+            Type = type;
+            PreviousStartTime = previousStartTime;
+            DisruptionTime = disruptionTime;
+            RestartTime = restartTime;
+        }
+
+        public ActionDisruptionType Type { get; }
+
+        public int PreviousStartTime { get; }
+
+        public int DisruptionTime { get; }
+
+        public int RestartTime { get; }
+    }
+
     public sealed class ScheduledTimelineAction
     {
         internal ScheduledTimelineAction(
@@ -93,7 +116,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             int accumulatedPauseDuration = 0,
-            IReadOnlyList<ScheduledDisruptionPause> disruptionPauses = null)
+            IReadOnlyList<ScheduledDisruptionPause> disruptionPauses = null,
+            IReadOnlyList<ScheduledActionRestart> restarts = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -118,6 +142,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             AccumulatedPauseDuration = accumulatedPauseDuration;
             DisruptionPauses = disruptionPauses
                 ?? Array.Empty<ScheduledDisruptionPause>();
+            Restarts = restarts ?? Array.Empty<ScheduledActionRestart>();
         }
 
         public TimelineActorSide Side { get; }
@@ -166,9 +191,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public IReadOnlyList<ScheduledDisruptionPause> DisruptionPauses { get; }
 
+        public IReadOnlyList<ScheduledActionRestart> Restarts { get; }
+
         public int GetLocalTimeAt(int timeStep)
         {
-            return timeStep - StartTime - AccumulatedPauseDuration;
+            int localTime = timeStep - StartTime;
+            for (int index = 0; index < DisruptionPauses.Count; index++)
+            {
+                ScheduledDisruptionPause pause = DisruptionPauses[index];
+                if (timeStep <= pause.StartTime)
+                {
+                    continue;
+                }
+
+                localTime -= Math.Min(pause.Duration, timeStep - pause.StartTime);
+            }
+
+            return localTime;
         }
 
         public ActionDisruptionResponse GetDisruptionResponse(

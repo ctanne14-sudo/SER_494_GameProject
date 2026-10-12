@@ -802,6 +802,89 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void OnHitStagger_RestartActionRepeatsPreviouslyResolvedEffect()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var response = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.RestartAction,
+                    ActionDisruptionResponse.RestartAction)
+            };
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "breaker-combo",
+                        openingAction: null,
+                        mainAction: breaker,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                new EnemyActionSequence(
+                    "early-heavy",
+                    "Early Heavy",
+                    new[]
+                    {
+                        new EnemyActionDefinition(
+                            "early-heavy",
+                            "Early Heavy",
+                            loadCost: 5,
+                            resolutionOffset: 1,
+                            damageMultiplier: 0.40d,
+                            disruptionResponseSegments: response)
+                    }),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            Assert.That(battle.BeginCombo(0), Is.EqualTo(SoloComboExecutionFailure.None));
+            SoloComboTimelineAdvanceResult firstHit = battle.AdvanceTimeline();
+            Assert.That(firstHit.TimeStep, Is.EqualTo(1));
+            Assert.That(firstHit.ActionResolutions.Single().DamageDealt, Is.EqualTo(16));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(84));
+
+            SoloComboTimelineAdvanceResult restartStep = battle.AdvanceTimeline();
+            Assert.That(restartStep.ActionResolutions.Single().DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.RestartAction));
+            Assert.That(battle.ActiveTimeline.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy).Restarts,
+                Has.Count.EqualTo(1));
+
+            SoloComboTurnResult completed = null;
+            while (battle.IsTimelineResolving)
+            {
+                completed = battle.AdvanceTimeline().CompletedTurn ?? completed;
+            }
+
+            SoloComboActionResolution[] enemyHits = completed.ActionResolutions
+                .Where(resolution => resolution.Side == TimelineActorSide.Enemy)
+                .ToArray();
+            Assert.That(enemyHits, Has.Length.EqualTo(2));
+            Assert.That(enemyHits[0].TimeStep, Is.EqualTo(1));
+            Assert.That(enemyHits[1].TimeStep, Is.EqualTo(5));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(68));
+            Assert.That(completed.Schedule.CompletionTime, Is.EqualTo(9));
+        }
+
+        [Test]
         public void OnHitStagger_ZeroRoundedDamageStillDisrupts()
         {
             var breaker = new ComboActionDefinition(
