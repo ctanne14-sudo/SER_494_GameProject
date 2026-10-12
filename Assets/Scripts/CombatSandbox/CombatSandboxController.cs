@@ -338,7 +338,8 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.Label(
                 "Green: Active Window   Yellow: Resolution Point   "
                 + "Orange: Resolution Window   Purple: Disruption Pause   "
-                + "Magenta: Restart   Red: Cancel   Cyan: Current Time",
+                + "Magenta: Restart   Red: Cancel / Broken Window   "
+                + "Gray: Suppressed Window   Cyan: Current Time",
                 _timelineTickStyle);
         }
 
@@ -439,7 +440,6 @@ namespace SER494.Gameplay.CombatSandbox
                     }
 
                     GUI.color = previousColor;
-                    continue;
                 }
 
                 for (int restartIndex = 0;
@@ -487,7 +487,7 @@ namespace SER494.Gameplay.CombatSandbox
                 {
                     ScheduledActiveWindow window = action.ActiveWindows[windowIndex];
                     float activeStart = window.StartTime / (float)displayEnd;
-                    float activeEnd = window.EndTime / (float)displayEnd;
+                    float activeEnd = window.EffectiveEndTime / (float)displayEnd;
                     GUI.color = new Color(0.25f, 0.92f, 0.48f, 1f);
                     GUI.DrawTexture(
                         new Rect(
@@ -496,6 +496,60 @@ namespace SER494.Gameplay.CombatSandbox
                             Mathf.Max(3f, trackRect.width * (activeEnd - activeStart)),
                             5f),
                         Texture2D.whiteTexture);
+
+                    if (window.BreakTime.HasValue)
+                    {
+                        float breakPoint = window.BreakTime.Value / (float)displayEnd;
+                        float originalEnd = window.EndTime / (float)displayEnd;
+                        GUI.color = new Color(1f, 0.24f, 0.24f, 1f);
+                        GUI.DrawTexture(
+                            new Rect(
+                                trackRect.x + trackRect.width * breakPoint - 1f,
+                                actionRect.y,
+                                3f,
+                                5f),
+                            Texture2D.whiteTexture);
+                        GUI.color = new Color(0.30f, 0.34f, 0.38f, 0.82f);
+                        GUI.DrawTexture(
+                            new Rect(
+                                trackRect.x + trackRect.width * breakPoint,
+                                actionRect.y,
+                                Mathf.Max(
+                                    2f,
+                                    trackRect.width * (originalEnd - breakPoint)),
+                                5f),
+                            Texture2D.whiteTexture);
+                    }
+
+                    for (int suppressionIndex = 0;
+                        suppressionIndex < window.Suppressions.Count;
+                        suppressionIndex++)
+                    {
+                        ScheduledActiveWindowSuppression suppression =
+                            window.Suppressions[suppressionIndex];
+                        float suppressionStart = Mathf.Max(
+                            window.StartTime,
+                            suppression.StartTime) / (float)displayEnd;
+                        float suppressionEnd = Mathf.Min(
+                            window.EndTime,
+                            suppression.EndTime) / (float)displayEnd;
+                        if (suppressionEnd <= suppressionStart)
+                        {
+                            continue;
+                        }
+
+                        GUI.color = new Color(0.42f, 0.46f, 0.52f, 1f);
+                        GUI.DrawTexture(
+                            new Rect(
+                                trackRect.x + trackRect.width * suppressionStart,
+                                actionRect.y,
+                                Mathf.Max(
+                                    2f,
+                                    trackRect.width * (suppressionEnd - suppressionStart)),
+                                5f),
+                            Texture2D.whiteTexture);
+                    }
+
                     GUI.color = previousColor;
                 }
 
@@ -515,6 +569,11 @@ namespace SER494.Gameplay.CombatSandbox
                             5f),
                         Texture2D.whiteTexture);
                     GUI.color = previousColor;
+                }
+
+                if (action.IsCanceled)
+                {
+                    continue;
                 }
 
                 if (action.HasResolutionWindow)
@@ -940,6 +999,17 @@ namespace SER494.Gameplay.CombatSandbox
                         resolutionOffset: 5,
                         damageMultiplier: 0.65d,
                         damageTags: DamageResolutionTag.Overcommit,
+                        activeWindows: new[]
+                        {
+                            new ActionActiveWindowDefinition(
+                                "training.heavy-guard",
+                                "Heavy Guard",
+                                startOffset: 1,
+                                endOffset: 5,
+                                ActiveWindowEffect.DefensiveState,
+                                damageReduction: 0.30d,
+                                ActiveWindowDisruptionPolicy.BreakOnDisruption)
+                        },
                         disruptionResponseSegments: RestartOnStagger(loadCost: 5))
                 });
 

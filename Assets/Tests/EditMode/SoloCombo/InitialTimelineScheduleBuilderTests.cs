@@ -431,6 +431,76 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ApplyPauseAndResume_PersistWindowContinuesDuringDisruption()
+        {
+            InitialTimelineSchedule delayed = ApplyPauseToDefensiveWindow(
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption);
+            ScheduledActiveWindow window = delayed.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy).ActiveWindows.Single();
+
+            Assert.That(window.IsActiveAt(2), Is.True);
+            Assert.That(window.IsActiveAt(3), Is.True);
+            Assert.That(window.IsActiveAt(4), Is.True);
+            Assert.That(window.IsActiveAt(5), Is.True);
+            Assert.That(window.IsActiveAt(6), Is.False);
+        }
+
+        [Test]
+        public void ApplyPauseAndResume_BreakWindowEndsAfterDisruptionStep()
+        {
+            InitialTimelineSchedule delayed = ApplyPauseToDefensiveWindow(
+                ActiveWindowDisruptionPolicy.BreakOnDisruption);
+            ScheduledActiveWindow window = delayed.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy).ActiveWindows.Single();
+
+            Assert.That(window.BreakTime, Is.EqualTo(2));
+            Assert.That(window.IsActiveAt(2), Is.True);
+            Assert.That(window.IsActiveAt(3), Is.False);
+            Assert.That(window.EffectiveEndTime, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ApplyPauseAndResume_SuppressWindowReactivatesWhenTimeRemains()
+        {
+            InitialTimelineSchedule delayed = ApplyPauseToDefensiveWindow(
+                ActiveWindowDisruptionPolicy.SuppressDuringDisruption);
+            ScheduledActiveWindow window = delayed.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy).ActiveWindows.Single();
+
+            Assert.That(window.Suppressions, Has.Count.EqualTo(1));
+            Assert.That(window.IsActiveAt(2), Is.True);
+            Assert.That(window.IsActiveAt(3), Is.False);
+            Assert.That(window.IsActiveAt(4), Is.False);
+            Assert.That(window.IsActiveAt(5), Is.True);
+        }
+
+        [Test]
+        public void ApplyRestartAction_BreaksCurrentWindowAndReplaysFreshWindow()
+        {
+            InitialTimelineSchedule original = BuildDefensiveWindowSchedule(
+                ActiveWindowDisruptionPolicy.BreakOnDisruption,
+                ActionDisruptionResponse.RestartAction);
+
+            InitialTimelineSchedule restarted = InitialTimelineScheduleBuilder.ApplyRestartAction(
+                original,
+                TimelineActorSide.Enemy,
+                sequenceIndex: 0,
+                disruptionTime: 2,
+                duration: 2,
+                disruptionType: ActionDisruptionType.Stagger);
+
+            ScheduledActiveWindow[] windows = restarted.Actions.Single(
+                    action => action.Side == TimelineActorSide.Enemy)
+                .ActiveWindows.ToArray();
+            Assert.That(windows, Has.Length.EqualTo(2));
+            Assert.That(windows[0].BreakTime, Is.EqualTo(2));
+            Assert.That(windows[0].IsActiveAt(3), Is.False);
+            Assert.That(windows[1].StartTime, Is.EqualTo(5));
+            Assert.That(windows[1].EndTime, Is.EqualTo(9));
+            Assert.That(windows[1].IsActiveAt(5), Is.True);
+        }
+
+        [Test]
         public void ActionDefinition_ResponseSegmentsWithGap_AreRejected()
         {
             var segments = new[]
@@ -456,6 +526,56 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 resolutionOffset: 5,
                 damageMultiplier: 0.20d,
                 disruptionResponseSegments: segments));
+        }
+
+        private static InitialTimelineSchedule ApplyPauseToDefensiveWindow(
+            ActiveWindowDisruptionPolicy policy)
+        {
+            InitialTimelineSchedule original = BuildDefensiveWindowSchedule(
+                policy,
+                ActionDisruptionResponse.PauseAndResume);
+            return InitialTimelineScheduleBuilder.ApplyPauseAndResume(
+                original,
+                TimelineActorSide.Enemy,
+                sequenceIndex: 0,
+                disruptionTime: 2,
+                duration: 2,
+                disruptionType: ActionDisruptionType.Stagger);
+        }
+
+        private static InitialTimelineSchedule BuildDefensiveWindowSchedule(
+            ActiveWindowDisruptionPolicy policy,
+            ActionDisruptionResponse response)
+        {
+            var window = new ActionActiveWindowDefinition(
+                "enemy.guard",
+                "Enemy Guard",
+                startOffset: 1,
+                endOffset: 5,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.30d,
+                policy);
+            var responses = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    response,
+                    response)
+            };
+            return InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(
+                    PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2)),
+                EnemySequence(
+                    new EnemyActionDefinition(
+                        "guarding-enemy",
+                        "Guarding Enemy",
+                        loadCost: 5,
+                        resolutionOffset: 5,
+                        damageMultiplier: 0.50d,
+                        activeWindows: new[] { window },
+                        disruptionResponseSegments: responses)));
         }
 
         private static ComboConfiguration MainOnlyCombo(ComboActionDefinition main)

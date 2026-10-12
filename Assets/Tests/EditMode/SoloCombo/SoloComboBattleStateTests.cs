@@ -802,6 +802,89 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void OnHitStagger_BreakWindowStopsReducingLaterDamage()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var followUp = new ComboActionDefinition(
+                "follow-up",
+                "Follow Up",
+                ComboActionCategory.Linked,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 1);
+            var combo = new ComboConfiguration(
+                "window-breaker",
+                openingAction: null,
+                mainAction: breaker,
+                closingAction: null,
+                linkedAction: followUp,
+                LinkedActionPlacement.AfterMain);
+            var defensiveWindow = new ActionActiveWindowDefinition(
+                "enemy.guard",
+                "Enemy Guard",
+                startOffset: 1,
+                endOffset: 5,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.30d,
+                ActiveWindowDisruptionPolicy.BreakOnDisruption);
+            var response = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.PauseAndResume)
+            };
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                new EnemyActionSequence(
+                    "guarding-enemy",
+                    "Guarding Enemy",
+                    new[]
+                    {
+                        new EnemyActionDefinition(
+                            "guarding-enemy",
+                            "Guarding Enemy",
+                            loadCost: 5,
+                            resolutionOffset: 5,
+                            damageMultiplier: 0.20d,
+                            activeWindows: new[] { defensiveWindow },
+                            disruptionResponseSegments: response)
+                    }),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution[] playerHits = result.ActionResolutions
+                .Where(resolution => resolution.Side == TimelineActorSide.Player)
+                .ToArray();
+
+            Assert.That(playerHits, Has.Length.EqualTo(2));
+            Assert.That(playerHits[0].TimeStep, Is.EqualTo(2));
+            Assert.That(playerHits[0].DefensiveDamageReduction, Is.EqualTo(0.30d));
+            Assert.That(playerHits[1].TimeStep, Is.EqualTo(5));
+            Assert.That(playerHits[1].DefensiveDamageReduction, Is.Zero);
+        }
+
+        [Test]
         public void OnHitStagger_RestartActionRepeatsPreviouslyResolvedEffect()
         {
             var breaker = new ComboActionDefinition(

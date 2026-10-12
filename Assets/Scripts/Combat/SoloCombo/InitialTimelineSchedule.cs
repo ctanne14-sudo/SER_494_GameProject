@@ -10,6 +10,31 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Enemy
     }
 
+    public sealed class ScheduledActiveWindowSuppression
+    {
+        internal ScheduledActiveWindowSuppression(int startTime, int endTime)
+        {
+            if (endTime <= startTime)
+            {
+                throw new ArgumentException(
+                    "An Active Window suppression must end after it begins.");
+            }
+
+            StartTime = startTime;
+            EndTime = endTime;
+        }
+
+        public int StartTime { get; }
+
+        public int EndTime { get; }
+
+        public bool Suppresses(int timeStep)
+        {
+            // The disruption is applied after all effects at StartTime resolve.
+            return timeStep > StartTime && timeStep <= EndTime;
+        }
+    }
+
     public sealed class ScheduledActiveWindow
     {
         internal ScheduledActiveWindow(
@@ -19,7 +44,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int endTime,
             ActiveWindowEffect effect,
             double damageReduction,
-            ActiveWindowDisruptionPolicy disruptionPolicy)
+            ActiveWindowDisruptionPolicy disruptionPolicy,
+            int sourceActionStartTime,
+            int localStartOffset,
+            int localEndOffset,
+            int? breakTime = null,
+            IReadOnlyList<ScheduledActiveWindowSuppression> suppressions = null)
         {
             WindowId = windowId;
             DisplayName = displayName;
@@ -28,6 +58,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Effect = effect;
             DamageReduction = damageReduction;
             DisruptionPolicy = disruptionPolicy;
+            SourceActionStartTime = sourceActionStartTime;
+            LocalStartOffset = localStartOffset;
+            LocalEndOffset = localEndOffset;
+            BreakTime = breakTime;
+            Suppressions = suppressions
+                ?? Array.Empty<ScheduledActiveWindowSuppression>();
         }
 
         public string WindowId { get; }
@@ -44,9 +80,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
 
+        public int SourceActionStartTime { get; }
+
+        public int LocalStartOffset { get; }
+
+        public int LocalEndOffset { get; }
+
+        public int? BreakTime { get; }
+
+        public IReadOnlyList<ScheduledActiveWindowSuppression> Suppressions { get; }
+
+        public int EffectiveEndTime => BreakTime.HasValue
+            ? Math.Min(EndTime, BreakTime.Value)
+            : EndTime;
+
         public bool IsActiveAt(int timeStep)
         {
-            return timeStep >= StartTime && timeStep <= EndTime;
+            if (timeStep < StartTime || timeStep > EffectiveEndTime)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < Suppressions.Count; index++)
+            {
+                if (Suppressions[index].Suppresses(timeStep))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 

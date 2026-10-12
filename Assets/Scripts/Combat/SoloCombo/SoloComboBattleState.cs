@@ -1013,7 +1013,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int actionIndex = 0; actionIndex < _activeSchedule.Actions.Count; actionIndex++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[actionIndex];
-                if (action.IsCanceled || action.Side != defendedSide)
+                if (action.Side != defendedSide)
                 {
                     continue;
                 }

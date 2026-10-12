@@ -397,6 +397,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         completionTime,
                         action.Cancellation.RecoveryEndTime);
                 }
+
+                for (int windowIndex = 0;
+                    windowIndex < action.ActiveWindows.Count;
+                    windowIndex++)
+                {
+                    completionTime = Math.Max(
+                        completionTime,
+                        action.ActiveWindows[windowIndex].EffectiveEndTime);
+                }
             }
 
             if (!found)
@@ -645,7 +654,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 windowStart,
                 windowEnd,
                 action.ChargeLevels,
-                ShiftFutureActiveWindows(action.ActiveWindows, disruptionTime, duration),
+                ApplyActiveWindowInterruption(
+                    action.ActiveWindows,
+                    action.StartTime,
+                    disruptionTime,
+                    checked(disruptionTime + duration),
+                    shiftFutureWindowsBy: duration,
+                    replayAtTime: null,
+                    cancelFutureWindows: false),
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
                 checked(action.AccumulatedPauseDuration + duration),
@@ -698,7 +714,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         + action.GetLocalTimeAt(action.ResolutionWindowEndTime.Value))
                     : null,
                 action.ChargeLevels,
-                RestartActiveWindows(action.ActiveWindows, action, restartTime),
+                ApplyActiveWindowInterruption(
+                    action.ActiveWindows,
+                    action.StartTime,
+                    disruptionTime,
+                    restartTime,
+                    shiftFutureWindowsBy: 0,
+                    replayAtTime: restartTime,
+                    cancelFutureWindows: true),
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
                 accumulatedPauseDuration: 0,
@@ -730,7 +753,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.ResolutionWindowStartTime,
                 action.ResolutionWindowEndTime,
                 action.ChargeLevels,
-                action.ActiveWindows,
+                ApplyActiveWindowInterruption(
+                    action.ActiveWindows,
+                    action.StartTime,
+                    cancellationTime,
+                    recoveryEndTime,
+                    shiftFutureWindowsBy: 0,
+                    replayAtTime: null,
+                    cancelFutureWindows: true),
                 action.OnHitDisruption,
                 action.DisruptionResponseSegments,
                 action.AccumulatedPauseDuration,
@@ -787,7 +817,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     checked(actionStartTime + definition.EndOffset),
                     definition.Effect,
                     definition.DamageReduction,
-                    definition.DisruptionPolicy);
+                    definition.DisruptionPolicy,
+                    actionStartTime,
+                    definition.StartOffset,
+                    definition.EndOffset);
             }
 
             return Array.AsReadOnly(windows);
@@ -813,38 +846,91 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     checked(window.EndTime + shift),
                     window.Effect,
                     window.DamageReduction,
-                    window.DisruptionPolicy);
+                    window.DisruptionPolicy,
+                    checked(window.SourceActionStartTime + shift),
+                    window.LocalStartOffset,
+                    window.LocalEndOffset,
+                    window.BreakTime.HasValue
+                        ? (int?)checked(window.BreakTime.Value + shift)
+                        : null,
+                    ShiftSuppressions(window.Suppressions, shift));
             }
 
             return Array.AsReadOnly(shifted);
         }
 
-        private static IReadOnlyList<ScheduledActiveWindow> ShiftFutureActiveWindows(
+        private static IReadOnlyList<ScheduledActiveWindow> ApplyActiveWindowInterruption(
             IReadOnlyList<ScheduledActiveWindow> windows,
+            int currentActionStartTime,
             int disruptionTime,
-            int shift)
+            int disruptionEndTime,
+            int shiftFutureWindowsBy,
+            int? replayAtTime,
+            bool cancelFutureWindows)
         {
             if (windows.Count == 0)
             {
                 return windows;
             }
 
-            var shifted = new ScheduledActiveWindow[windows.Count];
+            var updated = new List<ScheduledActiveWindow>(
+                windows.Count + (replayAtTime.HasValue ? windows.Count : 0));
             for (int index = 0; index < windows.Count; index++)
             {
                 ScheduledActiveWindow window = windows[index];
-                int windowShift = window.StartTime > disruptionTime ? shift : 0;
-                shifted[index] = new ScheduledActiveWindow(
-                    window.WindowId,
-                    window.DisplayName,
-                    checked(window.StartTime + windowShift),
-                    checked(window.EndTime + windowShift),
-                    window.Effect,
-                    window.DamageReduction,
-                    window.DisruptionPolicy);
+                if (window.SourceActionStartTime != currentActionStartTime
+                    || window.EndTime < disruptionTime)
+                {
+                    updated.Add(window);
+                    continue;
+                }
+
+                if (window.StartTime > disruptionTime)
+                {
+                    if (!cancelFutureWindows)
+                    {
+                        updated.Add(ShiftSingleActiveWindow(
+                            window,
+                            shiftFutureWindowsBy,
+                            shiftSourceActionStartTime: false));
+                    }
+
+                    continue;
+                }
+
+                updated.Add(ApplyPolicyToActiveWindow(
+                    window,
+                    disruptionTime,
+                    disruptionEndTime));
             }
 
-            return Array.AsReadOnly(shifted);
+            if (replayAtTime.HasValue)
+            {
+                var replayedIds = new HashSet<string>(StringComparer.Ordinal);
+                for (int index = 0; index < windows.Count; index++)
+                {
+                    ScheduledActiveWindow template = windows[index];
+                    if (template.SourceActionStartTime != currentActionStartTime
+                        || !replayedIds.Add(template.WindowId))
+                    {
+                        continue;
+                    }
+
+                    updated.Add(new ScheduledActiveWindow(
+                        template.WindowId,
+                        template.DisplayName,
+                        checked(replayAtTime.Value + template.LocalStartOffset),
+                        checked(replayAtTime.Value + template.LocalEndOffset),
+                        template.Effect,
+                        template.DamageReduction,
+                        template.DisruptionPolicy,
+                        replayAtTime.Value,
+                        template.LocalStartOffset,
+                        template.LocalEndOffset));
+                }
+            }
+
+            return Array.AsReadOnly(updated.ToArray());
         }
 
         private static IReadOnlyList<ScheduledDisruptionPause> ShiftDisruptionPauses(
@@ -869,31 +955,106 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return Array.AsReadOnly(shifted);
         }
 
-        private static IReadOnlyList<ScheduledActiveWindow> RestartActiveWindows(
-            IReadOnlyList<ScheduledActiveWindow> windows,
-            ScheduledTimelineAction action,
-            int restartTime)
+        private static ScheduledActiveWindow ApplyPolicyToActiveWindow(
+            ScheduledActiveWindow window,
+            int disruptionTime,
+            int disruptionEndTime)
         {
-            if (windows.Count == 0)
+            switch (window.DisruptionPolicy)
             {
-                return windows;
+                case ActiveWindowDisruptionPolicy.BreakOnDisruption:
+                    return new ScheduledActiveWindow(
+                        window.WindowId,
+                        window.DisplayName,
+                        window.StartTime,
+                        window.EndTime,
+                        window.Effect,
+                        window.DamageReduction,
+                        window.DisruptionPolicy,
+                        window.SourceActionStartTime,
+                        window.LocalStartOffset,
+                        window.LocalEndOffset,
+                        window.BreakTime.HasValue
+                            ? (int?)Math.Min(window.BreakTime.Value, disruptionTime)
+                            : disruptionTime,
+                        window.Suppressions);
+                case ActiveWindowDisruptionPolicy.SuppressDuringDisruption:
+                    var suppressions = new ScheduledActiveWindowSuppression[
+                        window.Suppressions.Count + 1];
+                    for (int index = 0; index < window.Suppressions.Count; index++)
+                    {
+                        suppressions[index] = window.Suppressions[index];
+                    }
+
+                    suppressions[suppressions.Length - 1] =
+                        new ScheduledActiveWindowSuppression(
+                            disruptionTime,
+                            disruptionEndTime);
+                    return new ScheduledActiveWindow(
+                        window.WindowId,
+                        window.DisplayName,
+                        window.StartTime,
+                        window.EndTime,
+                        window.Effect,
+                        window.DamageReduction,
+                        window.DisruptionPolicy,
+                        window.SourceActionStartTime,
+                        window.LocalStartOffset,
+                        window.LocalEndOffset,
+                        window.BreakTime,
+                        Array.AsReadOnly(suppressions));
+                default:
+                    return window;
+            }
+        }
+
+        private static ScheduledActiveWindow ShiftSingleActiveWindow(
+            ScheduledActiveWindow window,
+            int shift,
+            bool shiftSourceActionStartTime)
+        {
+            if (shift == 0)
+            {
+                return window;
             }
 
-            var restarted = new ScheduledActiveWindow[windows.Count];
-            for (int index = 0; index < windows.Count; index++)
+            return new ScheduledActiveWindow(
+                window.WindowId,
+                window.DisplayName,
+                checked(window.StartTime + shift),
+                checked(window.EndTime + shift),
+                window.Effect,
+                window.DamageReduction,
+                window.DisruptionPolicy,
+                checked(window.SourceActionStartTime
+                    + (shiftSourceActionStartTime ? shift : 0)),
+                window.LocalStartOffset,
+                window.LocalEndOffset,
+                window.BreakTime.HasValue
+                    ? (int?)checked(window.BreakTime.Value + shift)
+                    : null,
+                ShiftSuppressions(window.Suppressions, shift));
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindowSuppression> ShiftSuppressions(
+            IReadOnlyList<ScheduledActiveWindowSuppression> suppressions,
+            int shift)
+        {
+            if (suppressions.Count == 0 || shift == 0)
             {
-                ScheduledActiveWindow window = windows[index];
-                restarted[index] = new ScheduledActiveWindow(
-                    window.WindowId,
-                    window.DisplayName,
-                    checked(restartTime + action.GetLocalTimeAt(window.StartTime)),
-                    checked(restartTime + action.GetLocalTimeAt(window.EndTime)),
-                    window.Effect,
-                    window.DamageReduction,
-                    window.DisruptionPolicy);
+                return suppressions;
             }
 
-            return Array.AsReadOnly(restarted);
+            var shifted = new ScheduledActiveWindowSuppression[suppressions.Count];
+            for (int index = 0; index < suppressions.Count; index++)
+            {
+                ScheduledActiveWindowSuppression suppression = suppressions[index];
+                shifted[index] = new ScheduledActiveWindowSuppression(
+                    checked(suppression.StartTime + shift),
+                    checked(suppression.EndTime + shift));
+            }
+
+            return Array.AsReadOnly(shifted);
         }
 
         private static IReadOnlyList<ScheduledActionRestart> ShiftActionRestarts(
