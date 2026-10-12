@@ -108,14 +108,17 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "Guard Breaker",
                     ComboActionCategory.Main,
                     loadCost: 4,
-                    resolutionOffset: 3,
+                    resolutionOffset: 2,
                     manaCost: 0,
                     staminaCost: 5,
                     cooldown: 2,
                     damageMultiplier: 0.50f,
                     damageType: DamageType.Blunt,
                     resolutionEffect: ActionResolutionEffect.Damage,
-                    damageTags: DamageResolutionTag.Unguardable),
+                    damageTags: DamageResolutionTag.Unguardable,
+                    onHitDisruption: new SampleDisruption(
+                        ActionDisruptionType.Stagger,
+                        duration: 2)),
                 new SampleAction(
                     "Sample_IceLance",
                     "sample.ice-lance",
@@ -345,6 +348,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serializedAsset.FindProperty("resolutionEffect").enumValueIndex =
                 (int)sample.ResolutionEffect;
             serializedAsset.FindProperty("damageTags").intValue = (int)sample.DamageTags;
+            serializedAsset.FindProperty("appliesOnHitDisruption").boolValue =
+                sample.OnHitDisruption != null;
+            serializedAsset.FindProperty("onHitDisruptionType").enumValueIndex =
+                (int)(sample.OnHitDisruption?.Type ?? ActionDisruptionType.Stagger) - 1;
+            serializedAsset.FindProperty("onHitDisruptionDuration").intValue =
+                sample.OnHitDisruption?.Duration ?? 1;
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
 
             if (isNewAsset)
@@ -388,7 +397,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 int? resolutionWindowStart = null,
                 int? resolutionWindowEnd = null,
                 SampleChargeLevel[] chargeLevels = null,
-                SampleActiveWindow[] activeWindows = null)
+                SampleActiveWindow[] activeWindows = null,
+                SampleDisruption onHitDisruption = null)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -407,6 +417,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ResolutionWindowEnd = resolutionWindowEnd;
                 ChargeLevels = chargeLevels ?? new SampleChargeLevel[0];
                 ActiveWindows = activeWindows ?? new SampleActiveWindow[0];
+                OnHitDisruption = onHitDisruption;
             }
 
             public string FileName { get; }
@@ -442,6 +453,21 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public SampleChargeLevel[] ChargeLevels { get; }
 
             public SampleActiveWindow[] ActiveWindows { get; }
+
+            public SampleDisruption OnHitDisruption { get; }
+        }
+
+        private sealed class SampleDisruption
+        {
+            public SampleDisruption(ActionDisruptionType type, int duration)
+            {
+                Type = type;
+                Duration = duration;
+            }
+
+            public ActionDisruptionType Type { get; }
+
+            public int Duration { get; }
         }
 
         private sealed class SampleActiveWindow

@@ -40,6 +40,102 @@ namespace SER494.Gameplay.Combat.SoloCombo
         SuppressDuringDisruption
     }
 
+    public enum ActionDisruptionType
+    {
+        Flinch = 1,
+        Stagger = 2,
+        Knockdown = 3
+    }
+
+    public enum ActionDisruptionResponse
+    {
+        Continue,
+        PauseAndResume
+    }
+
+    public sealed class ActionDisruptionDefinition
+    {
+        public ActionDisruptionDefinition(ActionDisruptionType type, int duration)
+        {
+            if (!Enum.IsDefined(typeof(ActionDisruptionType), type))
+            {
+                throw new ArgumentOutOfRangeException(nameof(type));
+            }
+
+            if (duration <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(duration));
+            }
+
+            Type = type;
+            Duration = duration;
+        }
+
+        public ActionDisruptionType Type { get; }
+
+        public int Duration { get; }
+    }
+
+    public sealed class DisruptionResponseSegmentDefinition
+    {
+        public DisruptionResponseSegmentDefinition(
+            int startOffset,
+            int endOffset,
+            ActionDisruptionResponse flinchResponse,
+            ActionDisruptionResponse staggerResponse,
+            ActionDisruptionResponse knockdownResponse)
+        {
+            if (startOffset < 1 || endOffset < startOffset)
+            {
+                throw new ArgumentException(
+                    "A Disruption Response Segment must use an ordered Local Time range beginning at 1.");
+            }
+
+            StartOffset = startOffset;
+            EndOffset = endOffset;
+            FlinchResponse = ValidateResponse(flinchResponse, nameof(flinchResponse));
+            StaggerResponse = ValidateResponse(staggerResponse, nameof(staggerResponse));
+            KnockdownResponse = ValidateResponse(knockdownResponse, nameof(knockdownResponse));
+        }
+
+        public int StartOffset { get; }
+
+        public int EndOffset { get; }
+
+        public ActionDisruptionResponse FlinchResponse { get; }
+
+        public ActionDisruptionResponse StaggerResponse { get; }
+
+        public ActionDisruptionResponse KnockdownResponse { get; }
+
+        public ActionDisruptionResponse GetResponse(ActionDisruptionType type)
+        {
+            switch (type)
+            {
+                case ActionDisruptionType.Flinch:
+                    return FlinchResponse;
+                case ActionDisruptionType.Stagger:
+                    return StaggerResponse;
+                case ActionDisruptionType.Knockdown:
+                    return KnockdownResponse;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type));
+            }
+        }
+
+        private static ActionDisruptionResponse ValidateResponse(
+            ActionDisruptionResponse response,
+            string parameterName)
+        {
+            if (!Enum.IsDefined(typeof(ActionDisruptionResponse), response))
+            {
+                throw new ArgumentOutOfRangeException(parameterName);
+            }
+
+            return response;
+        }
+    }
+
     public sealed class ActionActiveWindowDefinition
     {
         public ActionActiveWindowDefinition(
@@ -185,7 +281,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionWindowStart = null,
             int? resolutionWindowEnd = null,
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            ActionDisruptionDefinition onHitDisruption = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
             : this(
                 actionId,
                 displayName,
@@ -203,7 +301,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionWindowStart,
                 resolutionWindowEnd,
                 chargeLevels,
-                activeWindows)
+                activeWindows,
+                onHitDisruption,
+                disruptionResponseSegments)
         {
         }
 
@@ -223,7 +323,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionWindowStart = null,
             int? resolutionWindowEnd = null,
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            ActionDisruptionDefinition onHitDisruption = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
             : this(
                 actionId,
                 displayName,
@@ -243,7 +345,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionWindowStart,
                 resolutionWindowEnd,
                 chargeLevels,
-                activeWindows)
+                activeWindows,
+                onHitDisruption,
+                disruptionResponseSegments)
         {
         }
 
@@ -264,7 +368,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionWindowStart,
             int? resolutionWindowEnd,
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
+            ActionDisruptionDefinition onHitDisruption,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -302,6 +408,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 chargeLevels,
                 HasResolutionWindow);
             ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
+            OnHitDisruption = ValidateOnHitDisruption(damageEffect, onHitDisruption);
+            DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
+                disruptionResponseSegments,
+                LoadCost);
             if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
             {
                 throw new ArgumentException(
@@ -348,6 +458,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool IsChargeable => ChargeLevels.Count > 0;
 
         public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
+
+        public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
         private static int RequirePositive(int value, string parameterName)
         {
@@ -592,6 +706,67 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return Array.AsReadOnly(copy);
+        }
+
+        internal static IReadOnlyList<DisruptionResponseSegmentDefinition>
+            CopyAndValidateDisruptionResponseSegments(
+                IReadOnlyList<DisruptionResponseSegmentDefinition> segments,
+                int loadCost)
+        {
+            if (segments == null || segments.Count == 0)
+            {
+                return new[]
+                {
+                    new DisruptionResponseSegmentDefinition(
+                        1,
+                        loadCost,
+                        ActionDisruptionResponse.Continue,
+                        ActionDisruptionResponse.Continue,
+                        ActionDisruptionResponse.Continue)
+                };
+            }
+
+            var copy = new DisruptionResponseSegmentDefinition[segments.Count];
+            int expectedStart = 1;
+            for (int index = 0; index < segments.Count; index++)
+            {
+                DisruptionResponseSegmentDefinition segment = segments[index]
+                    ?? throw new ArgumentException(
+                        "Disruption Response Segment entries cannot be null.",
+                        nameof(segments));
+                if (segment.StartOffset != expectedStart || segment.EndOffset > loadCost)
+                {
+                    throw new ArgumentException(
+                        "Disruption Response Segments must cover the complete Action Local Timeline without gaps or overlaps.",
+                        nameof(segments));
+                }
+
+                copy[index] = segment;
+                expectedStart = checked(segment.EndOffset + 1);
+            }
+
+            if (expectedStart != loadCost + 1)
+            {
+                throw new ArgumentException(
+                    "Disruption Response Segments must cover the complete Action Local Timeline.",
+                    nameof(segments));
+            }
+
+            return Array.AsReadOnly(copy);
+        }
+
+        private static ActionDisruptionDefinition ValidateOnHitDisruption(
+            DamageEffectDefinition damageEffect,
+            ActionDisruptionDefinition disruption)
+        {
+            if (disruption != null && damageEffect == null)
+            {
+                throw new ArgumentException(
+                    "Only a damaging Action can apply an On Hit Disruption.",
+                    nameof(disruption));
+            }
+
+            return disruption;
         }
     }
 }

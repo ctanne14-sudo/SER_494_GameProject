@@ -274,6 +274,79 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 activeWindows: new[] { activeWindow }));
         }
 
+        [Test]
+        public void ApplyPauseAndResume_ShiftsUnresolvedActionAndLaterActions()
+        {
+            ComboConfiguration combo = MainOnlyCombo(
+                PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2));
+            var pauseResponse = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.PauseAndResume)
+            };
+            EnemyActionSequence enemy = EnemySequence(
+                new EnemyActionDefinition(
+                    "heavy",
+                    "heavy",
+                    loadCost: 5,
+                    resolutionOffset: 5,
+                    damageMultiplier: 0.50d,
+                    disruptionResponseSegments: pauseResponse),
+                EnemyAction("follow-up", load: 2, resolution: 2));
+            InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(combo, enemy);
+
+            InitialTimelineSchedule delayed = InitialTimelineScheduleBuilder.ApplyPauseAndResume(
+                original,
+                TimelineActorSide.Enemy,
+                sequenceIndex: 0,
+                disruptionTime: 2,
+                duration: 2);
+
+            ScheduledTimelineAction heavy = delayed.Actions.Single(
+                action => action.ActionId == "heavy");
+            ScheduledTimelineAction followUp = delayed.Actions.Single(
+                action => action.ActionId == "follow-up");
+            Assert.That(heavy.StartTime, Is.Zero);
+            Assert.That(heavy.EndTime, Is.EqualTo(7));
+            Assert.That(heavy.ResolutionTime, Is.EqualTo(7));
+            Assert.That(heavy.AccumulatedPauseDuration, Is.EqualTo(2));
+            Assert.That(followUp.StartTime, Is.EqualTo(7));
+            Assert.That(followUp.EndTime, Is.EqualTo(9));
+            Assert.That(delayed.CompletionTime, Is.EqualTo(9));
+        }
+
+        [Test]
+        public void ActionDefinition_ResponseSegmentsWithGap_AreRejected()
+        {
+            var segments = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    2,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.PauseAndResume),
+                new DisruptionResponseSegmentDefinition(
+                    4,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume)
+            };
+
+            Assert.Throws<ArgumentException>(() => new EnemyActionDefinition(
+                "invalid",
+                "Invalid",
+                loadCost: 5,
+                resolutionOffset: 5,
+                damageMultiplier: 0.20d,
+                disruptionResponseSegments: segments));
+        }
+
         private static ComboConfiguration MainOnlyCombo(ComboActionDefinition main)
         {
             return new ComboConfiguration(

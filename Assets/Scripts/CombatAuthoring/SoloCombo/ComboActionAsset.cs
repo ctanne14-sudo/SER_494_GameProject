@@ -117,6 +117,17 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Tooltip("Tags that alter how a Damage Resolution Point interacts with Guard and Evade.")]
         private DamageResolutionTag damageTags = DamageResolutionTag.None;
 
+        [SerializeField]
+        [Tooltip("Apply an Action Disruption when this Damage effect successfully hits.")]
+        private bool appliesOnHitDisruption = false;
+
+        [SerializeField]
+        private ActionDisruptionType onHitDisruptionType = ActionDisruptionType.Stagger;
+
+        [SerializeField]
+        [Min(1)]
+        private int onHitDisruptionDuration = 1;
+
         public string ActionId => actionId;
 
         public string DisplayName => displayName;
@@ -180,6 +191,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public ActionResolutionEffect ResolutionEffect => resolutionEffect;
 
         public DamageResolutionTag DamageTags => damageTags;
+
+        public bool AppliesOnHitDisruption => appliesOnHitDisruption;
+
+        public ActionDisruptionType OnHitDisruptionType => onHitDisruptionType;
+
+        public int OnHitDisruptionDuration => onHitDisruptionDuration;
 
         public bool TryCreateDefinition(
             out ComboActionDefinition definition,
@@ -274,6 +291,20 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (appliesOnHitDisruption && damageMultiplier <= 0f)
+            {
+                validationError = $"{name} applies an On Hit Disruption without damage.";
+                return false;
+            }
+
+            if (appliesOnHitDisruption
+                && (!Enum.IsDefined(typeof(ActionDisruptionType), onHitDisruptionType)
+                    || onHitDisruptionDuration <= 0))
+            {
+                validationError = $"{name} contains an invalid On Hit Disruption.";
+                return false;
+            }
+
             if (resolutionEffect == ActionResolutionEffect.ApplyBuff
                 || resolutionEffect == ActionResolutionEffect.ApplyDebuff)
             {
@@ -302,7 +333,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     ? (int?)resolutionWindowEnd
                     : null,
                 chargeLevels: chargeDefinitions,
-                activeWindows: activeWindowDefinitions);
+                activeWindows: activeWindowDefinitions,
+                onHitDisruption: appliesOnHitDisruption
+                    ? new ActionDisruptionDefinition(
+                        onHitDisruptionType,
+                        onHitDisruptionDuration)
+                    : null);
 
             validationError = null;
             return true;
@@ -318,6 +354,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);
             damageMultiplier = Mathf.Max(0f, damageMultiplier);
+            onHitDisruptionDuration = Mathf.Max(1, onHitDisruptionDuration);
             if (chargeLevels == null)
             {
                 chargeLevels = Array.Empty<ChargeLevelAuthoringData>();

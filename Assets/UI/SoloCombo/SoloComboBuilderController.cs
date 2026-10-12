@@ -326,7 +326,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             var linkedPlacements = new[]
             {
                 LinkedActionPlacement.AfterMain,
-                LinkedActionPlacement.AfterOpening,
+                LinkedActionPlacement.AfterMain,
                 LinkedActionPlacement.AfterOpening,
                 LinkedActionPlacement.AfterMain
             };
@@ -586,6 +586,14 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     }
 
                     builder.Append(')');
+                    if (action.AppliesOnHitDisruption)
+                    {
+                        builder.Append(" | On Hit: ")
+                            .Append(action.OnHitDisruptionType)
+                            .Append(" for ")
+                            .Append(action.OnHitDisruptionDuration)
+                            .Append(" Time Steps");
+                    }
                 }
                 else if (action.ResolutionEffect == ActionResolutionEffect.None)
                 {

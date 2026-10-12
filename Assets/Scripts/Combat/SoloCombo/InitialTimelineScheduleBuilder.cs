@@ -96,7 +96,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         resolutionWindowStartTime: null,
                         resolutionWindowEndTime: null,
                         chargeLevels: action.ChargeLevels,
-                        activeWindows: action.ActiveWindows);
+                        activeWindows: action.ActiveWindows,
+                        onHitDisruption: action.OnHitDisruption,
+                        disruptionResponseSegments: action.DisruptionResponseSegments,
+                        accumulatedPauseDuration: action.AccumulatedPauseDuration);
                     replaced = true;
                 }
 
@@ -194,6 +197,63 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return CreateSchedule(actions, completionTime);
         }
 
+        public static InitialTimelineSchedule ApplyPauseAndResume(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int disruptionTime,
+            int duration)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            if (duration <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(duration));
+            }
+
+            var actions = new List<ScheduledTimelineAction>(schedule.Actions.Count);
+            bool found = false;
+            int completionTime = 0;
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    found = true;
+                    action = PauseScheduledAction(action, disruptionTime, duration);
+                }
+                else if (action.Side == side && action.SequenceIndex > sequenceIndex)
+                {
+                    action = CopyScheduledAction(
+                        action,
+                        startShift: duration,
+                        endShift: duration,
+                        resolutionShift: duration,
+                        damageScale: 1d,
+                        keepChargeLevels: true);
+                }
+
+                actions.Add(action);
+                completionTime = Math.Max(completionTime, action.EndTime);
+            }
+
+            if (!found)
+            {
+                throw new ArgumentException("The Action to pause was not found.");
+            }
+
+            if (completionTime > AbsoluteTimelineLimit)
+            {
+                throw new InvalidOperationException(
+                    $"Action Disruption would extend the Timeline beyond the absolute limit of {AbsoluteTimelineLimit}.");
+            }
+
+            return CreateSchedule(actions, completionTime);
+        }
+
         private static InitialTimelineSchedule CreateSchedule(
             List<ScheduledTimelineAction> actions,
             int completionTime)
@@ -285,7 +345,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         ? (int?)checked(currentTime + definition.ResolutionWindowEnd.Value)
                         : null,
                     definition.ChargeLevels,
-                    ScheduleActiveWindows(definition.ActiveWindows, currentTime)));
+                    ScheduleActiveWindows(definition.ActiveWindows, currentTime),
+                    definition.OnHitDisruption,
+                    definition.DisruptionResponseSegments));
                 currentTime = endTime;
             }
 
@@ -316,7 +378,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.StatusTarget,
                     activeWindows: ScheduleActiveWindows(
                         definition.ActiveWindows,
-                        currentTime)));
+                        currentTime),
+                    onHitDisruption: definition.OnHitDisruption,
+                    disruptionResponseSegments: definition.DisruptionResponseSegments));
                 currentTime = endTime;
             }
 
@@ -353,7 +417,46 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 keepChargeLevels
                     ? action.ChargeLevels
                     : Array.Empty<ComboActionChargeLevelDefinition>(),
-                ShiftActiveWindows(action.ActiveWindows, resolutionShift));
+                ShiftActiveWindows(action.ActiveWindows, resolutionShift),
+                action.OnHitDisruption,
+                action.DisruptionResponseSegments,
+                action.AccumulatedPauseDuration);
+        }
+
+        private static ScheduledTimelineAction PauseScheduledAction(
+            ScheduledTimelineAction action,
+            int disruptionTime,
+            int duration)
+        {
+            int resolutionShift = action.ResolutionTime > disruptionTime ? duration : 0;
+            int? windowStart = action.ResolutionWindowStartTime;
+            int? windowEnd = action.ResolutionWindowEndTime;
+            if (windowStart.HasValue && windowStart.Value > disruptionTime)
+            {
+                windowStart = checked(windowStart.Value + duration);
+                windowEnd = checked(windowEnd.Value + duration);
+            }
+
+            return new ScheduledTimelineAction(
+                action.Side,
+                action.SequenceIndex,
+                action.ActionId,
+                action.DisplayName,
+                action.StartTime,
+                checked(action.EndTime + duration),
+                checked(action.ResolutionTime + resolutionShift),
+                action.DamageEffect,
+                action.ResolutionEffect,
+                action.DamageTags,
+                action.StatusEffect,
+                action.StatusTarget,
+                windowStart,
+                windowEnd,
+                action.ChargeLevels,
+                ShiftFutureActiveWindows(action.ActiveWindows, disruptionTime, duration),
+                action.OnHitDisruption,
+                action.DisruptionResponseSegments,
+                checked(action.AccumulatedPauseDuration + duration));
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(
@@ -421,6 +524,34 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     window.DisplayName,
                     checked(window.StartTime + shift),
                     checked(window.EndTime + shift),
+                    window.Effect,
+                    window.DamageReduction,
+                    window.DisruptionPolicy);
+            }
+
+            return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindow> ShiftFutureActiveWindows(
+            IReadOnlyList<ScheduledActiveWindow> windows,
+            int disruptionTime,
+            int shift)
+        {
+            if (windows.Count == 0)
+            {
+                return windows;
+            }
+
+            var shifted = new ScheduledActiveWindow[windows.Count];
+            for (int index = 0; index < windows.Count; index++)
+            {
+                ScheduledActiveWindow window = windows[index];
+                int windowShift = window.StartTime > disruptionTime ? shift : 0;
+                shifted[index] = new ScheduledActiveWindow(
+                    window.WindowId,
+                    window.DisplayName,
+                    checked(window.StartTime + windowShift),
+                    checked(window.EndTime + windowShift),
                     window.Effect,
                     window.DamageReduction,
                     window.DisruptionPolicy);

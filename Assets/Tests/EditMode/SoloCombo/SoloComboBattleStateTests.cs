@@ -723,6 +723,79 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(73));
         }
 
+        [Test]
+        public void OnHitStagger_PauseAndResumeDelaysUnresolvedEnemyAction()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var combo = new ComboConfiguration(
+                "breaker-combo",
+                openingAction: null,
+                mainAction: breaker,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var response = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.PauseAndResume)
+            };
+            var enemySequence = new EnemyActionSequence(
+                "heavy",
+                "Heavy",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "heavy-swing",
+                        "Heavy Swing",
+                        loadCost: 5,
+                        resolutionOffset: 5,
+                        damageMultiplier: 0.65d,
+                        disruptionResponseSegments: response)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(50, 0, 0, 60, 60)),
+                new[] { combo },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            Assert.That(battle.BeginCombo(0), Is.EqualTo(SoloComboExecutionFailure.None));
+            battle.AdvanceTimeline();
+            SoloComboTimelineAdvanceResult staggerStep = battle.AdvanceTimeline();
+
+            Assert.That(staggerStep.TimeStep, Is.EqualTo(2));
+            Assert.That(staggerStep.ActionResolutions[0].AppliedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(staggerStep.ActionResolutions[0].DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
+            Assert.That(battle.TimelineCompletionTime, Is.EqualTo(7));
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(100));
+
+            while (battle.IsTimelineResolving)
+            {
+                battle.AdvanceTimeline();
+            }
+
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(74));
+        }
+
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
             var player = new CombatantState(

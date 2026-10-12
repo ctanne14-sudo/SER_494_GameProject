@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Guard Breaker
   category: 1
   loadCost: 4
-  resolutionOffset: 3
+  resolutionOffset: 2
   manaCost: 0
   staminaCost: 5
   cooldown: 2
@@ -24,3 +24,6 @@ MonoBehaviour:
   damageType: 1
   resolutionEffect: 1
   damageTags: 2
+  appliesOnHitDisruption: 1
+  onHitDisruptionType: 2
+  onHitDisruptionDuration: 2

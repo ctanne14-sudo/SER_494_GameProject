@@ -37,7 +37,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string statusDisplayName,
             ActionStatusTarget statusTarget,
             bool statusApplied,
-            double defensiveDamageReduction = 0d)
+            double defensiveDamageReduction = 0d,
+            ActionDisruptionDefinition appliedDisruption = null,
+            ActionDisruptionResponse disruptionResponse = ActionDisruptionResponse.Continue,
+            TimelineActorSide disruptedSide = TimelineActorSide.Player,
+            int disruptedSequenceIndex = -1)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -51,6 +55,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StatusTarget = statusTarget;
             StatusApplied = statusApplied;
             DefensiveDamageReduction = defensiveDamageReduction;
+            AppliedDisruption = appliedDisruption;
+            DisruptionResponse = disruptionResponse;
+            DisruptedSide = disruptedSide;
+            DisruptedSequenceIndex = disruptedSequenceIndex;
         }
 
         public TimelineActorSide Side { get; }
@@ -76,6 +84,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool StatusApplied { get; }
 
         public double DefensiveDamageReduction { get; }
+
+        public ActionDisruptionDefinition AppliedDisruption { get; }
+
+        public ActionDisruptionResponse DisruptionResponse { get; }
+
+        public TimelineActorSide DisruptedSide { get; }
+
+        public int DisruptedSequenceIndex { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -663,6 +679,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             action.DamageEffect,
                             defensiveDamageReduction)
                         : 0;
+                ScheduledTimelineAction disruptedAction = damage > 0
+                    && action.OnHitDisruption != null
+                        ? FindOngoingAction(targetSide, step.TimeStep)
+                        : null;
+                ActionDisruptionResponse disruptionResponse = disruptedAction != null
+                    ? disruptedAction.GetDisruptionResponse(
+                        action.OnHitDisruption.Type,
+                        step.TimeStep)
+                    : ActionDisruptionResponse.Continue;
                 resolutions.Add(new SoloComboActionResolution(
                     action.Side,
                     action.ActionId,
@@ -675,7 +700,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     statusDisplayName: null,
                     statusTarget: ActionStatusTarget.Self,
                     statusApplied: false,
-                    defensiveDamageReduction));
+                    defensiveDamageReduction,
+                    appliedDisruption: disruptedAction != null
+                        ? action.OnHitDisruption
+                        : null,
+                    disruptionResponse,
+                    disruptedSide: targetSide,
+                    disruptedSequenceIndex: disruptedAction?.SequenceIndex ?? -1));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -722,7 +753,42 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     applied));
             }
 
+            for (int resolutionIndex = 0; resolutionIndex < resolutions.Count; resolutionIndex++)
+            {
+                SoloComboActionResolution resolution = resolutions[resolutionIndex];
+                if (resolution.AppliedDisruption == null
+                    || resolution.DisruptionResponse != ActionDisruptionResponse.PauseAndResume)
+                {
+                    continue;
+                }
+
+                _activeSchedule = InitialTimelineScheduleBuilder.ApplyPauseAndResume(
+                    _activeSchedule,
+                    resolution.DisruptedSide,
+                    resolution.DisruptedSequenceIndex,
+                    step.TimeStep,
+                    resolution.AppliedDisruption.Duration);
+            }
+
             return Array.AsReadOnly(resolutions.ToArray());
+        }
+
+        private ScheduledTimelineAction FindOngoingAction(
+            TimelineActorSide side,
+            int timeStep)
+        {
+            for (int index = 0; index < _activeSchedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = _activeSchedule.Actions[index];
+                if (action.Side == side
+                    && action.StartTime < timeStep
+                    && action.EndTime > timeStep)
+                {
+                    return action;
+                }
+            }
+
+            return null;
         }
 
         private void BeginTimeline(InitialTimelineSchedule schedule)

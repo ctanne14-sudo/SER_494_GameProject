@@ -17,7 +17,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            ActionDisruptionDefinition onHitDisruption = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
             : this(
                 actionId,
                 displayName,
@@ -28,7 +30,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageTags,
                 statusEffect,
                 statusTarget,
-                activeWindows)
+                activeWindows,
+                onHitDisruption,
+                disruptionResponseSegments)
         {
         }
 
@@ -41,7 +45,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageResolutionTag damageTags = DamageResolutionTag.None,
             CombatStatusDefinition statusEffect = null,
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            ActionDisruptionDefinition onHitDisruption = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
             : this(
                 actionId,
                 displayName,
@@ -54,7 +60,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageTags,
                 statusEffect,
                 statusTarget,
-                activeWindows)
+                activeWindows,
+                onHitDisruption,
+                disruptionResponseSegments)
         {
         }
 
@@ -68,7 +76,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageResolutionTag damageTags,
             CombatStatusDefinition statusEffect,
             ActionStatusTarget statusTarget,
-            IReadOnlyList<ActionActiveWindowDefinition> activeWindows)
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
+            ActionDisruptionDefinition onHitDisruption,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -108,6 +118,18 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
             StatusTarget = ValidateStatusTarget(statusTarget);
             ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
+            if (onHitDisruption != null && damageEffect == null)
+            {
+                throw new ArgumentException(
+                    "Only a damaging enemy Action can apply an On Hit Disruption.",
+                    nameof(onHitDisruption));
+            }
+
+            OnHitDisruption = onHitDisruption;
+            DisruptionResponseSegments = ComboActionDefinition
+                .CopyAndValidateDisruptionResponseSegments(
+                    disruptionResponseSegments,
+                    LoadCost);
         }
 
         public string ActionId { get; }
@@ -131,6 +153,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionStatusTarget StatusTarget { get; }
 
         public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
+
+        public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,

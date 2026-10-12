@@ -240,6 +240,39 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(0.30d).Within(0.000001d));
         }
 
+        [Test]
+        public void TryCreateDefinition_OnHitDisruption_CopiesSerializedValues()
+        {
+            ConfigureAsset(
+                actionId: "breaker",
+                displayName: "Breaker",
+                category: ComboActionCategory.Main,
+                loadCost: 4,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 5,
+                cooldown: 2,
+                damageMultiplier: 0.50f,
+                damageType: DamageType.Blunt,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.Unguardable);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("appliesOnHitDisruption").boolValue = true;
+            serializedAsset.FindProperty("onHitDisruptionType").enumValueIndex = 1;
+            serializedAsset.FindProperty("onHitDisruptionDuration").intValue = 2;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.OnHitDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(definition.OnHitDisruption.Duration, Is.EqualTo(2));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

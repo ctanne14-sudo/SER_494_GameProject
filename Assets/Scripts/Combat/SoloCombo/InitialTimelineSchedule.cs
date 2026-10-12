@@ -68,7 +68,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? resolutionWindowStartTime = null,
             int? resolutionWindowEndTime = null,
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
-            IReadOnlyList<ScheduledActiveWindow> activeWindows = null)
+            IReadOnlyList<ScheduledActiveWindow> activeWindows = null,
+            ActionDisruptionDefinition onHitDisruption = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            int accumulatedPauseDuration = 0)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -87,6 +90,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ChargeLevels = chargeLevels
                 ?? Array.Empty<ComboActionChargeLevelDefinition>();
             ActiveWindows = activeWindows ?? Array.Empty<ScheduledActiveWindow>();
+            OnHitDisruption = onHitDisruption;
+            DisruptionResponseSegments = disruptionResponseSegments
+                ?? Array.Empty<DisruptionResponseSegmentDefinition>();
+            AccumulatedPauseDuration = accumulatedPauseDuration;
         }
 
         public TimelineActorSide Side { get; }
@@ -126,6 +133,35 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool IsChargeable => ChargeLevels.Count > 0;
 
         public IReadOnlyList<ScheduledActiveWindow> ActiveWindows { get; }
+
+        public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
+
+        public int AccumulatedPauseDuration { get; }
+
+        public int GetLocalTimeAt(int timeStep)
+        {
+            return timeStep - StartTime - AccumulatedPauseDuration;
+        }
+
+        public ActionDisruptionResponse GetDisruptionResponse(
+            ActionDisruptionType type,
+            int timeStep)
+        {
+            int localTime = GetLocalTimeAt(timeStep);
+            for (int index = 0; index < DisruptionResponseSegments.Count; index++)
+            {
+                DisruptionResponseSegmentDefinition segment =
+                    DisruptionResponseSegments[index];
+                if (localTime >= segment.StartOffset && localTime <= segment.EndOffset)
+                {
+                    return segment.GetResponse(type);
+                }
+            }
+
+            return ActionDisruptionResponse.Continue;
+        }
     }
 
     public sealed class TimelineResolutionStep

@@ -816,7 +816,8 @@ namespace SER494.Gameplay.CombatSandbox
                         "Claw",
                         loadCost: 3,
                         resolutionOffset: 2,
-                        damageMultiplier: 0.40d)
+                        damageMultiplier: 0.40d,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
                 });
 
             var heavySwing = new EnemyActionSequence(
@@ -830,7 +831,8 @@ namespace SER494.Gameplay.CombatSandbox
                         loadCost: 5,
                         resolutionOffset: 5,
                         damageMultiplier: 0.65d,
-                        damageTags: DamageResolutionTag.Overcommit)
+                        damageTags: DamageResolutionTag.Overcommit,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 5))
                 });
 
             var fallbackJab = new EnemyActionSequence(
@@ -843,7 +845,8 @@ namespace SER494.Gameplay.CombatSandbox
                         "Jab",
                         loadCost: 3,
                         resolutionOffset: 3,
-                        damageMultiplier: 0.30d)
+                        damageMultiplier: 0.30d,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
                 });
 
             var enemyBehavior = new EnemyBehaviorTable(
@@ -870,6 +873,20 @@ namespace SER494.Gameplay.CombatSandbox
                 enemyRandom: new System.Random(594));
             AppendLog("Battle started. Choose a prepared Combo.");
             RefreshPresentation();
+        }
+
+        private static IReadOnlyList<DisruptionResponseSegmentDefinition> PauseOnStagger(
+            int loadCost)
+        {
+            return new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    startOffset: 1,
+                    endOffset: loadCost,
+                    flinchResponse: ActionDisruptionResponse.Continue,
+                    staggerResponse: ActionDisruptionResponse.PauseAndResume,
+                    knockdownResponse: ActionDisruptionResponse.PauseAndResume)
+            };
         }
 
         private void BeginTimelinePlayback()
@@ -903,6 +920,7 @@ namespace SER494.Gameplay.CombatSandbox
                 }
 
                 _playbackTimeStep = advance.TimeStep;
+                _playbackEndTimeStep = _battle.TimelineCompletionTime;
 
                 for (int index = 0; index < advance.ActionResolutions.Count; index++)
                 {
@@ -1113,6 +1131,19 @@ namespace SER494.Gameplay.CombatSandbox
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
                     + $"{resolution.DamageDealt} damage{tags}{defense}.");
+                if (resolution.AppliedDisruption != null)
+                {
+                    string target = resolution.DisruptedSide == TimelineActorSide.Player
+                        ? "Player"
+                        : "Training Enemy";
+                    string result = resolution.DisruptionResponse
+                        == ActionDisruptionResponse.PauseAndResume
+                            ? $"paused the current Action for "
+                                + $"{resolution.AppliedDisruption.Duration} Time Steps"
+                            : "did not alter the current Action schedule";
+                    AppendLog(
+                        $"    {resolution.AppliedDisruption.Type} on {target}: {result}.");
+                }
             }
             else if (resolution.StatusDisplayName != null)
             {
