@@ -426,6 +426,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 : SoloComboExecutionFailure.None;
         }
 
+        public InitialTimelineSchedule PreviewCombo(int comboIndex)
+        {
+            SoloComboExecutionFailure failure = GetExecutionFailure(comboIndex);
+            if (failure != SoloComboExecutionFailure.None)
+            {
+                throw new InvalidOperationException(
+                    $"Combo {comboIndex} cannot be previewed: {failure}.");
+            }
+
+            return InitialTimelineScheduleBuilder.Build(
+                _combos[comboIndex],
+                _currentEnemySequence);
+        }
+
         public SoloComboTurnResult ExecuteCombo(int comboIndex)
         {
             SoloComboExecutionFailure failure = BeginCombo(comboIndex);

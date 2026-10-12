@@ -66,6 +66,28 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void PreviewCombo_BuildsScheduleWithoutChangingBattleState()
+        {
+            SoloComboBattleState battle = CreateBattle(
+                new[] { CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3) });
+            int manaBefore = battle.Player.CurrentMana;
+            int staminaBefore = battle.Player.CurrentStamina;
+
+            InitialTimelineSchedule preview = battle.PreviewCombo(0);
+
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(preview.Actions.Any(
+                action => action.Side == TimelineActorSide.Player), Is.True);
+            Assert.That(preview.Actions.Any(
+                action => action.Side == TimelineActorSide.Enemy), Is.True);
+            Assert.That(battle.Player.CurrentMana, Is.EqualTo(manaBefore));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(staminaBefore));
+            Assert.That(battle.GetCooldownRemaining(0), Is.Zero);
+            Assert.That(battle.IsTimelineResolving, Is.False);
+            Assert.That(battle.ActiveTimeline, Is.Null);
+        }
+
+        [Test]
         public void AdvanceTimeline_AppliesEffectsOnlyWhenTheirTimeStepArrives()
         {
             SoloComboBattleState battle = CreateBattle(
