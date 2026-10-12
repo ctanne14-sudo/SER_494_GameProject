@@ -338,7 +338,7 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.Label(
                 "Green: Active Window   Yellow: Resolution Point   "
                 + "Orange: Resolution Window   Purple: Disruption Pause   "
-                + "Magenta: Restart   Cyan: Current Time",
+                + "Magenta: Restart   Red: Cancel   Cyan: Current Time",
                 _timelineTickStyle);
         }
 
@@ -383,7 +383,9 @@ namespace SER494.Gameplay.CombatSandbox
                     trackRect.height - 6f);
 
                 Color previousColor = GUI.color;
-                GUI.color = actionColor;
+                GUI.color = action.IsCanceled
+                    ? new Color(0.38f, 0.40f, 0.44f, 0.62f)
+                    : actionColor;
                 GUI.DrawTexture(actionRect, Texture2D.whiteTexture);
                 GUI.color = previousColor;
 
@@ -400,7 +402,45 @@ namespace SER494.Gameplay.CombatSandbox
                     actionLabel += $" [Restarted x{action.Restarts.Count}]";
                 }
 
+                if (action.IsCanceled)
+                {
+                    actionLabel += action.Cancellation.DependencyFailed
+                        ? " [Canceled: Dependency]"
+                        : " [Canceled]";
+                }
+
                 GUI.Label(actionRect, actionLabel, _timelineActionStyle);
+
+                if (action.IsCanceled)
+                {
+                    ScheduledActionCancellation cancellation = action.Cancellation;
+                    float cancelPoint = cancellation.CancellationTime / (float)displayEnd;
+                    GUI.color = new Color(1f, 0.24f, 0.24f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * cancelPoint - 2f,
+                            actionRect.y,
+                            4f,
+                            actionRect.height),
+                        Texture2D.whiteTexture);
+                    if (!cancellation.DependencyFailed)
+                    {
+                        float recoveryEnd = cancellation.RecoveryEndTime
+                            / (float)displayEnd;
+                        GUI.DrawTexture(
+                            new Rect(
+                                trackRect.x + trackRect.width * cancelPoint,
+                                actionRect.yMax - 5f,
+                                Mathf.Max(
+                                    3f,
+                                    trackRect.width * (recoveryEnd - cancelPoint)),
+                                5f),
+                            Texture2D.whiteTexture);
+                    }
+
+                    GUI.color = previousColor;
+                    continue;
+                }
 
                 for (int restartIndex = 0;
                     restartIndex < action.Restarts.Count;
@@ -903,9 +943,9 @@ namespace SER494.Gameplay.CombatSandbox
                         disruptionResponseSegments: RestartOnStagger(loadCost: 5))
                 });
 
-            var fallbackJab = new EnemyActionSequence(
+            var jab = new EnemyActionSequence(
                 "training.fallback-jab",
-                "Fallback Jab",
+                "Jab",
                 new[]
                 {
                     new EnemyActionDefinition(
@@ -914,7 +954,7 @@ namespace SER494.Gameplay.CombatSandbox
                         loadCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.30d,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                        disruptionResponseSegments: CancelOnStagger(loadCost: 3))
                 });
 
             var enemyBehavior = new EnemyBehaviorTable(
@@ -927,9 +967,13 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyBehaviorEntry(
                         heavySwing,
                         selectionWeight: 1,
+                        preventImmediateRepeat: true),
+                    new EnemyBehaviorEntry(
+                        jab,
+                        selectionWeight: 2,
                         preventImmediateRepeat: true)
                 },
-                fallbackJab);
+                jab);
 
             _battle = new SoloComboBattleState(
                 player,
@@ -968,6 +1012,20 @@ namespace SER494.Gameplay.CombatSandbox
                     flinchResponse: ActionDisruptionResponse.Continue,
                     staggerResponse: ActionDisruptionResponse.RestartAction,
                     knockdownResponse: ActionDisruptionResponse.RestartAction)
+            };
+        }
+
+        private static IReadOnlyList<DisruptionResponseSegmentDefinition> CancelOnStagger(
+            int loadCost)
+        {
+            return new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    startOffset: 1,
+                    endOffset: loadCost,
+                    flinchResponse: ActionDisruptionResponse.Continue,
+                    staggerResponse: ActionDisruptionResponse.CancelAction,
+                    knockdownResponse: ActionDisruptionResponse.CancelAction)
             };
         }
 
@@ -1227,6 +1285,10 @@ namespace SER494.Gameplay.CombatSandbox
                             break;
                         case ActionDisruptionResponse.RestartAction:
                             result = $"restarted the current Action after "
+                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                            break;
+                        case ActionDisruptionResponse.CancelAction:
+                            result = $"canceled the current Action; the next Action begins after "
                                 + $"{resolution.AppliedDisruption.Duration} Time Steps";
                             break;
                         default:

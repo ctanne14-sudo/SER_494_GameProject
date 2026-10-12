@@ -94,6 +94,37 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int RestartTime { get; }
     }
 
+    public sealed class ScheduledActionCancellation
+    {
+        internal ScheduledActionCancellation(
+            ActionDisruptionType type,
+            int originalStartTime,
+            int originalEndTime,
+            int cancellationTime,
+            int recoveryEndTime,
+            bool dependencyFailed)
+        {
+            Type = type;
+            OriginalStartTime = originalStartTime;
+            OriginalEndTime = originalEndTime;
+            CancellationTime = cancellationTime;
+            RecoveryEndTime = recoveryEndTime;
+            DependencyFailed = dependencyFailed;
+        }
+
+        public ActionDisruptionType Type { get; }
+
+        public int OriginalStartTime { get; }
+
+        public int OriginalEndTime { get; }
+
+        public int CancellationTime { get; }
+
+        public int RecoveryEndTime { get; }
+
+        public bool DependencyFailed { get; }
+    }
+
     public sealed class ScheduledTimelineAction
     {
         internal ScheduledTimelineAction(
@@ -117,7 +148,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             int accumulatedPauseDuration = 0,
             IReadOnlyList<ScheduledDisruptionPause> disruptionPauses = null,
-            IReadOnlyList<ScheduledActionRestart> restarts = null)
+            IReadOnlyList<ScheduledActionRestart> restarts = null,
+            int? requiredCompletedSequenceIndex = null,
+            ScheduledActionCancellation cancellation = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -143,6 +176,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptionPauses = disruptionPauses
                 ?? Array.Empty<ScheduledDisruptionPause>();
             Restarts = restarts ?? Array.Empty<ScheduledActionRestart>();
+            RequiredCompletedSequenceIndex = requiredCompletedSequenceIndex;
+            Cancellation = cancellation;
         }
 
         public TimelineActorSide Side { get; }
@@ -192,6 +227,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ScheduledDisruptionPause> DisruptionPauses { get; }
 
         public IReadOnlyList<ScheduledActionRestart> Restarts { get; }
+
+        public int? RequiredCompletedSequenceIndex { get; }
+
+        public ScheduledActionCancellation Cancellation { get; }
+
+        public bool IsCanceled => Cancellation != null;
 
         public int GetLocalTimeAt(int timeStep)
         {

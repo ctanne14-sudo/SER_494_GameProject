@@ -318,7 +318,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             string[,] presetActionIds =
             {
                 { "sample.focus-stance", "sample.arcane-slash", "sample.backstep", "sample.flame-echo" },
-                { "sample.quick-guard", "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
+                { null, "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
                 { "sample.sidestep", "sample.ice-lance", "sample.parting-slash", "sample.vanish-step" },
                 { "sample.ember-primer", "sample.precise-shot", "sample.steady-finish", "sample.spark-echo" }
             };
@@ -336,6 +336,12 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 for (int slotIndex = 0; slotIndex < 4; slotIndex++)
                 {
                     string actionId = presetActionIds[comboIndex, slotIndex];
+                    if (string.IsNullOrEmpty(actionId))
+                    {
+                        presetActions[comboIndex, slotIndex] = null;
+                        continue;
+                    }
+
                     presetActions[comboIndex, slotIndex] = FindAvailableAction(actionId);
                     if (presetActions[comboIndex, slotIndex] == null)
                     {

@@ -782,6 +782,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             resolution.AppliedDisruption.Duration,
                             resolution.AppliedDisruption.Type);
                         break;
+                    case ActionDisruptionResponse.CancelAction:
+                        _activeSchedule = InitialTimelineScheduleBuilder.ApplyCancelAction(
+                            _activeSchedule,
+                            resolution.DisruptedSide,
+                            resolution.DisruptedSequenceIndex,
+                            step.TimeStep,
+                            resolution.AppliedDisruption.Duration,
+                            resolution.AppliedDisruption.Type);
+                        break;
                 }
             }
 
@@ -795,7 +804,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < _activeSchedule.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[index];
-                if (action.Side == side
+                if (!action.IsCanceled
+                    && action.Side == side
                     && action.StartTime < timeStep
                     && action.EndTime > timeStep)
                 {
@@ -875,7 +885,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < _activeSchedule.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[index];
-                if (action.Side == TimelineActorSide.Player
+                if (!action.IsCanceled
+                    && action.Side == TimelineActorSide.Player
                     && action.ResolutionWindowStartTime == timeStep)
                 {
                     return action;
@@ -890,7 +901,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < _activeSchedule.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[index];
-                if (action.Side == TimelineActorSide.Player
+                if (!action.IsCanceled
+                    && action.Side == TimelineActorSide.Player
                     && action.IsChargeable
                     && action.ResolutionTime == timeStep)
                 {
@@ -1001,7 +1013,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int actionIndex = 0; actionIndex < _activeSchedule.Actions.Count; actionIndex++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[actionIndex];
-                if (action.Side != defendedSide)
+                if (action.IsCanceled || action.Side != defendedSide)
                 {
                     continue;
                 }

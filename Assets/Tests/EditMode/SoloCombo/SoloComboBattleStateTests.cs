@@ -885,6 +885,84 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void OnHitStagger_CancelActionPreventsUnresolvedEnemyEffect()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var response = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    3,
+                    ActionDisruptionResponse.Continue,
+                    ActionDisruptionResponse.CancelAction,
+                    ActionDisruptionResponse.CancelAction)
+            };
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "breaker-combo",
+                        openingAction: null,
+                        mainAction: breaker,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                new EnemyActionSequence(
+                    "cancelable-jab",
+                    "Cancelable Jab",
+                    new[]
+                    {
+                        new EnemyActionDefinition(
+                            "cancelable-jab",
+                            "Cancelable Jab",
+                            loadCost: 3,
+                            resolutionOffset: 3,
+                            damageMultiplier: 0.40d,
+                            disruptionResponseSegments: response)
+                    }),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            Assert.That(battle.BeginCombo(0), Is.EqualTo(SoloComboExecutionFailure.None));
+            battle.AdvanceTimeline();
+            SoloComboTimelineAdvanceResult cancelStep = battle.AdvanceTimeline();
+
+            Assert.That(cancelStep.ActionResolutions.Single().DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.CancelAction));
+            ScheduledTimelineAction canceledEnemyAction = battle.ActiveTimeline.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy);
+            Assert.That(canceledEnemyAction.IsCanceled, Is.True);
+            Assert.That(canceledEnemyAction.Cancellation.RecoveryEndTime, Is.EqualTo(4));
+
+            SoloComboTurnResult completed = null;
+            while (battle.IsTimelineResolving)
+            {
+                completed = battle.AdvanceTimeline().CompletedTurn ?? completed;
+            }
+
+            Assert.That(completed.ActionResolutions.Any(
+                resolution => resolution.Side == TimelineActorSide.Enemy),
+                Is.False);
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(100));
+            Assert.That(completed.Schedule.CompletionTime, Is.EqualTo(4));
+        }
+
+        [Test]
         public void OnHitStagger_ZeroRoundedDamageStillDisrupts()
         {
             var breaker = new ComboActionDefinition(

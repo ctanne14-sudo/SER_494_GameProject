@@ -51,7 +51,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     {
         Continue,
         PauseAndResume,
-        RestartAction
+        RestartAction,
+        CancelAction
     }
 
     public sealed class ActionDisruptionDefinition

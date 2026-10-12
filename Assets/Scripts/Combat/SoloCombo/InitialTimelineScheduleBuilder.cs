@@ -32,9 +32,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             var actions = new List<ScheduledTimelineAction>(
                 playerCombo.GetAssignedActions().Count + enemySequence.Actions.Count);
 
-            int playerCompletionTime = SchedulePlayerActions(
-                playerCombo.BuildExecutionOrder(),
-                actions);
+            int playerCompletionTime = SchedulePlayerActions(playerCombo, actions);
             int enemyCompletionTime = ScheduleEnemyActions(enemySequence.Actions, actions);
 
             return CreateSchedule(
@@ -101,7 +99,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         disruptionResponseSegments: action.DisruptionResponseSegments,
                         accumulatedPauseDuration: action.AccumulatedPauseDuration,
                         disruptionPauses: action.DisruptionPauses,
-                        restarts: action.Restarts);
+                        restarts: action.Restarts,
+                        requiredCompletedSequenceIndex: action.RequiredCompletedSequenceIndex,
+                        cancellation: action.Cancellation);
                     replaced = true;
                 }
 
@@ -326,6 +326,93 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return CreateSchedule(actions, completionTime);
         }
 
+        public static InitialTimelineSchedule ApplyCancelAction(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int disruptionTime,
+            int duration,
+            ActionDisruptionType disruptionType)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            if (duration <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(duration));
+            }
+
+            var actions = new List<ScheduledTimelineAction>(schedule.Actions.Count);
+            bool found = false;
+            int continuationTime = checked(disruptionTime + duration);
+            int completionTime = 0;
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    found = true;
+                    action = CancelScheduledAction(
+                        action,
+                        disruptionTime,
+                        continuationTime,
+                        disruptionType,
+                        dependencyFailed: false);
+                }
+                else if (action.Side == side && action.SequenceIndex > sequenceIndex)
+                {
+                    if (action.RequiredCompletedSequenceIndex == sequenceIndex)
+                    {
+                        action = CancelScheduledAction(
+                            action,
+                            disruptionTime,
+                            continuationTime,
+                            disruptionType,
+                            dependencyFailed: true);
+                    }
+                    else
+                    {
+                        int shift = checked(continuationTime - action.StartTime);
+                        action = CopyScheduledAction(
+                            action,
+                            startShift: shift,
+                            endShift: shift,
+                            resolutionShift: shift,
+                            damageScale: 1d,
+                            keepChargeLevels: true);
+                        continuationTime = action.EndTime;
+                    }
+                }
+
+                actions.Add(action);
+                if (!action.IsCanceled)
+                {
+                    completionTime = Math.Max(completionTime, action.EndTime);
+                }
+                else if (!action.Cancellation.DependencyFailed)
+                {
+                    completionTime = Math.Max(
+                        completionTime,
+                        action.Cancellation.RecoveryEndTime);
+                }
+            }
+
+            if (!found)
+            {
+                throw new ArgumentException("The Action to cancel was not found.");
+            }
+
+            if (completionTime > AbsoluteTimelineLimit)
+            {
+                throw new InvalidOperationException(
+                    $"Action Disruption would extend the Timeline beyond the absolute limit of {AbsoluteTimelineLimit}.");
+            }
+
+            return CreateSchedule(actions, completionTime);
+        }
+
         private static InitialTimelineSchedule CreateSchedule(
             List<ScheduledTimelineAction> actions,
             int completionTime)
@@ -335,6 +422,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < actions.Count; index++)
             {
                 ScheduledTimelineAction action = actions[index];
+                if (action.IsCanceled)
+                {
+                    continue;
+                }
+
                 if (!actionsByTime.TryGetValue(
                         action.ResolutionTime,
                         out List<ScheduledTimelineAction> sameTimeActions))
@@ -369,6 +461,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < actions.Count; index++)
             {
                 ScheduledTimelineAction action = actions[index];
+                if (action.IsCanceled)
+                {
+                    continue;
+                }
+
                 if (action.ResolutionEffect != ActionResolutionEffect.Damage
                     && action.ResolutionEffect != ActionResolutionEffect.Guard
                     && action.ResolutionEffect != ActionResolutionEffect.Evade)
@@ -388,14 +485,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
         }
 
         private static int SchedulePlayerActions(
-            IReadOnlyList<ComboActionDefinition> definitions,
+            ComboConfiguration combo,
             ICollection<ScheduledTimelineAction> destination)
         {
+            IReadOnlyList<ComboActionDefinition> definitions = combo.BuildExecutionOrder();
             int currentTime = 0;
             for (int index = 0; index < definitions.Count; index++)
             {
                 ComboActionDefinition definition = definitions[index];
                 int endTime = checked(currentTime + definition.LoadCost);
+                int? requiredCompletedSequenceIndex = ReferenceEquals(
+                    definition,
+                    combo.LinkedAction)
+                        ? (int?)(index - 1)
+                        : null;
                 destination.Add(new ScheduledTimelineAction(
                     TimelineActorSide.Player,
                     index,
@@ -419,7 +522,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.ChargeLevels,
                     ScheduleActiveWindows(definition.ActiveWindows, currentTime),
                     definition.OnHitDisruption,
-                    definition.DisruptionResponseSegments));
+                    definition.DisruptionResponseSegments,
+                    requiredCompletedSequenceIndex: requiredCompletedSequenceIndex));
                 currentTime = endTime;
             }
 
@@ -494,7 +598,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.DisruptionResponseSegments,
                 action.AccumulatedPauseDuration,
                 ShiftDisruptionPauses(action.DisruptionPauses, startShift),
-                ShiftActionRestarts(action.Restarts, startShift));
+                ShiftActionRestarts(action.Restarts, startShift),
+                action.RequiredCompletedSequenceIndex,
+                ShiftCancellation(action.Cancellation, startShift));
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
@@ -544,7 +650,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.DisruptionResponseSegments,
                 checked(action.AccumulatedPauseDuration + duration),
                 Array.AsReadOnly(pauses),
-                action.Restarts);
+                action.Restarts,
+                action.RequiredCompletedSequenceIndex,
+                action.Cancellation);
         }
 
         private static ScheduledTimelineAction RestartScheduledAction(
@@ -595,7 +703,47 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.DisruptionResponseSegments,
                 accumulatedPauseDuration: 0,
                 disruptionPauses: Array.Empty<ScheduledDisruptionPause>(),
-                restarts: Array.AsReadOnly(restarts));
+                restarts: Array.AsReadOnly(restarts),
+                requiredCompletedSequenceIndex: action.RequiredCompletedSequenceIndex);
+        }
+
+        private static ScheduledTimelineAction CancelScheduledAction(
+            ScheduledTimelineAction action,
+            int cancellationTime,
+            int recoveryEndTime,
+            ActionDisruptionType disruptionType,
+            bool dependencyFailed)
+        {
+            return new ScheduledTimelineAction(
+                action.Side,
+                action.SequenceIndex,
+                action.ActionId,
+                action.DisplayName,
+                action.StartTime,
+                dependencyFailed ? action.EndTime : recoveryEndTime,
+                action.ResolutionTime,
+                action.DamageEffect,
+                action.ResolutionEffect,
+                action.DamageTags,
+                action.StatusEffect,
+                action.StatusTarget,
+                action.ResolutionWindowStartTime,
+                action.ResolutionWindowEndTime,
+                action.ChargeLevels,
+                action.ActiveWindows,
+                action.OnHitDisruption,
+                action.DisruptionResponseSegments,
+                action.AccumulatedPauseDuration,
+                action.DisruptionPauses,
+                action.Restarts,
+                action.RequiredCompletedSequenceIndex,
+                new ScheduledActionCancellation(
+                    disruptionType,
+                    action.StartTime,
+                    action.EndTime,
+                    cancellationTime,
+                    recoveryEndTime,
+                    dependencyFailed));
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(
@@ -769,6 +917,24 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return Array.AsReadOnly(shifted);
+        }
+
+        private static ScheduledActionCancellation ShiftCancellation(
+            ScheduledActionCancellation cancellation,
+            int shift)
+        {
+            if (cancellation == null || shift == 0)
+            {
+                return cancellation;
+            }
+
+            return new ScheduledActionCancellation(
+                cancellation.Type,
+                checked(cancellation.OriginalStartTime + shift),
+                checked(cancellation.OriginalEndTime + shift),
+                checked(cancellation.CancellationTime + shift),
+                checked(cancellation.RecoveryEndTime + shift),
+                cancellation.DependencyFailed);
         }
     }
 }

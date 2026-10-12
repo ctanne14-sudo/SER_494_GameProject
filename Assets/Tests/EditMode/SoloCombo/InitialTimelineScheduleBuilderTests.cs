@@ -376,6 +376,61 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ApplyCancelAction_CancelsDependentLinkedAndAdvancesClosing()
+        {
+            var main = PlayerAction("main", ComboActionCategory.Main, load: 5, resolution: 5);
+            var linked = PlayerAction(
+                "linked",
+                ComboActionCategory.Linked,
+                load: 2,
+                resolution: 2);
+            var closing = PlayerAction(
+                "closing",
+                ComboActionCategory.Closing,
+                load: 2,
+                resolution: 2);
+            var combo = new ComboConfiguration(
+                "linked-combo",
+                openingAction: null,
+                main,
+                closing,
+                linked,
+                LinkedActionPlacement.AfterMain);
+            InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(
+                combo,
+                EnemySequence(EnemyAction("observe", load: 1, resolution: 1)));
+
+            InitialTimelineSchedule canceled = InitialTimelineScheduleBuilder.ApplyCancelAction(
+                original,
+                TimelineActorSide.Player,
+                sequenceIndex: 0,
+                disruptionTime: 2,
+                duration: 2,
+                disruptionType: ActionDisruptionType.Knockdown);
+
+            ScheduledTimelineAction canceledMain = canceled.Actions.Single(
+                action => action.ActionId == "main");
+            ScheduledTimelineAction canceledLinked = canceled.Actions.Single(
+                action => action.ActionId == "linked");
+            ScheduledTimelineAction advancedClosing = canceled.Actions.Single(
+                action => action.ActionId == "closing");
+            Assert.That(canceledMain.IsCanceled, Is.True);
+            Assert.That(canceledMain.Cancellation.RecoveryEndTime, Is.EqualTo(4));
+            Assert.That(canceledLinked.RequiredCompletedSequenceIndex, Is.EqualTo(0));
+            Assert.That(canceledLinked.IsCanceled, Is.True);
+            Assert.That(canceledLinked.Cancellation.DependencyFailed, Is.True);
+            Assert.That(advancedClosing.StartTime, Is.EqualTo(4));
+            Assert.That(advancedClosing.EndTime, Is.EqualTo(6));
+            string[] resolvedActionIds = canceled.ResolutionSteps
+                .SelectMany(step => step.Actions)
+                .Select(action => action.ActionId)
+                .ToArray();
+            Assert.That(resolvedActionIds, Does.Not.Contain("main"));
+            Assert.That(resolvedActionIds, Does.Not.Contain("linked"));
+            Assert.That(canceled.CompletionTime, Is.EqualTo(6));
+        }
+
+        [Test]
         public void ActionDefinition_ResponseSegmentsWithGap_AreRejected()
         {
             var segments = new[]
