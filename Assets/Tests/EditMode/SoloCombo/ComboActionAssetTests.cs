@@ -241,6 +241,50 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void TryCreateDefinition_SuperArmorWindow_CopiesSerializedLevel()
+        {
+            ConfigureAsset(
+                actionId: "armored-advance",
+                displayName: "Armored Advance",
+                category: ComboActionCategory.Main,
+                loadCost: 5,
+                resolutionOffset: 5,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 2,
+                damageMultiplier: 0f,
+                damageType: DamageType.Blunt,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty activeWindows = serializedAsset.FindProperty("activeWindows");
+            activeWindows.arraySize = 1;
+            SerializedProperty window = activeWindows.GetArrayElementAtIndex(0);
+            window.FindPropertyRelative("windowId").stringValue = "armored-advance.armor";
+            window.FindPropertyRelative("displayName").stringValue = "Armored Advance Armor";
+            window.FindPropertyRelative("startOffset").intValue = 1;
+            window.FindPropertyRelative("endOffset").intValue = 5;
+            window.FindPropertyRelative("effect").enumValueIndex =
+                (int)ActiveWindowEffect.SuperArmor;
+            window.FindPropertyRelative("superArmorLevel").intValue = 2;
+            window.FindPropertyRelative("disruptionPolicy").enumValueIndex =
+                (int)ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(definition.ActiveWindows[0].Effect,
+                Is.EqualTo(ActiveWindowEffect.SuperArmor));
+            Assert.That(definition.ActiveWindows[0].SuperArmorLevel, Is.EqualTo(2));
+            Assert.That(definition.ActiveWindows[0].DamageReduction, Is.Zero);
+        }
+
+        [Test]
         public void TryCreateDefinition_OnHitDisruption_CopiesSerializedValues()
         {
             ConfigureAsset(

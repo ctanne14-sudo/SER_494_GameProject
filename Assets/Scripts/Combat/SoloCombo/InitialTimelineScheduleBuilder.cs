@@ -820,7 +820,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.DisruptionPolicy,
                     actionStartTime,
                     definition.StartOffset,
-                    definition.EndOffset);
+                    definition.EndOffset,
+                    superArmorLevel: definition.SuperArmorLevel);
             }
 
             return Array.AsReadOnly(windows);
@@ -853,7 +854,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     window.BreakTime.HasValue
                         ? (int?)checked(window.BreakTime.Value + shift)
                         : null,
-                    ShiftSuppressions(window.Suppressions, shift));
+                    ShiftSuppressions(window.Suppressions, shift),
+                    window.SuperArmorLevel);
             }
 
             return Array.AsReadOnly(shifted);
@@ -926,7 +928,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         template.DisruptionPolicy,
                         replayAtTime.Value,
                         template.LocalStartOffset,
-                        template.LocalEndOffset));
+                        template.LocalEndOffset,
+                        superArmorLevel: template.SuperArmorLevel));
                 }
             }
 
@@ -977,7 +980,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         window.BreakTime.HasValue
                             ? (int?)Math.Min(window.BreakTime.Value, disruptionTime)
                             : disruptionTime,
-                        window.Suppressions);
+                        window.Suppressions,
+                        window.SuperArmorLevel);
                 case ActiveWindowDisruptionPolicy.SuppressDuringDisruption:
                     var suppressions = new ScheduledActiveWindowSuppression[
                         window.Suppressions.Count + 1];
@@ -1002,7 +1006,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         window.LocalStartOffset,
                         window.LocalEndOffset,
                         window.BreakTime,
-                        Array.AsReadOnly(suppressions));
+                        Array.AsReadOnly(suppressions),
+                        window.SuperArmorLevel);
                 default:
                     return window;
             }
@@ -1033,7 +1038,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 window.BreakTime.HasValue
                     ? (int?)checked(window.BreakTime.Value + shift)
                     : null,
-                ShiftSuppressions(window.Suppressions, shift));
+                ShiftSuppressions(window.Suppressions, shift),
+                window.SuperArmorLevel);
         }
 
         private static IReadOnlyList<ScheduledActiveWindowSuppression> ShiftSuppressions(

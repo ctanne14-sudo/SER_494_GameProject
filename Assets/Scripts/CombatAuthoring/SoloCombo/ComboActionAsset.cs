@@ -40,6 +40,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             [Range(0.01f, 0.99f)]
             public float damageReduction = 0.30f;
 
+            [Range(0, 5)]
+            [Tooltip("Used only by Super Armor windows. Valid authored levels are 1 through 5.")]
+            public int superArmorLevel = 0;
+
             public ActiveWindowDisruptionPolicy disruptionPolicy =
                 ActiveWindowDisruptionPolicy.PersistThroughDisruption;
         }
@@ -168,6 +172,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public float GetActiveWindowDamageReduction(int index)
         {
             return GetActiveWindow(index).damageReduction;
+        }
+
+        public int GetActiveWindowSuperArmorLevel(int index)
+        {
+            return GetActiveWindow(index).superArmorLevel;
         }
 
         public int GetChargeAdditionalLoad(int chargeLevel)
@@ -388,6 +397,9 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 window.startOffset = Mathf.Clamp(window.startOffset, 1, loadCost);
                 window.endOffset = Mathf.Clamp(window.endOffset, window.startOffset, loadCost);
                 window.damageReduction = Mathf.Clamp(window.damageReduction, 0.01f, 0.99f);
+                window.superArmorLevel = window.effect == ActiveWindowEffect.SuperArmor
+                    ? Mathf.Clamp(window.superArmorLevel, 1, 5)
+                    : 0;
             }
         }
 
@@ -462,8 +474,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     || window.startOffset < 1
                     || window.endOffset < window.startOffset
                     || window.endOffset > loadCost
-                    || window.damageReduction <= 0f
-                    || window.damageReduction >= 1f)
+                    || (window.effect == ActiveWindowEffect.DefensiveState
+                        && (window.damageReduction <= 0f
+                            || window.damageReduction >= 1f))
+                    || (window.effect == ActiveWindowEffect.SuperArmor
+                        && (window.superArmorLevel < 1
+                            || window.superArmorLevel > 5)))
                 {
                     definitions = null;
                     validationError = $"{name} contains an invalid Active Window.";
@@ -485,7 +501,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     window.endOffset,
                     window.effect,
                     window.damageReduction,
-                    window.disruptionPolicy);
+                    window.disruptionPolicy,
+                    window.superArmorLevel);
             }
 
             definitions = Array.AsReadOnly(created);

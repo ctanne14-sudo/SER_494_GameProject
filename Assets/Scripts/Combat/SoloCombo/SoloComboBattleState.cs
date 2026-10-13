@@ -41,7 +41,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition appliedDisruption = null,
             ActionDisruptionResponse disruptionResponse = ActionDisruptionResponse.Continue,
             TimelineActorSide disruptedSide = TimelineActorSide.Player,
-            int disruptedSequenceIndex = -1)
+            int disruptedSequenceIndex = -1,
+            ActionDisruptionDefinition attemptedDisruption = null,
+            int superArmorLevel = 0)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -59,6 +61,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptionResponse = disruptionResponse;
             DisruptedSide = disruptedSide;
             DisruptedSequenceIndex = disruptedSequenceIndex;
+            AttemptedDisruption = attemptedDisruption;
+            SuperArmorLevel = superArmorLevel;
         }
 
         public TimelineActorSide Side { get; }
@@ -92,6 +96,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public TimelineActorSide DisruptedSide { get; }
 
         public int DisruptedSequenceIndex { get; }
+
+        public ActionDisruptionDefinition AttemptedDisruption { get; }
+
+        public int SuperArmorLevel { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -698,9 +706,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     && action.OnHitDisruption != null
                         ? FindOngoingAction(targetSide, step.TimeStep)
                         : null;
-                ActionDisruptionResponse disruptionResponse = disruptedAction != null
+                ActionDisruptionDefinition attemptedDisruption = disruptedAction != null
+                    ? action.OnHitDisruption
+                    : null;
+                int superArmorLevel = attemptedDisruption != null
+                    ? GetActiveSuperArmorLevel(targetSide, step.TimeStep)
+                    : 0;
+                ActionDisruptionDefinition effectiveDisruption =
+                    SuperArmorRules.Resolve(
+                        attemptedDisruption,
+                        superArmorLevel);
+                ActionDisruptionResponse disruptionResponse = effectiveDisruption != null
                     ? disruptedAction.GetDisruptionResponse(
-                        action.OnHitDisruption.Type,
+                        effectiveDisruption.Type,
                         step.TimeStep)
                     : ActionDisruptionResponse.Continue;
                 resolutions.Add(new SoloComboActionResolution(
@@ -716,12 +734,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     statusTarget: ActionStatusTarget.Self,
                     statusApplied: false,
                     defensiveDamageReduction,
-                    appliedDisruption: disruptedAction != null
-                        ? action.OnHitDisruption
-                        : null,
+                    appliedDisruption: effectiveDisruption,
                     disruptionResponse,
                     disruptedSide: targetSide,
-                    disruptedSequenceIndex: disruptedAction?.SequenceIndex ?? -1));
+                    disruptedSequenceIndex: disruptedAction?.SequenceIndex ?? -1,
+                    attemptedDisruption: attemptedDisruption,
+                    superArmorLevel: superArmorLevel));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -1049,6 +1067,37 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return Math.Min(1d, totalReduction);
+        }
+
+        private int GetActiveSuperArmorLevel(
+            TimelineActorSide defendedSide,
+            int timeStep)
+        {
+            int strongestLevel = 0;
+            for (int actionIndex = 0; actionIndex < _activeSchedule.Actions.Count; actionIndex++)
+            {
+                ScheduledTimelineAction action = _activeSchedule.Actions[actionIndex];
+                if (action.Side != defendedSide)
+                {
+                    continue;
+                }
+
+                for (int windowIndex = 0;
+                    windowIndex < action.ActiveWindows.Count;
+                    windowIndex++)
+                {
+                    ScheduledActiveWindow window = action.ActiveWindows[windowIndex];
+                    if (window.Effect == ActiveWindowEffect.SuperArmor
+                        && window.IsActiveAt(timeStep))
+                    {
+                        strongestLevel = Math.Max(
+                            strongestLevel,
+                            window.SuperArmorLevel);
+                    }
+                }
+            }
+
+            return strongestLevel;
         }
 
         private void AdvanceExistingCooldowns()

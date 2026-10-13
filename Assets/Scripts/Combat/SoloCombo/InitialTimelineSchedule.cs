@@ -49,7 +49,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int localStartOffset,
             int localEndOffset,
             int? breakTime = null,
-            IReadOnlyList<ScheduledActiveWindowSuppression> suppressions = null)
+            IReadOnlyList<ScheduledActiveWindowSuppression> suppressions = null,
+            int superArmorLevel = 0)
         {
             WindowId = windowId;
             DisplayName = displayName;
@@ -57,6 +58,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             EndTime = endTime;
             Effect = effect;
             DamageReduction = damageReduction;
+            SuperArmorLevel = superArmorLevel;
             DisruptionPolicy = disruptionPolicy;
             SourceActionStartTime = sourceActionStartTime;
             LocalStartOffset = localStartOffset;
@@ -77,6 +79,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActiveWindowEffect Effect { get; }
 
         public double DamageReduction { get; }
+
+        public int SuperArmorLevel { get; }
 
         public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
 

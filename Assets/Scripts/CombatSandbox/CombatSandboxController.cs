@@ -396,7 +396,7 @@ namespace SER494.Gameplay.CombatSandbox
                 new Color(0.88f, 0.28f, 0.24f, 0.82f));
             DrawTimelineRuler(displayEnd);
             GUILayout.Label(
-                "Green: Active Window   Yellow: Resolution Point   "
+                "Green: Defensive Window   Teal: Super Armor   Yellow: Resolution Point   "
                 + "Orange: Resolution Window   Purple: Disruption Pause   "
                 + "Magenta: Restart   Red: Cancel / Broken Window   "
                 + "Gray: Suppressed Window   Cyan: Current Time",
@@ -549,7 +549,9 @@ namespace SER494.Gameplay.CombatSandbox
                     ScheduledActiveWindow window = action.ActiveWindows[windowIndex];
                     float activeStart = window.StartTime / (float)displayEnd;
                     float activeEnd = window.EffectiveEndTime / (float)displayEnd;
-                    GUI.color = new Color(0.25f, 0.92f, 0.48f, 1f);
+                    GUI.color = window.Effect == ActiveWindowEffect.SuperArmor
+                        ? new Color(0.18f, 0.92f, 0.88f, 1f)
+                        : new Color(0.25f, 0.92f, 0.48f, 1f);
                     GUI.DrawTexture(
                         new Rect(
                             trackRect.x + trackRect.width * activeStart,
@@ -1135,6 +1137,40 @@ namespace SER494.Gameplay.CombatSandbox
                         disruptionResponseSegments: PauseOnStagger(loadCost: 3))
                 });
 
+            var armoredAdvance = new EnemyActionSequence(
+                "training.armored-advance-pattern",
+                "Armored Advance",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.armored-thrust",
+                        "Armored Thrust",
+                        loadCost: 5,
+                        resolutionOffset: 5,
+                        damageMultiplier: 0.45d,
+                        activeWindows: new[]
+                        {
+                            new ActionActiveWindowDefinition(
+                                "training.armored-thrust.super-armor",
+                                "Super Armor Lv2",
+                                startOffset: 1,
+                                endOffset: 5,
+                                ActiveWindowEffect.SuperArmor,
+                                damageReduction: 0d,
+                                ActiveWindowDisruptionPolicy.PersistThroughDisruption,
+                                superArmorLevel: 2)
+                        },
+                        disruptionResponseSegments: new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                startOffset: 1,
+                                endOffset: 5,
+                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
+                                staggerResponse: ActionDisruptionResponse.CancelAction,
+                                knockdownResponse: ActionDisruptionResponse.CancelAction)
+                        })
+                });
+
             var heavySwing = new EnemyActionSequence(
                 "training.heavy-swing-pattern",
                 "Heavy Swing",
@@ -1178,6 +1214,10 @@ namespace SER494.Gameplay.CombatSandbox
             var enemyBehavior = new EnemyBehaviorTable(
                 new[]
                 {
+                    new EnemyBehaviorEntry(
+                        armoredAdvance,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true),
                     new EnemyBehaviorEntry(
                         exposeClaw,
                         selectionWeight: 2,
@@ -1532,9 +1572,25 @@ namespace SER494.Gameplay.CombatSandbox
                             result = "did not alter the current Action schedule";
                             break;
                     }
+                    string armorResult = resolution.AttemptedDisruption != null
+                        && resolution.AttemptedDisruption.Type
+                            != resolution.AppliedDisruption.Type
+                            ? $"Super Armor Lv{resolution.SuperArmorLevel} reduced "
+                                + $"{resolution.AttemptedDisruption.Type} to "
+                                + $"{resolution.AppliedDisruption.Type}. "
+                            : string.Empty;
                     AppendLog(
-                        $"    {resolution.AppliedDisruption.Type} on {target}: {result}.",
+                        $"    {armorResult}{resolution.AppliedDisruption.Type} on "
+                        + $"{target}: {result}.",
                         CombatLogTone.Disruption);
+                }
+                else if (resolution.AttemptedDisruption != null
+                    && resolution.SuperArmorLevel > 0)
+                {
+                    AppendLog(
+                        $"    Super Armor Lv{resolution.SuperArmorLevel} negated "
+                        + $"{resolution.AttemptedDisruption.Type} on the target.",
+                        CombatLogTone.Avoided);
                 }
             }
             else if (resolution.StatusDisplayName != null)

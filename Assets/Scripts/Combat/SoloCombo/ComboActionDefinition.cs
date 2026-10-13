@@ -30,7 +30,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
     public enum ActiveWindowEffect
     {
-        DefensiveState
+        DefensiveState,
+        SuperArmor
     }
 
     public enum ActiveWindowDisruptionPolicy
@@ -76,6 +77,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionType Type { get; }
 
         public int Duration { get; }
+    }
+
+    public static class SuperArmorRules
+    {
+        public static ActionDisruptionDefinition Resolve(
+            ActionDisruptionDefinition disruption,
+            int superArmorLevel)
+        {
+            if (disruption == null)
+            {
+                return null;
+            }
+
+            if (superArmorLevel < 0 || superArmorLevel > 5)
+            {
+                throw new ArgumentOutOfRangeException(nameof(superArmorLevel));
+            }
+
+            if (superArmorLevel == 0)
+            {
+                return disruption;
+            }
+
+            switch (disruption.Type)
+            {
+                case ActionDisruptionType.Flinch:
+                    return superArmorLevel >= 1 ? null : disruption;
+                case ActionDisruptionType.Stagger:
+                    if (superArmorLevel >= 3)
+                    {
+                        return null;
+                    }
+
+                    return superArmorLevel == 2
+                        ? new ActionDisruptionDefinition(
+                            ActionDisruptionType.Flinch,
+                            disruption.Duration)
+                        : disruption;
+                case ActionDisruptionType.Knockdown:
+                    if (superArmorLevel >= 5)
+                    {
+                        return null;
+                    }
+
+                    return superArmorLevel == 4
+                        ? new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            disruption.Duration)
+                        : disruption;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(disruption));
+            }
+        }
     }
 
     public sealed class DisruptionResponseSegmentDefinition
@@ -147,7 +201,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int endOffset,
             ActiveWindowEffect effect,
             double damageReduction,
-            ActiveWindowDisruptionPolicy disruptionPolicy)
+            ActiveWindowDisruptionPolicy disruptionPolicy,
+            int superArmorLevel = 0)
         {
             if (string.IsNullOrWhiteSpace(windowId))
             {
@@ -172,15 +227,25 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 throw new ArgumentOutOfRangeException(nameof(effect));
             }
 
-            if (double.IsNaN(damageReduction)
-                || double.IsInfinity(damageReduction)
-                || damageReduction <= 0d
-                || damageReduction >= 1d)
+            if (effect == ActiveWindowEffect.DefensiveState
+                && (double.IsNaN(damageReduction)
+                    || double.IsInfinity(damageReduction)
+                    || damageReduction <= 0d
+                    || damageReduction >= 1d))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(damageReduction),
                     damageReduction,
                     "Defensive State reduction must be greater than zero and less than one.");
+            }
+
+            if (effect == ActiveWindowEffect.SuperArmor
+                && (superArmorLevel < 1 || superArmorLevel > 5))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(superArmorLevel),
+                    superArmorLevel,
+                    "Super Armor Level must be from 1 to 5.");
             }
 
             if (!Enum.IsDefined(typeof(ActiveWindowDisruptionPolicy), disruptionPolicy))
@@ -193,7 +258,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StartOffset = startOffset;
             EndOffset = endOffset;
             Effect = effect;
-            DamageReduction = damageReduction;
+            DamageReduction = effect == ActiveWindowEffect.DefensiveState
+                ? damageReduction
+                : 0d;
+            SuperArmorLevel = effect == ActiveWindowEffect.SuperArmor
+                ? superArmorLevel
+                : 0;
             DisruptionPolicy = disruptionPolicy;
         }
 
@@ -208,6 +278,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActiveWindowEffect Effect { get; }
 
         public double DamageReduction { get; }
+
+        public int SuperArmorLevel { get; }
 
         public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
 

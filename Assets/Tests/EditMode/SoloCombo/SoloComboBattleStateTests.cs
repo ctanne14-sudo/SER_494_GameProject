@@ -45,6 +45,31 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(result.LastResolvedTimeStep, Is.Zero);
         }
 
+        [TestCase(1, ActionDisruptionType.Flinch, 0)]
+        [TestCase(2, ActionDisruptionType.Stagger, (int)ActionDisruptionType.Flinch)]
+        [TestCase(3, ActionDisruptionType.Stagger, 0)]
+        [TestCase(4, ActionDisruptionType.Knockdown, (int)ActionDisruptionType.Stagger)]
+        [TestCase(5, ActionDisruptionType.Knockdown, 0)]
+        public void SuperArmorRules_ResolveUsingConfiguredLevel(
+            int level,
+            ActionDisruptionType incomingType,
+            int expectedType)
+        {
+            var incoming = new ActionDisruptionDefinition(incomingType, duration: 3);
+
+            ActionDisruptionDefinition resolved = SuperArmorRules.Resolve(incoming, level);
+
+            if (expectedType == 0)
+            {
+                Assert.That(resolved, Is.Null);
+                return;
+            }
+
+            Assert.That(resolved, Is.Not.Null);
+            Assert.That(resolved.Type, Is.EqualTo((ActionDisruptionType)expectedType));
+            Assert.That(resolved.Duration, Is.EqualTo(3));
+        }
+
         [Test]
         public void BeginCombo_PaysResourcesButDefersTimelineEffects()
         {
@@ -904,6 +929,87 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(playerHits[0].DefensiveDamageReduction, Is.EqualTo(0.30d));
             Assert.That(playerHits[1].TimeStep, Is.EqualTo(5));
             Assert.That(playerHits[1].DefensiveDamageReduction, Is.Zero);
+        }
+
+        [Test]
+        public void OnHitStagger_SuperArmorLevelTwoDowngradesBeforeResponseLookup()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 2,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 2));
+            var combo = new ComboConfiguration(
+                "armor-test",
+                openingAction: null,
+                mainAction: breaker,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var superArmor = new ActionActiveWindowDefinition(
+                "enemy.super-armor",
+                "Super Armor Lv2",
+                startOffset: 1,
+                endOffset: 5,
+                ActiveWindowEffect.SuperArmor,
+                damageReduction: 0d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption,
+                superArmorLevel: 2);
+            var responses = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    1,
+                    5,
+                    ActionDisruptionResponse.PauseAndResume,
+                    ActionDisruptionResponse.CancelAction,
+                    ActionDisruptionResponse.CancelAction)
+            };
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                new EnemyActionSequence(
+                    "armored-advance",
+                    "Armored Advance",
+                    new[]
+                    {
+                        new EnemyActionDefinition(
+                            "armored-thrust",
+                            "Armored Thrust",
+                            loadCost: 5,
+                            resolutionOffset: 5,
+                            damageMultiplier: 0.40d,
+                            activeWindows: new[] { superArmor },
+                            disruptionResponseSegments: responses)
+                    }),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution playerHit = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Player);
+            ScheduledTimelineAction enemyAction = result.Schedule.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy);
+
+            Assert.That(playerHit.AttemptedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(playerHit.AppliedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Flinch));
+            Assert.That(playerHit.AppliedDisruption.Duration, Is.EqualTo(2));
+            Assert.That(playerHit.SuperArmorLevel, Is.EqualTo(2));
+            Assert.That(playerHit.DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
+            Assert.That(enemyAction.IsCanceled, Is.False);
+            Assert.That(enemyAction.AccumulatedPauseDuration, Is.EqualTo(2));
+            Assert.That(enemyAction.ResolutionTime, Is.EqualTo(7));
         }
 
         [Test]
