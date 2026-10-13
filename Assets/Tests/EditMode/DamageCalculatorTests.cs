@@ -111,6 +111,26 @@ namespace SER494.Gameplay.Combat.Tests
         }
 
         [Test]
+        public void CalculateOrdinaryComponent_ClashAtMathematicalHalf_RoundsAwayFromZero()
+        {
+            var input = new DamageFormulaInput(
+                actionMultiplier: 0.50d,
+                weaponAttack: 50,
+                attackModifier: 0d,
+                baseDefense: 50,
+                defenseModifier: 0d,
+                applicableDamageModifier: 0d,
+                clashDamageReduction: 0.25d);
+
+            DamageFormulaResult result = DamageCalculator.CalculateOrdinaryComponent(
+                input,
+                Configuration);
+
+            Assert.That(result.UnroundedDamage, Is.EqualTo(12.5d).Within(0.0000001d));
+            Assert.That(result.FinalDamage, Is.EqualTo(13));
+        }
+
+        [Test]
         public void CalculateOrdinaryComponent_RoundsHalfAwayFromZeroOnlyAtEnd()
         {
             var input = new DamageFormulaInput(

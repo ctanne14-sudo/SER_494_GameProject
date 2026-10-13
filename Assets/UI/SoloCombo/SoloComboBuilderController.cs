@@ -609,6 +609,18 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                             .Append(action.OnGuardedDisruptionDuration)
                             .Append(" Time Steps");
                     }
+
+                    if ((action.DamageTags & DamageResolutionTag.Clash) != 0)
+                    {
+                        builder.Append(" | Clash: -")
+                            .Append((action.ClashDamageReduction * 100f).ToString("0"))
+                            .Append("% incoming Damage");
+                        if (action.ClashSuperArmorLevel > 0)
+                        {
+                            builder.Append(" | Super Armor Lv")
+                                .Append(action.ClashSuperArmorLevel);
+                        }
+                    }
                 }
                 else if (action.ResolutionEffect == ActionResolutionEffect.None)
                 {

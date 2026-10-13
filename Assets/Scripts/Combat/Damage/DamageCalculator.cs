@@ -38,9 +38,7 @@ namespace SER494.Gameplay.Combat.Damage
                 * clashMultiplier;
             unroundedDamage = Math.Max(0d, unroundedDamage);
 
-            int finalDamage = checked((int)Math.Round(
-                unroundedDamage,
-                MidpointRounding.AwayFromZero));
+            int finalDamage = RoundFinalDamage(unroundedDamage);
             return new DamageFormulaResult(unroundedDamage, finalDamage);
         }
 
@@ -97,13 +95,23 @@ namespace SER494.Gameplay.Combat.Damage
                 totalUnroundedDamage += componentResult.UnroundedDamage;
             }
 
-            int finalDamage = checked((int)Math.Round(
-                Math.Max(0d, totalUnroundedDamage),
-                MidpointRounding.AwayFromZero));
+            int finalDamage = RoundFinalDamage(totalUnroundedDamage);
             return new DamageEffectResult(
                 Array.AsReadOnly(componentResults),
                 totalUnroundedDamage,
                 finalDamage);
+        }
+
+        private static int RoundFinalDamage(double unroundedDamage)
+        {
+            // Keep the formula in double precision, then use decimal semantics only
+            // at the final integer boundary. This prevents a mathematical midpoint
+            // such as 12.5 from becoming 12.499999999999998 due to binary arithmetic.
+            decimal finalPrecisionDamage = (decimal)Math.Max(0d, unroundedDamage);
+            return checked((int)Math.Round(
+                finalPrecisionDamage,
+                decimals: 0,
+                MidpointRounding.AwayFromZero));
         }
 
         private static double SumApplicable(

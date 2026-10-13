@@ -96,12 +96,14 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     damageMultiplier: 0.70f,
                     damageType: DamageType.Slashing,
                     resolutionEffect: ActionResolutionEffect.Damage,
-                    damageTags: DamageResolutionTag.Overcommit,
+                    damageTags: DamageResolutionTag.Overcommit | DamageResolutionTag.Clash,
                     chargeLevels: new[]
                     {
                         new SampleChargeLevel(additionalLoad: 3, damageMultiplierScale: 1.35f),
                         new SampleChargeLevel(additionalLoad: 6, damageMultiplierScale: 1.70f)
-                    }),
+                    },
+                    clashDamageReduction: 0.50f,
+                    clashSuperArmorLevel: 2),
                 new SampleAction(
                     "Sample_GuardBreaker",
                     "sample.guard-breaker",
@@ -348,6 +350,10 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serializedAsset.FindProperty("resolutionEffect").enumValueIndex =
                 (int)sample.ResolutionEffect;
             serializedAsset.FindProperty("damageTags").intValue = (int)sample.DamageTags;
+            serializedAsset.FindProperty("clashDamageReduction").floatValue =
+                sample.ClashDamageReduction;
+            serializedAsset.FindProperty("clashSuperArmorLevel").intValue =
+                sample.ClashSuperArmorLevel;
             serializedAsset.FindProperty("appliesOnHitDisruption").boolValue =
                 sample.OnHitDisruption != null;
             serializedAsset.FindProperty("onHitDisruptionType").enumValueIndex =
@@ -398,7 +404,9 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 int? resolutionWindowEnd = null,
                 SampleChargeLevel[] chargeLevels = null,
                 SampleActiveWindow[] activeWindows = null,
-                SampleDisruption onHitDisruption = null)
+                SampleDisruption onHitDisruption = null,
+                float clashDamageReduction = 0f,
+                int clashSuperArmorLevel = 0)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -418,6 +426,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ChargeLevels = chargeLevels ?? new SampleChargeLevel[0];
                 ActiveWindows = activeWindows ?? new SampleActiveWindow[0];
                 OnHitDisruption = onHitDisruption;
+                ClashDamageReduction = clashDamageReduction;
+                ClashSuperArmorLevel = clashSuperArmorLevel;
             }
 
             public string FileName { get; }
@@ -455,6 +465,10 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public SampleActiveWindow[] ActiveWindows { get; }
 
             public SampleDisruption OnHitDisruption { get; }
+
+            public float ClashDamageReduction { get; }
+
+            public int ClashSuperArmorLevel { get; }
         }
 
         private sealed class SampleDisruption

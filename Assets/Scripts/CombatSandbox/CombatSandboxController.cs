@@ -1114,6 +1114,22 @@ namespace SER494.Gameplay.CombatSandbox
                 CombatStatusModifierDirection.DamageTaken,
                 DamageModifier.All(0.20d));
 
+            var clashDrill = new EnemyActionSequence(
+                "training.clash-drill-pattern",
+                "Clash Drill",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.clash-strike",
+                        "Clash Strike",
+                        loadCost: 10,
+                        resolutionOffset: 9,
+                        damageMultiplier: 0.50d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2))
+                });
+
             var exposeClaw = new EnemyActionSequence(
                 "training.claw-pattern",
                 "Claw Pattern",
@@ -1246,6 +1262,10 @@ namespace SER494.Gameplay.CombatSandbox
             var enemyBehavior = new EnemyBehaviorTable(
                 new[]
                 {
+                    new EnemyBehaviorEntry(
+                        clashDrill,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true),
                     new EnemyBehaviorEntry(
                         recklessAssault,
                         selectionWeight: 1,
@@ -1578,9 +1598,12 @@ namespace SER494.Gameplay.CombatSandbox
                 string defense = resolution.DefensiveDamageReduction > 0d
                     ? $" [Defensive State -{resolution.DefensiveDamageReduction * 100d:0}%]"
                     : string.Empty;
+                string clash = resolution.ClashDamageReduction > 0d
+                    ? $" [Clash Defense -{resolution.ClashDamageReduction * 100d:0}%]"
+                    : string.Empty;
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
-                    + $"{resolution.DamageDealt} damage{tags}{defense}.",
+                    + $"{resolution.DamageDealt} damage{tags}{defense}{clash}.",
                     resolution.Side == TimelineActorSide.Player
                         ? CombatLogTone.Player
                         : CombatLogTone.Enemy);

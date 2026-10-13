@@ -285,6 +285,39 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void TryCreateDefinition_Clash_CopiesReductionAndSuperArmor()
+        {
+            ConfigureAsset(
+                actionId: "clash",
+                displayName: "Clash",
+                category: ComboActionCategory.Main,
+                loadCost: 5,
+                resolutionOffset: 4,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 2,
+                damageMultiplier: 0.55f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.Clash);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("clashDamageReduction").floatValue = 0.40f;
+            serializedAsset.FindProperty("clashSuperArmorLevel").intValue = 3;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.Clash, Is.Not.Null);
+            Assert.That(definition.Clash.DamageReduction,
+                Is.EqualTo(0.40d).Within(0.000001d));
+            Assert.That(definition.Clash.SuperArmorLevel, Is.EqualTo(3));
+        }
+
+        [Test]
         public void TryCreateDefinition_OnHitDisruption_CopiesSerializedValues()
         {
             ConfigureAsset(

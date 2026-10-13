@@ -122,6 +122,16 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         private DamageResolutionTag damageTags = DamageResolutionTag.None;
 
         [SerializeField]
+        [Range(0f, 1f)]
+        [Tooltip("Incoming Damage reduction granted when this Clash Damage resolves simultaneously with an opposing Damage effect.")]
+        private float clashDamageReduction = 0f;
+
+        [SerializeField]
+        [Range(0, 5)]
+        [Tooltip("Temporary Super Armor Level granted for the simultaneous Clash exchange.")]
+        private int clashSuperArmorLevel = 0;
+
+        [SerializeField]
         [Tooltip("Apply an Action Disruption when this Damage effect successfully hits.")]
         private bool appliesOnHitDisruption = false;
 
@@ -211,6 +221,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public ActionResolutionEffect ResolutionEffect => resolutionEffect;
 
         public DamageResolutionTag DamageTags => damageTags;
+
+        public float ClashDamageReduction => clashDamageReduction;
+
+        public int ClashSuperArmorLevel => clashSuperArmorLevel;
 
         public bool AppliesOnHitDisruption => appliesOnHitDisruption;
 
@@ -317,6 +331,24 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            bool hasClashTag = (damageTags & DamageResolutionTag.Clash) != 0;
+            if (hasClashTag
+                && (clashDamageReduction <= 0f
+                    || clashDamageReduction > 1f
+                    || clashSuperArmorLevel < 0
+                    || clashSuperArmorLevel > 5))
+            {
+                validationError = $"{name} contains invalid Clash values.";
+                return false;
+            }
+
+            if (!hasClashTag
+                && (clashDamageReduction != 0f || clashSuperArmorLevel != 0))
+            {
+                validationError = $"{name} has Clash values without the Clash Damage Tag.";
+                return false;
+            }
+
             if (appliesOnHitDisruption && damageMultiplier <= 0f)
             {
                 validationError = $"{name} applies an On Hit Disruption without damage.";
@@ -383,6 +415,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     ? new ActionDisruptionDefinition(
                         onGuardedDisruptionType,
                         onGuardedDisruptionDuration)
+                    : null,
+                clash: hasClashTag
+                    ? new DamageClashDefinition(
+                        clashDamageReduction,
+                        clashSuperArmorLevel)
                     : null);
 
             validationError = null;
@@ -399,6 +436,16 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);
             damageMultiplier = Mathf.Max(0f, damageMultiplier);
+            if ((damageTags & DamageResolutionTag.Clash) != 0)
+            {
+                clashDamageReduction = Mathf.Clamp(clashDamageReduction, 0f, 1f);
+                clashSuperArmorLevel = Mathf.Clamp(clashSuperArmorLevel, 0, 5);
+            }
+            else
+            {
+                clashDamageReduction = 0f;
+                clashSuperArmorLevel = 0;
+            }
             onHitDisruptionDuration = Mathf.Max(1, onHitDisruptionDuration);
             onGuardedDisruptionDuration = Mathf.Max(1, onGuardedDisruptionDuration);
             if (chargeLevels == null)

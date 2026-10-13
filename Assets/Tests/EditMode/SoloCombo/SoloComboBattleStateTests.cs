@@ -1239,6 +1239,182 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void SimultaneousClash_ReducesIncomingDamageAndProvidesSuperArmor()
+        {
+            var clashAction = new ComboActionDefinition(
+                "clash",
+                "Clash",
+                ComboActionCategory.Main,
+                loadCost: 5,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 4,
+                damageTags: DamageResolutionTag.Clash,
+                clash: new DamageClashDefinition(
+                    damageReduction: 0.50d,
+                    superArmorLevel: 2));
+            var enemySequence = new EnemyActionSequence(
+                "clash-test",
+                "Clash Test",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "enemy-strike",
+                        "Enemy Strike",
+                        loadCost: 5,
+                        resolutionOffset: 4,
+                        damageMultiplier: 0.60d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2))
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 50)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "clash-combo",
+                        openingAction: null,
+                        mainAction: clashAction,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution playerClash = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Player);
+            SoloComboActionResolution enemyStrike = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy);
+
+            Assert.That(playerClash.DamageDealt, Is.EqualTo(17));
+            Assert.That(enemyStrike.DamageDealt, Is.EqualTo(12));
+            Assert.That(enemyStrike.ClashDamageReduction, Is.EqualTo(0.50d));
+            Assert.That(enemyStrike.SuperArmorLevel, Is.EqualTo(2));
+            Assert.That(enemyStrike.AttemptedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(enemyStrike.AppliedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Flinch));
+            Assert.That(enemyStrike.AppliedDisruption.Duration, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void SimultaneousClash_WhenBothSidesHaveTag_BothReceiveProtection()
+        {
+            var playerClash = new ComboActionDefinition(
+                "player-clash",
+                "Player Clash",
+                ComboActionCategory.Main,
+                loadCost: 5,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 4,
+                damageTags: DamageResolutionTag.Clash,
+                clash: new DamageClashDefinition(0.50d));
+            var enemySequence = new EnemyActionSequence(
+                "enemy-clash",
+                "Enemy Clash",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "enemy-clash",
+                        "Enemy Clash",
+                        loadCost: 5,
+                        resolutionOffset: 4,
+                        damageMultiplier: 0.60d,
+                        damageTags: DamageResolutionTag.Clash,
+                        clash: new DamageClashDefinition(0.25d))
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 50)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "player-clash-combo",
+                        openingAction: null,
+                        mainAction: playerClash,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution playerResolution = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Player);
+            SoloComboActionResolution enemyResolution = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy);
+
+            Assert.That(playerResolution.DamageDealt, Is.EqualTo(13));
+            Assert.That(playerResolution.ClashDamageReduction, Is.EqualTo(0.25d));
+            Assert.That(enemyResolution.DamageDealt, Is.EqualTo(12));
+            Assert.That(enemyResolution.ClashDamageReduction, Is.EqualTo(0.50d));
+        }
+
+        [Test]
+        public void NonSimultaneousClash_DoesNotReduceLaterIncomingDamage()
+        {
+            var clashAction = new ComboActionDefinition(
+                "early-clash",
+                "Early Clash",
+                ComboActionCategory.Main,
+                loadCost: 5,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 3,
+                damageTags: DamageResolutionTag.Clash,
+                clash: new DamageClashDefinition(0.50d, superArmorLevel: 2));
+            var enemySequence = new EnemyActionSequence(
+                "late-strike",
+                "Late Strike",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "late-strike",
+                        "Late Strike",
+                        loadCost: 5,
+                        resolutionOffset: 4,
+                        damageMultiplier: 0.60d)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 50)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "early-clash-combo",
+                        openingAction: null,
+                        mainAction: clashAction,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution enemyStrike = result.ActionResolutions.Single(
+                resolution => resolution.Side == TimelineActorSide.Enemy);
+
+            Assert.That(enemyStrike.DamageDealt, Is.EqualTo(24));
+            Assert.That(enemyStrike.ClashDamageReduction, Is.Zero);
+        }
+
+        [Test]
         public void OnHitStagger_GuardedDamageDoesNotDisrupt()
         {
             var guard = new ComboActionDefinition(

@@ -332,7 +332,42 @@ namespace SER494.Gameplay.Combat.SoloCombo
         None = 0,
         Area = 1 << 0,
         Unguardable = 1 << 1,
-        Overcommit = 1 << 2
+        Overcommit = 1 << 2,
+        Clash = 1 << 3
+    }
+
+    public sealed class DamageClashDefinition
+    {
+        public DamageClashDefinition(
+            double damageReduction,
+            int superArmorLevel = 0)
+        {
+            if (double.IsNaN(damageReduction)
+                || double.IsInfinity(damageReduction)
+                || damageReduction <= 0d
+                || damageReduction > 1d)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(damageReduction),
+                    damageReduction,
+                    "Clash Damage Reduction must be finite and greater than zero, up to one.");
+            }
+
+            if (superArmorLevel < 0 || superArmorLevel > 5)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(superArmorLevel),
+                    superArmorLevel,
+                    "Clash Super Armor Level must be between zero and five.");
+            }
+
+            DamageReduction = damageReduction;
+            SuperArmorLevel = superArmorLevel;
+        }
+
+        public double DamageReduction { get; }
+
+        public int SuperArmorLevel { get; }
     }
 
     public sealed class ComboActionDefinition
@@ -358,7 +393,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            ActionDisruptionDefinition onGuardedDisruption = null)
+            ActionDisruptionDefinition onGuardedDisruption = null,
+            DamageClashDefinition clash = null)
             : this(
                 actionId,
                 displayName,
@@ -379,7 +415,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 activeWindows,
                 onHitDisruption,
                 disruptionResponseSegments,
-                onGuardedDisruption)
+                onGuardedDisruption,
+                clash)
         {
         }
 
@@ -402,7 +439,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            ActionDisruptionDefinition onGuardedDisruption = null)
+            ActionDisruptionDefinition onGuardedDisruption = null,
+            DamageClashDefinition clash = null)
             : this(
                 actionId,
                 displayName,
@@ -425,7 +463,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 activeWindows,
                 onHitDisruption,
                 disruptionResponseSegments,
-                onGuardedDisruption)
+                onGuardedDisruption,
+                clash)
         {
         }
 
@@ -449,7 +488,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
             ActionDisruptionDefinition onHitDisruption,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
-            ActionDisruptionDefinition onGuardedDisruption)
+            ActionDisruptionDefinition onGuardedDisruption,
+            DamageClashDefinition clash)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -492,6 +532,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 onGuardedDisruption,
                 "On Guarded");
+            Clash = ValidateClash(damageEffect, DamageTags, clash);
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 LoadCost);
@@ -545,6 +586,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnHitDisruption { get; }
 
         public ActionDisruptionDefinition OnGuardedDisruption { get; }
+
+        public DamageClashDefinition Clash { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -631,7 +674,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         {
             const DamageResolutionTag supportedTags = DamageResolutionTag.Area
                 | DamageResolutionTag.Unguardable
-                | DamageResolutionTag.Overcommit;
+                | DamageResolutionTag.Overcommit
+                | DamageResolutionTag.Clash;
             if ((damageTags & ~supportedTags) != 0)
             {
                 throw new ArgumentOutOfRangeException(
@@ -648,6 +692,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return damageTags;
+        }
+
+        private static DamageClashDefinition ValidateClash(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags,
+            DamageClashDefinition clash)
+        {
+            bool hasClashTag = (damageTags & DamageResolutionTag.Clash) != 0;
+            if (hasClashTag && clash == null)
+            {
+                throw new ArgumentException(
+                    "A Clash Damage Resolution Tag requires Clash values.",
+                    nameof(clash));
+            }
+
+            if (!hasClashTag && clash != null)
+            {
+                throw new ArgumentException(
+                    "Clash values require the Clash Damage Resolution Tag.",
+                    nameof(clash));
+            }
+
+            if (clash != null && damageEffect == null)
+            {
+                throw new ArgumentException(
+                    "Clash values require a damaging Action.",
+                    nameof(clash));
+            }
+
+            return clash;
         }
 
         private static CombatStatusDefinition ValidateStatusEffect(

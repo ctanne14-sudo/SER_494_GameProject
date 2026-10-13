@@ -51,7 +51,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int disruptedSequenceIndex = -1,
             ActionDisruptionDefinition attemptedDisruption = null,
             int superArmorLevel = 0,
-            ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None)
+            ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None,
+            double clashDamageReduction = 0d)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -71,6 +72,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptedSequenceIndex = disruptedSequenceIndex;
             AttemptedDisruption = attemptedDisruption;
             SuperArmorLevel = superArmorLevel;
+            ClashDamageReduction = clashDamageReduction;
             DisruptionTrigger = Enum.IsDefined(
                 typeof(ActionDisruptionTrigger),
                 disruptionTrigger)
@@ -113,6 +115,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition AttemptedDisruption { get; }
 
         public int SuperArmorLevel { get; }
+
+        public double ClashDamageReduction { get; }
 
         public ActionDisruptionTrigger DisruptionTrigger { get; }
     }
@@ -708,13 +712,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     && avoidance == DamageAvoidanceResult.None
                         ? GetActiveDefensiveDamageReduction(targetSide, step.TimeStep)
                         : 0d;
+                DamageClashDefinition defendingClash = action.HasDamage
+                    && avoidance == DamageAvoidanceResult.None
+                        ? FindActivatedClashAtStep(step, targetSide)
+                        : null;
+                double clashDamageReduction = defendingClash?.DamageReduction ?? 0d;
                 int damage = action.HasDamage
                     && avoidance == DamageAvoidanceResult.None
                         ? CalculateDamage(
                             actor,
                             target,
                             action.DamageEffect,
-                            defensiveDamageReduction)
+                            defensiveDamageReduction,
+                            clashDamageReduction)
                         : 0;
                 ScheduledTimelineAction disruptedAction = null;
                 ActionDisruptionDefinition attemptedDisruption = null;
@@ -742,7 +752,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 }
 
                 int superArmorLevel = attemptedDisruption != null
-                    ? GetActiveSuperArmorLevel(disruptedSide, step.TimeStep)
+                    ? Math.Max(
+                        GetActiveSuperArmorLevel(disruptedSide, step.TimeStep),
+                        FindActivatedClashAtStep(step, disruptedSide)?.SuperArmorLevel ?? 0)
                     : 0;
                 ActionDisruptionDefinition effectiveDisruption =
                     SuperArmorRules.Resolve(
@@ -772,7 +784,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     disruptedSequenceIndex: disruptedAction?.SequenceIndex ?? -1,
                     attemptedDisruption: attemptedDisruption,
                     superArmorLevel: superArmorLevel,
-                    disruptionTrigger: disruptionTrigger));
+                    disruptionTrigger: disruptionTrigger,
+                    clashDamageReduction: clashDamageReduction));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -1053,7 +1066,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatantState attacker,
             CombatantState defender,
             DamageEffectDefinition damageEffect,
-            double defensiveDamageReduction)
+            double defensiveDamageReduction,
+            double clashDamageReduction)
         {
             return DamageCalculator.CalculateEffect(
                 damageEffect,
@@ -1063,9 +1077,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 defenseModifier: 0d,
                 damageDealtModifiers: attacker.DamageDealtModifiers,
                 damageTakenModifiers: defender.DamageTakenModifiers,
-                clashDamageReduction: 0d,
+                clashDamageReduction: clashDamageReduction,
                 configuration: _damageConfiguration,
                 additionalApplicableDamageModifier: -defensiveDamageReduction).FinalDamage;
+        }
+
+        private static DamageClashDefinition FindActivatedClashAtStep(
+            TimelineResolutionStep step,
+            TimelineActorSide side)
+        {
+            bool opposingDamageExists = false;
+            DamageClashDefinition clash = null;
+            for (int index = 0; index < step.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = step.Actions[index];
+                if (!action.HasDamage)
+                {
+                    continue;
+                }
+
+                if (action.Side == side && action.Clash != null)
+                {
+                    clash = action.Clash;
+                }
+                else if (action.Side != side)
+                {
+                    opposingDamageExists = true;
+                }
+            }
+
+            return opposingDamageExists ? clash : null;
         }
 
         private double GetActiveDefensiveDamageReduction(

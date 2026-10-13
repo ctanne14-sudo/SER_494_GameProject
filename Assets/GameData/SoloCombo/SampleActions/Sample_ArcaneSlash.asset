@@ -31,4 +31,6 @@ MonoBehaviour:
   damageMultiplier: 0.7
   damageType: 0
   resolutionEffect: 1
-  damageTags: 4
+  damageTags: 12
+  clashDamageReduction: 0.5
+  clashSuperArmorLevel: 2

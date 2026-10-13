@@ -20,7 +20,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            ActionDisruptionDefinition onGuardedDisruption = null)
+            ActionDisruptionDefinition onGuardedDisruption = null,
+            DamageClashDefinition clash = null)
             : this(
                 actionId,
                 displayName,
@@ -34,7 +35,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 activeWindows,
                 onHitDisruption,
                 disruptionResponseSegments,
-                onGuardedDisruption)
+                onGuardedDisruption,
+                clash)
         {
         }
 
@@ -50,7 +52,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            ActionDisruptionDefinition onGuardedDisruption = null)
+            ActionDisruptionDefinition onGuardedDisruption = null,
+            DamageClashDefinition clash = null)
             : this(
                 actionId,
                 displayName,
@@ -66,7 +69,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 activeWindows,
                 onHitDisruption,
                 disruptionResponseSegments,
-                onGuardedDisruption)
+                onGuardedDisruption,
+                clash)
         {
         }
 
@@ -83,7 +87,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
             ActionDisruptionDefinition onHitDisruption,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
-            ActionDisruptionDefinition onGuardedDisruption)
+            ActionDisruptionDefinition onGuardedDisruption,
+            DamageClashDefinition clash)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -139,6 +144,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             OnGuardedDisruption = onGuardedDisruption;
+            Clash = ValidateClash(damageEffect, DamageTags, clash);
             DisruptionResponseSegments = ComboActionDefinition
                 .CopyAndValidateDisruptionResponseSegments(
                     disruptionResponseSegments,
@@ -170,6 +176,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnHitDisruption { get; }
 
         public ActionDisruptionDefinition OnGuardedDisruption { get; }
+
+        public DamageClashDefinition Clash { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -233,7 +241,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         {
             const DamageResolutionTag supportedTags = DamageResolutionTag.Area
                 | DamageResolutionTag.Unguardable
-                | DamageResolutionTag.Overcommit;
+                | DamageResolutionTag.Overcommit
+                | DamageResolutionTag.Clash;
             if ((damageTags & ~supportedTags) != 0)
             {
                 throw new ArgumentOutOfRangeException(
@@ -250,6 +259,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return damageTags;
+        }
+
+        private static DamageClashDefinition ValidateClash(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags,
+            DamageClashDefinition clash)
+        {
+            bool hasClashTag = (damageTags & DamageResolutionTag.Clash) != 0;
+            if (hasClashTag && clash == null)
+            {
+                throw new ArgumentException(
+                    "A Clash Damage Resolution Tag requires Clash values.",
+                    nameof(clash));
+            }
+
+            if (!hasClashTag && clash != null)
+            {
+                throw new ArgumentException(
+                    "Clash values require the Clash Damage Resolution Tag.",
+                    nameof(clash));
+            }
+
+            if (clash != null && damageEffect == null)
+            {
+                throw new ArgumentException(
+                    "Clash values require a damaging enemy Action.",
+                    nameof(clash));
+            }
+
+            return clash;
         }
 
         private static CombatStatusDefinition ValidateStatusEffect(
