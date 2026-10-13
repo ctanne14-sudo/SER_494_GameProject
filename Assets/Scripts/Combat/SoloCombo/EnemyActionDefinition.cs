@@ -19,7 +19,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            ActionDisruptionDefinition onGuardedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -32,7 +33,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusTarget,
                 activeWindows,
                 onHitDisruption,
-                disruptionResponseSegments)
+                disruptionResponseSegments,
+                onGuardedDisruption)
         {
         }
 
@@ -47,7 +49,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget = ActionStatusTarget.Self,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            ActionDisruptionDefinition onGuardedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -62,7 +65,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 statusTarget,
                 activeWindows,
                 onHitDisruption,
-                disruptionResponseSegments)
+                disruptionResponseSegments,
+                onGuardedDisruption)
         {
         }
 
@@ -78,7 +82,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionStatusTarget statusTarget,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
             ActionDisruptionDefinition onHitDisruption,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
+            ActionDisruptionDefinition onGuardedDisruption)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -126,6 +131,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             OnHitDisruption = onHitDisruption;
+            if (onGuardedDisruption != null && damageEffect == null)
+            {
+                throw new ArgumentException(
+                    "Only a damaging enemy Action can apply an On Guarded Disruption.",
+                    nameof(onGuardedDisruption));
+            }
+
+            OnGuardedDisruption = onGuardedDisruption;
             DisruptionResponseSegments = ComboActionDefinition
                 .CopyAndValidateDisruptionResponseSegments(
                     disruptionResponseSegments,
@@ -155,6 +168,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
 
         public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public ActionDisruptionDefinition OnGuardedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 

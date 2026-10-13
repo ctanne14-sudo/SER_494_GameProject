@@ -317,6 +317,39 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.OnHitDisruption.Duration, Is.EqualTo(2));
         }
 
+        [Test]
+        public void TryCreateDefinition_OnGuardedDisruption_CopiesSerializedValues()
+        {
+            ConfigureAsset(
+                actionId: "committed-strike",
+                displayName: "Committed Strike",
+                category: ComboActionCategory.Main,
+                loadCost: 4,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 1,
+                damageMultiplier: 0.55f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("appliesOnGuardedDisruption").boolValue = true;
+            serializedAsset.FindProperty("onGuardedDisruptionType").enumValueIndex = 0;
+            serializedAsset.FindProperty("onGuardedDisruptionDuration").intValue = 2;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.OnGuardedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Flinch));
+            Assert.That(definition.OnGuardedDisruption.Duration, Is.EqualTo(2));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

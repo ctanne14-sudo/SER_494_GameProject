@@ -1297,6 +1297,100 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(result.Schedule.CompletionTime, Is.EqualTo(4));
         }
 
+        [Test]
+        public void OnGuardedFlinch_DisruptsAttackerAndDelaysFollowingAction()
+        {
+            var quickGuard = new ComboActionDefinition(
+                "quick-guard",
+                "Quick Guard",
+                ComboActionCategory.Opening,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                resolutionOffset: 1,
+                resolutionEffect: ActionResolutionEffect.Guard);
+            var main = new ComboActionDefinition(
+                "counter",
+                "Counter",
+                ComboActionCategory.Main,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                damageMultiplier: 0.30d,
+                resolutionOffset: 2);
+            var combo = new ComboConfiguration(
+                "guard-counter",
+                quickGuard,
+                main,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var responseSegments = new[]
+            {
+                new DisruptionResponseSegmentDefinition(
+                    startOffset: 1,
+                    endOffset: 4,
+                    flinchResponse: ActionDisruptionResponse.PauseAndResume,
+                    staggerResponse: ActionDisruptionResponse.Continue,
+                    knockdownResponse: ActionDisruptionResponse.CancelAction)
+            };
+            var enemySequence = new EnemyActionSequence(
+                "reckless-assault",
+                "Reckless Assault",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "reckless-lunge",
+                        "Reckless Lunge",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.50d,
+                        disruptionResponseSegments: responseSegments,
+                        onGuardedDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Flinch,
+                            duration: 2)),
+                    new EnemyActionDefinition(
+                        "follow-up",
+                        "Follow-up",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.30d)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution guardedLunge = result.ActionResolutions.Single(
+                resolution => resolution.ActionId == "reckless-lunge");
+            ScheduledTimelineAction delayedLunge = result.Schedule.Actions.Single(
+                action => action.ActionId == "reckless-lunge");
+            ScheduledTimelineAction delayedFollowUp = result.Schedule.Actions.Single(
+                action => action.ActionId == "follow-up");
+
+            Assert.That(guardedLunge.DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.Guarded));
+            Assert.That(guardedLunge.DisruptionTrigger,
+                Is.EqualTo(ActionDisruptionTrigger.OnGuarded));
+            Assert.That(guardedLunge.AppliedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Flinch));
+            Assert.That(guardedLunge.DisruptedSide, Is.EqualTo(TimelineActorSide.Enemy));
+            Assert.That(guardedLunge.DisruptedSequenceIndex, Is.Zero);
+            Assert.That(guardedLunge.DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
+            Assert.That(delayedLunge.EndTime, Is.EqualTo(6));
+            Assert.That(delayedLunge.AccumulatedPauseDuration, Is.EqualTo(2));
+            Assert.That(delayedFollowUp.StartTime, Is.EqualTo(6));
+            Assert.That(delayedFollowUp.ResolutionTime, Is.EqualTo(9));
+            Assert.That(result.Schedule.CompletionTime, Is.EqualTo(9));
+        }
+
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
             var player = new CombatantState(

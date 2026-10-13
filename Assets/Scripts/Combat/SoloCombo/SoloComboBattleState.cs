@@ -23,6 +23,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Evaded
     }
 
+    public enum ActionDisruptionTrigger
+    {
+        None,
+        OnHit,
+        OnGuarded
+    }
+
     public readonly struct SoloComboActionResolution
     {
         public SoloComboActionResolution(
@@ -43,7 +50,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             TimelineActorSide disruptedSide = TimelineActorSide.Player,
             int disruptedSequenceIndex = -1,
             ActionDisruptionDefinition attemptedDisruption = null,
-            int superArmorLevel = 0)
+            int superArmorLevel = 0,
+            ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -63,6 +71,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptedSequenceIndex = disruptedSequenceIndex;
             AttemptedDisruption = attemptedDisruption;
             SuperArmorLevel = superArmorLevel;
+            DisruptionTrigger = Enum.IsDefined(
+                typeof(ActionDisruptionTrigger),
+                disruptionTrigger)
+                    ? disruptionTrigger
+                    : throw new ArgumentOutOfRangeException(nameof(disruptionTrigger));
         }
 
         public TimelineActorSide Side { get; }
@@ -100,6 +113,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition AttemptedDisruption { get; }
 
         public int SuperArmorLevel { get; }
+
+        public ActionDisruptionTrigger DisruptionTrigger { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -701,16 +716,33 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             action.DamageEffect,
                             defensiveDamageReduction)
                         : 0;
-                ScheduledTimelineAction disruptedAction = action.HasDamage
+                ScheduledTimelineAction disruptedAction = null;
+                ActionDisruptionDefinition attemptedDisruption = null;
+                ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None;
+                TimelineActorSide disruptedSide = targetSide;
+                if (action.HasDamage
                     && avoidance == DamageAvoidanceResult.None
-                    && action.OnHitDisruption != null
-                        ? FindOngoingAction(targetSide, step.TimeStep)
-                        : null;
-                ActionDisruptionDefinition attemptedDisruption = disruptedAction != null
-                    ? action.OnHitDisruption
-                    : null;
+                    && action.OnHitDisruption != null)
+                {
+                    disruptedAction = FindOngoingAction(targetSide, step.TimeStep);
+                    if (disruptedAction != null)
+                    {
+                        attemptedDisruption = action.OnHitDisruption;
+                        disruptionTrigger = ActionDisruptionTrigger.OnHit;
+                    }
+                }
+                else if (action.HasDamage
+                    && avoidance == DamageAvoidanceResult.Guarded
+                    && action.OnGuardedDisruption != null)
+                {
+                    disruptedAction = action;
+                    attemptedDisruption = action.OnGuardedDisruption;
+                    disruptionTrigger = ActionDisruptionTrigger.OnGuarded;
+                    disruptedSide = action.Side;
+                }
+
                 int superArmorLevel = attemptedDisruption != null
-                    ? GetActiveSuperArmorLevel(targetSide, step.TimeStep)
+                    ? GetActiveSuperArmorLevel(disruptedSide, step.TimeStep)
                     : 0;
                 ActionDisruptionDefinition effectiveDisruption =
                     SuperArmorRules.Resolve(
@@ -736,10 +768,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     defensiveDamageReduction,
                     appliedDisruption: effectiveDisruption,
                     disruptionResponse,
-                    disruptedSide: targetSide,
+                    disruptedSide,
                     disruptedSequenceIndex: disruptedAction?.SequenceIndex ?? -1,
                     attemptedDisruption: attemptedDisruption,
-                    superArmorLevel: superArmorLevel));
+                    superArmorLevel: superArmorLevel,
+                    disruptionTrigger: disruptionTrigger));
 
                 if (action.Side == TimelineActorSide.Player)
                 {

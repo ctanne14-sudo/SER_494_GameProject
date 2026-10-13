@@ -357,7 +357,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            ActionDisruptionDefinition onGuardedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -377,7 +378,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 chargeLevels,
                 activeWindows,
                 onHitDisruption,
-                disruptionResponseSegments)
+                disruptionResponseSegments,
+                onGuardedDisruption)
         {
         }
 
@@ -399,7 +401,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             ActionDisruptionDefinition onHitDisruption = null,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            ActionDisruptionDefinition onGuardedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -421,7 +424,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 chargeLevels,
                 activeWindows,
                 onHitDisruption,
-                disruptionResponseSegments)
+                disruptionResponseSegments,
+                onGuardedDisruption)
         {
         }
 
@@ -444,7 +448,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
             ActionDisruptionDefinition onHitDisruption,
-            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments)
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
+            ActionDisruptionDefinition onGuardedDisruption)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -483,6 +488,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 HasResolutionWindow);
             ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
             OnHitDisruption = ValidateOnHitDisruption(damageEffect, onHitDisruption);
+            OnGuardedDisruption = ValidateDamageDisruption(
+                damageEffect,
+                onGuardedDisruption,
+                "On Guarded");
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 LoadCost);
@@ -534,6 +543,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ActionActiveWindowDefinition> ActiveWindows { get; }
 
         public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public ActionDisruptionDefinition OnGuardedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -833,10 +844,18 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             ActionDisruptionDefinition disruption)
         {
+            return ValidateDamageDisruption(damageEffect, disruption, "On Hit");
+        }
+
+        private static ActionDisruptionDefinition ValidateDamageDisruption(
+            DamageEffectDefinition damageEffect,
+            ActionDisruptionDefinition disruption,
+            string responseName)
+        {
             if (disruption != null && damageEffect == null)
             {
                 throw new ArgumentException(
-                    "Only a damaging Action can apply an On Hit Disruption.",
+                    $"Only a damaging Action can apply an {responseName} Disruption.",
                     nameof(disruption));
             }
 

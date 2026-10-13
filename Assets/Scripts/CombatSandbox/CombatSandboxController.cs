@@ -1137,6 +1137,38 @@ namespace SER494.Gameplay.CombatSandbox
                         disruptionResponseSegments: PauseOnStagger(loadCost: 3))
                 });
 
+            var recklessAssault = new EnemyActionSequence(
+                "training.reckless-assault-pattern",
+                "Reckless Assault",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.reckless-lunge",
+                        "Reckless Lunge",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.55d,
+                        disruptionResponseSegments: new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                startOffset: 1,
+                                endOffset: 4,
+                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
+                                staggerResponse: ActionDisruptionResponse.Continue,
+                                knockdownResponse: ActionDisruptionResponse.CancelAction)
+                        },
+                        onGuardedDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Flinch,
+                            duration: 2)),
+                    new EnemyActionDefinition(
+                        "training.reckless-follow-up",
+                        "Follow-up Slash",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.35d,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                });
+
             var armoredAdvance = new EnemyActionSequence(
                 "training.armored-advance-pattern",
                 "Armored Advance",
@@ -1214,6 +1246,10 @@ namespace SER494.Gameplay.CombatSandbox
             var enemyBehavior = new EnemyBehaviorTable(
                 new[]
                 {
+                    new EnemyBehaviorEntry(
+                        recklessAssault,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true),
                     new EnemyBehaviorEntry(
                         armoredAdvance,
                         selectionWeight: 1,
@@ -1548,50 +1584,6 @@ namespace SER494.Gameplay.CombatSandbox
                     resolution.Side == TimelineActorSide.Player
                         ? CombatLogTone.Player
                         : CombatLogTone.Enemy);
-                if (resolution.AppliedDisruption != null)
-                {
-                    string target = resolution.DisruptedSide == TimelineActorSide.Player
-                        ? "Player"
-                        : "Training Enemy";
-                    string result;
-                    switch (resolution.DisruptionResponse)
-                    {
-                        case ActionDisruptionResponse.PauseAndResume:
-                            result = $"paused the current Action for "
-                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
-                            break;
-                        case ActionDisruptionResponse.RestartAction:
-                            result = $"restarted the current Action after "
-                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
-                            break;
-                        case ActionDisruptionResponse.CancelAction:
-                            result = $"canceled the current Action; the next Action begins after "
-                                + $"{resolution.AppliedDisruption.Duration} Time Steps";
-                            break;
-                        default:
-                            result = "did not alter the current Action schedule";
-                            break;
-                    }
-                    string armorResult = resolution.AttemptedDisruption != null
-                        && resolution.AttemptedDisruption.Type
-                            != resolution.AppliedDisruption.Type
-                            ? $"Super Armor Lv{resolution.SuperArmorLevel} reduced "
-                                + $"{resolution.AttemptedDisruption.Type} to "
-                                + $"{resolution.AppliedDisruption.Type}. "
-                            : string.Empty;
-                    AppendLog(
-                        $"    {armorResult}{resolution.AppliedDisruption.Type} on "
-                        + $"{target}: {result}.",
-                        CombatLogTone.Disruption);
-                }
-                else if (resolution.AttemptedDisruption != null
-                    && resolution.SuperArmorLevel > 0)
-                {
-                    AppendLog(
-                        $"    Super Armor Lv{resolution.SuperArmorLevel} negated "
-                        + $"{resolution.AttemptedDisruption.Type} on the target.",
-                        CombatLogTone.Avoided);
-                }
             }
             else if (resolution.StatusDisplayName != null)
             {
@@ -1621,6 +1613,63 @@ namespace SER494.Gameplay.CombatSandbox
                     resolution.Side == TimelineActorSide.Player
                         ? CombatLogTone.Player
                         : CombatLogTone.Enemy);
+            }
+
+            if (resolution.ResolutionEffect == ActionResolutionEffect.Damage)
+            {
+                AppendDisruptionResolution(resolution);
+            }
+        }
+
+        private void AppendDisruptionResolution(SoloComboActionResolution resolution)
+        {
+            string trigger = resolution.DisruptionTrigger == ActionDisruptionTrigger.OnGuarded
+                ? "On Guarded response: "
+                : string.Empty;
+            if (resolution.AppliedDisruption != null)
+            {
+                string target = resolution.DisruptedSide == TimelineActorSide.Player
+                    ? "Player"
+                    : "Training Enemy";
+                string result;
+                switch (resolution.DisruptionResponse)
+                {
+                    case ActionDisruptionResponse.PauseAndResume:
+                        result = $"paused the current Action for "
+                            + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                        break;
+                    case ActionDisruptionResponse.RestartAction:
+                        result = $"restarted the current Action after "
+                            + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                        break;
+                    case ActionDisruptionResponse.CancelAction:
+                        result = $"canceled the current Action; the next Action begins after "
+                            + $"{resolution.AppliedDisruption.Duration} Time Steps";
+                        break;
+                    default:
+                        result = "did not alter the current Action schedule";
+                        break;
+                }
+
+                string armorResult = resolution.AttemptedDisruption != null
+                    && resolution.AttemptedDisruption.Type
+                        != resolution.AppliedDisruption.Type
+                        ? $"Super Armor Lv{resolution.SuperArmorLevel} reduced "
+                            + $"{resolution.AttemptedDisruption.Type} to "
+                            + $"{resolution.AppliedDisruption.Type}. "
+                        : string.Empty;
+                AppendLog(
+                    $"    {trigger}{armorResult}{resolution.AppliedDisruption.Type} on "
+                    + $"{target}: {result}.",
+                    CombatLogTone.Disruption);
+            }
+            else if (resolution.AttemptedDisruption != null
+                && resolution.SuperArmorLevel > 0)
+            {
+                AppendLog(
+                    $"    {trigger}Super Armor Lv{resolution.SuperArmorLevel} negated "
+                    + $"{resolution.AttemptedDisruption.Type} on the target.",
+                    CombatLogTone.Avoided);
             }
         }
 

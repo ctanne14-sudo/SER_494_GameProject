@@ -318,7 +318,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             string[,] presetActionIds =
             {
                 { "sample.focus-stance", "sample.arcane-slash", "sample.backstep", "sample.flame-echo" },
-                { null, "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
+                { "sample.quick-guard", "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
                 { "sample.sidestep", "sample.ice-lance", "sample.parting-slash", "sample.vanish-step" },
                 { "sample.ember-primer", "sample.precise-shot", "sample.steady-finish", "sample.spark-echo" }
             };
@@ -598,6 +598,15 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                             .Append(action.OnHitDisruptionType)
                             .Append(" for ")
                             .Append(action.OnHitDisruptionDuration)
+                            .Append(" Time Steps");
+                    }
+
+                    if (action.AppliesOnGuardedDisruption)
+                    {
+                        builder.Append(" | On Guarded: self-")
+                            .Append(action.OnGuardedDisruptionType)
+                            .Append(" for ")
+                            .Append(action.OnGuardedDisruptionDuration)
                             .Append(" Time Steps");
                     }
                 }

@@ -132,6 +132,17 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Min(1)]
         private int onHitDisruptionDuration = 1;
 
+        [SerializeField]
+        [Tooltip("Apply an Action Disruption to this Action's user when its Damage is Guarded.")]
+        private bool appliesOnGuardedDisruption = false;
+
+        [SerializeField]
+        private ActionDisruptionType onGuardedDisruptionType = ActionDisruptionType.Flinch;
+
+        [SerializeField]
+        [Min(1)]
+        private int onGuardedDisruptionDuration = 1;
+
         public string ActionId => actionId;
 
         public string DisplayName => displayName;
@@ -206,6 +217,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public ActionDisruptionType OnHitDisruptionType => onHitDisruptionType;
 
         public int OnHitDisruptionDuration => onHitDisruptionDuration;
+
+        public bool AppliesOnGuardedDisruption => appliesOnGuardedDisruption;
+
+        public ActionDisruptionType OnGuardedDisruptionType => onGuardedDisruptionType;
+
+        public int OnGuardedDisruptionDuration => onGuardedDisruptionDuration;
 
         public bool TryCreateDefinition(
             out ComboActionDefinition definition,
@@ -314,6 +331,20 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (appliesOnGuardedDisruption && damageMultiplier <= 0f)
+            {
+                validationError = $"{name} applies an On Guarded Disruption without damage.";
+                return false;
+            }
+
+            if (appliesOnGuardedDisruption
+                && (!Enum.IsDefined(typeof(ActionDisruptionType), onGuardedDisruptionType)
+                    || onGuardedDisruptionDuration <= 0))
+            {
+                validationError = $"{name} contains an invalid On Guarded Disruption.";
+                return false;
+            }
+
             if (resolutionEffect == ActionResolutionEffect.ApplyBuff
                 || resolutionEffect == ActionResolutionEffect.ApplyDebuff)
             {
@@ -347,6 +378,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     ? new ActionDisruptionDefinition(
                         onHitDisruptionType,
                         onHitDisruptionDuration)
+                    : null,
+                onGuardedDisruption: appliesOnGuardedDisruption
+                    ? new ActionDisruptionDefinition(
+                        onGuardedDisruptionType,
+                        onGuardedDisruptionDuration)
                     : null);
 
             validationError = null;
@@ -364,6 +400,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             cooldown = Mathf.Max(0, cooldown);
             damageMultiplier = Mathf.Max(0f, damageMultiplier);
             onHitDisruptionDuration = Mathf.Max(1, onHitDisruptionDuration);
+            onGuardedDisruptionDuration = Mathf.Max(1, onGuardedDisruptionDuration);
             if (chargeLevels == null)
             {
                 chargeLevels = Array.Empty<ChargeLevelAuthoringData>();

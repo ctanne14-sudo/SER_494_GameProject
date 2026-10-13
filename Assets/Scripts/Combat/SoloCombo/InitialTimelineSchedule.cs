@@ -217,7 +217,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ScheduledDisruptionPause> disruptionPauses = null,
             IReadOnlyList<ScheduledActionRestart> restarts = null,
             int? requiredCompletedSequenceIndex = null,
-            ScheduledActionCancellation cancellation = null)
+            ScheduledActionCancellation cancellation = null,
+            ActionDisruptionDefinition onGuardedDisruption = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -245,6 +246,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Restarts = restarts ?? Array.Empty<ScheduledActionRestart>();
             RequiredCompletedSequenceIndex = requiredCompletedSequenceIndex;
             Cancellation = cancellation;
+            OnGuardedDisruption = onGuardedDisruption;
         }
 
         public TimelineActorSide Side { get; }
@@ -286,6 +288,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<ScheduledActiveWindow> ActiveWindows { get; }
 
         public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public ActionDisruptionDefinition OnGuardedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
