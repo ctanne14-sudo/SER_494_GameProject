@@ -383,6 +383,70 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.OnGuardedDisruption.Duration, Is.EqualTo(2));
         }
 
+        [Test]
+        public void TryCreateDefinition_OvercommitOnEvadedDisruption_CopiesSerializedValues()
+        {
+            ConfigureAsset(
+                actionId: "overcommit",
+                displayName: "Overcommit",
+                category: ComboActionCategory.Main,
+                loadCost: 4,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 1,
+                damageMultiplier: 0.60f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.Overcommit);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("appliesOnEvadedDisruption").boolValue = true;
+            serializedAsset.FindProperty("onEvadedDisruptionType").enumValueIndex = 1;
+            serializedAsset.FindProperty("onEvadedDisruptionDuration").intValue = 2;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.OnEvadedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(definition.OnEvadedDisruption.Duration, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TryCreateDefinition_OnEvadedDisruptionWithoutOvercommit_ReturnsValidationError()
+        {
+            ConfigureAsset(
+                actionId: "unsafe-attack",
+                displayName: "Unsafe Attack",
+                category: ComboActionCategory.Main,
+                loadCost: 4,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 1,
+                damageMultiplier: 0.60f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("appliesOnEvadedDisruption").boolValue = true;
+            serializedAsset.FindProperty("onEvadedDisruptionType").enumValueIndex = 1;
+            serializedAsset.FindProperty("onEvadedDisruptionDuration").intValue = 2;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("without Overcommit"));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

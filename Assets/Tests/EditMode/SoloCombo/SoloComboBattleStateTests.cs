@@ -1567,6 +1567,96 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(result.Schedule.CompletionTime, Is.EqualTo(9));
         }
 
+        [Test]
+        public void OvercommitOnEvadedStagger_CancelsAttackerAndAdvancesFollowingAction()
+        {
+            var sidestep = new ComboActionDefinition(
+                "sidestep",
+                "Sidestep",
+                ComboActionCategory.Opening,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                resolutionOffset: 1,
+                resolutionEffect: ActionResolutionEffect.Evade);
+            var combo = new ComboConfiguration(
+                "evade-counter",
+                sidestep,
+                Action(
+                    "counter",
+                    ComboActionCategory.Main,
+                    load: 1,
+                    mana: 0,
+                    stamina: 0,
+                    cooldown: 0,
+                    damageMultiplier: 0.30d),
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            var enemySequence = new EnemyActionSequence(
+                "overcommit-feint",
+                "Overcommit Feint",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "committed-lunge",
+                        "Committed Lunge",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.60d,
+                        damageTags: DamageResolutionTag.Overcommit,
+                        disruptionResponseSegments: new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                startOffset: 1,
+                                endOffset: 4,
+                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
+                                staggerResponse: ActionDisruptionResponse.CancelAction,
+                                knockdownResponse: ActionDisruptionResponse.CancelAction)
+                        },
+                        onEvadedDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2)),
+                    new EnemyActionDefinition(
+                        "follow-up",
+                        "Follow-up",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.35d)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                enemySequence,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution evadedLunge = result.ActionResolutions.Single(
+                resolution => resolution.ActionId == "committed-lunge");
+            ScheduledTimelineAction canceledLunge = result.Schedule.Actions.Single(
+                action => action.ActionId == "committed-lunge");
+            ScheduledTimelineAction advancedFollowUp = result.Schedule.Actions.Single(
+                action => action.ActionId == "follow-up");
+
+            Assert.That(evadedLunge.DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.Evaded));
+            Assert.That(evadedLunge.DisruptionTrigger,
+                Is.EqualTo(ActionDisruptionTrigger.OnEvaded));
+            Assert.That(evadedLunge.AppliedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(evadedLunge.DisruptedSide, Is.EqualTo(TimelineActorSide.Enemy));
+            Assert.That(evadedLunge.DisruptionResponse,
+                Is.EqualTo(ActionDisruptionResponse.CancelAction));
+            Assert.That(canceledLunge.IsCanceled, Is.True);
+            Assert.That(canceledLunge.Cancellation.RecoveryEndTime, Is.EqualTo(3));
+            Assert.That(advancedFollowUp.StartTime, Is.EqualTo(3));
+            Assert.That(advancedFollowUp.ResolutionTime, Is.EqualTo(6));
+            Assert.That(result.Schedule.CompletionTime, Is.EqualTo(6));
+        }
+
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
             var player = new CombatantState(

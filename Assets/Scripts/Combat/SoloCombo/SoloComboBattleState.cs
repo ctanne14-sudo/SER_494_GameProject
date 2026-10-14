@@ -27,7 +27,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     {
         None,
         OnHit,
-        OnGuarded
+        OnGuarded,
+        OnEvaded
     }
 
     public readonly struct SoloComboActionResolution
@@ -748,6 +749,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     disruptedAction = action;
                     attemptedDisruption = action.OnGuardedDisruption;
                     disruptionTrigger = ActionDisruptionTrigger.OnGuarded;
+                    disruptedSide = action.Side;
+                }
+                else if (action.HasDamage
+                    && avoidance == DamageAvoidanceResult.Evaded
+                    && action.OnEvadedDisruption != null)
+                {
+                    disruptedAction = action;
+                    attemptedDisruption = action.OnEvadedDisruption;
+                    disruptionTrigger = ActionDisruptionTrigger.OnEvaded;
                     disruptedSide = action.Side;
                 }
 

@@ -394,7 +394,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
-            DamageClashDefinition clash = null)
+            DamageClashDefinition clash = null,
+            ActionDisruptionDefinition onEvadedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -416,7 +417,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onHitDisruption,
                 disruptionResponseSegments,
                 onGuardedDisruption,
-                clash)
+                clash,
+                onEvadedDisruption)
         {
         }
 
@@ -440,7 +442,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
-            DamageClashDefinition clash = null)
+            DamageClashDefinition clash = null,
+            ActionDisruptionDefinition onEvadedDisruption = null)
             : this(
                 actionId,
                 displayName,
@@ -464,7 +467,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onHitDisruption,
                 disruptionResponseSegments,
                 onGuardedDisruption,
-                clash)
+                clash,
+                onEvadedDisruption)
         {
         }
 
@@ -489,7 +493,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
             ActionDisruptionDefinition onGuardedDisruption,
-            DamageClashDefinition clash)
+            DamageClashDefinition clash,
+            ActionDisruptionDefinition onEvadedDisruption)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -533,6 +538,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 "On Guarded");
             Clash = ValidateClash(damageEffect, DamageTags, clash);
+            OnEvadedDisruption = ValidateOnEvadedDisruption(
+                damageEffect,
+                DamageTags,
+                onEvadedDisruption);
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 LoadCost);
@@ -588,6 +597,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnGuardedDisruption { get; }
 
         public DamageClashDefinition Clash { get; }
+
+        public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -919,6 +930,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition disruption)
         {
             return ValidateDamageDisruption(damageEffect, disruption, "On Hit");
+        }
+
+        private static ActionDisruptionDefinition ValidateOnEvadedDisruption(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags,
+            ActionDisruptionDefinition disruption)
+        {
+            ValidateDamageDisruption(damageEffect, disruption, "On Evaded");
+            if (disruption != null
+                && (damageTags & DamageResolutionTag.Overcommit) == 0)
+            {
+                throw new ArgumentException(
+                    "An On Evaded Disruption requires the Overcommit Damage Tag.",
+                    nameof(disruption));
+            }
+
+            return disruption;
         }
 
         private static ActionDisruptionDefinition ValidateDamageDisruption(

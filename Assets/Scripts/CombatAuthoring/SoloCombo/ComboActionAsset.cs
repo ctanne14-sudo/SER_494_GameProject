@@ -153,6 +153,17 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Min(1)]
         private int onGuardedDisruptionDuration = 1;
 
+        [SerializeField]
+        [Tooltip("Apply an Action Disruption to this Action's user when its Overcommit Damage is Evaded.")]
+        private bool appliesOnEvadedDisruption = false;
+
+        [SerializeField]
+        private ActionDisruptionType onEvadedDisruptionType = ActionDisruptionType.Stagger;
+
+        [SerializeField]
+        [Min(1)]
+        private int onEvadedDisruptionDuration = 1;
+
         public string ActionId => actionId;
 
         public string DisplayName => displayName;
@@ -237,6 +248,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public ActionDisruptionType OnGuardedDisruptionType => onGuardedDisruptionType;
 
         public int OnGuardedDisruptionDuration => onGuardedDisruptionDuration;
+
+        public bool AppliesOnEvadedDisruption => appliesOnEvadedDisruption;
+
+        public ActionDisruptionType OnEvadedDisruptionType => onEvadedDisruptionType;
+
+        public int OnEvadedDisruptionDuration => onEvadedDisruptionDuration;
 
         public bool TryCreateDefinition(
             out ComboActionDefinition definition,
@@ -377,6 +394,27 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (appliesOnEvadedDisruption && damageMultiplier <= 0f)
+            {
+                validationError = $"{name} applies an On Evaded Disruption without damage.";
+                return false;
+            }
+
+            if (appliesOnEvadedDisruption
+                && (damageTags & DamageResolutionTag.Overcommit) == 0)
+            {
+                validationError = $"{name} applies an On Evaded Disruption without Overcommit.";
+                return false;
+            }
+
+            if (appliesOnEvadedDisruption
+                && (!Enum.IsDefined(typeof(ActionDisruptionType), onEvadedDisruptionType)
+                    || onEvadedDisruptionDuration <= 0))
+            {
+                validationError = $"{name} contains an invalid On Evaded Disruption.";
+                return false;
+            }
+
             if (resolutionEffect == ActionResolutionEffect.ApplyBuff
                 || resolutionEffect == ActionResolutionEffect.ApplyDebuff)
             {
@@ -420,6 +458,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     ? new DamageClashDefinition(
                         clashDamageReduction,
                         clashSuperArmorLevel)
+                    : null,
+                onEvadedDisruption: appliesOnEvadedDisruption
+                    ? new ActionDisruptionDefinition(
+                        onEvadedDisruptionType,
+                        onEvadedDisruptionDuration)
                     : null);
 
             validationError = null;
@@ -448,6 +491,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             }
             onHitDisruptionDuration = Mathf.Max(1, onHitDisruptionDuration);
             onGuardedDisruptionDuration = Mathf.Max(1, onGuardedDisruptionDuration);
+            onEvadedDisruptionDuration = Mathf.Max(1, onEvadedDisruptionDuration);
             if (chargeLevels == null)
             {
                 chargeLevels = Array.Empty<ChargeLevelAuthoringData>();

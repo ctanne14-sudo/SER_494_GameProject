@@ -103,7 +103,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         requiredCompletedSequenceIndex: action.RequiredCompletedSequenceIndex,
                         cancellation: action.Cancellation,
                         onGuardedDisruption: action.OnGuardedDisruption,
-                        clash: action.Clash);
+                        clash: action.Clash,
+                        onEvadedDisruption: action.OnEvadedDisruption);
                     replaced = true;
                 }
 
@@ -536,7 +537,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.DisruptionResponseSegments,
                     requiredCompletedSequenceIndex: requiredCompletedSequenceIndex,
                     onGuardedDisruption: definition.OnGuardedDisruption,
-                    clash: definition.Clash));
+                    clash: definition.Clash,
+                    onEvadedDisruption: definition.OnEvadedDisruption));
                 currentTime = endTime;
             }
 
@@ -571,7 +573,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     onHitDisruption: definition.OnHitDisruption,
                     disruptionResponseSegments: definition.DisruptionResponseSegments,
                     onGuardedDisruption: definition.OnGuardedDisruption,
-                    clash: definition.Clash));
+                    clash: definition.Clash,
+                    onEvadedDisruption: definition.OnEvadedDisruption));
                 currentTime = endTime;
             }
 
@@ -617,7 +620,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.RequiredCompletedSequenceIndex,
                 ShiftCancellation(action.Cancellation, startShift),
                 action.OnGuardedDisruption,
-                action.Clash);
+                action.Clash,
+                action.OnEvadedDisruption);
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
@@ -678,7 +682,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.RequiredCompletedSequenceIndex,
                 action.Cancellation,
                 action.OnGuardedDisruption,
-                action.Clash);
+                action.Clash,
+                action.OnEvadedDisruption);
         }
 
         private static ScheduledTimelineAction RestartScheduledAction(
@@ -739,7 +744,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 restarts: Array.AsReadOnly(restarts),
                 requiredCompletedSequenceIndex: action.RequiredCompletedSequenceIndex,
                 onGuardedDisruption: action.OnGuardedDisruption,
-                clash: action.Clash);
+                clash: action.Clash,
+                onEvadedDisruption: action.OnEvadedDisruption);
         }
 
         private static ScheduledTimelineAction CancelScheduledAction(
@@ -787,7 +793,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     recoveryEndTime,
                     dependencyFailed),
                 action.OnGuardedDisruption,
-                action.Clash);
+                action.Clash,
+                action.OnEvadedDisruption);
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(

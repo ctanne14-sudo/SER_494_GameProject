@@ -610,6 +610,15 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                             .Append(" Time Steps");
                     }
 
+                    if (action.AppliesOnEvadedDisruption)
+                    {
+                        builder.Append(" | On Evaded: self-")
+                            .Append(action.OnEvadedDisruptionType)
+                            .Append(" for ")
+                            .Append(action.OnEvadedDisruptionDuration)
+                            .Append(" Time Steps");
+                    }
+
                     if ((action.DamageTags & DamageResolutionTag.Clash) != 0)
                     {
                         builder.Append(" | Clash: -")

@@ -930,6 +930,17 @@ namespace SER494.Gameplay.CombatSandbox
                     effect += $" ({action.StatusEffect.DisplayName})";
                 }
 
+                if (action.DamageTags != DamageResolutionTag.None)
+                {
+                    effect += $" [{action.DamageTags}]";
+                }
+
+                if (action.OnEvadedDisruption != null)
+                {
+                    effect += $" | On Evaded: self-{action.OnEvadedDisruption.Type} "
+                        + $"for {action.OnEvadedDisruption.Duration} Time Steps";
+                }
+
                 GUILayout.Label($"T{action.ResolutionTime}: {action.DisplayName} — {effect}");
             }
         }
@@ -1114,6 +1125,39 @@ namespace SER494.Gameplay.CombatSandbox
                 CombatStatusModifierDirection.DamageTaken,
                 DamageModifier.All(0.20d));
 
+            var overcommitFeint = new EnemyActionSequence(
+                "training.overcommit-feint-pattern",
+                "Overcommit Feint",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.committed-lunge",
+                        "Committed Lunge",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.60d,
+                        damageTags: DamageResolutionTag.Overcommit,
+                        disruptionResponseSegments: new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                startOffset: 1,
+                                endOffset: 4,
+                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
+                                staggerResponse: ActionDisruptionResponse.CancelAction,
+                                knockdownResponse: ActionDisruptionResponse.CancelAction)
+                        },
+                        onEvadedDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2)),
+                    new EnemyActionDefinition(
+                        "training.feint-follow-up",
+                        "Feint Follow-up",
+                        loadCost: 3,
+                        resolutionOffset: 3,
+                        damageMultiplier: 0.35d,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                });
+
             var clashDrill = new EnemyActionSequence(
                 "training.clash-drill-pattern",
                 "Clash Drill",
@@ -1262,6 +1306,10 @@ namespace SER494.Gameplay.CombatSandbox
             var enemyBehavior = new EnemyBehaviorTable(
                 new[]
                 {
+                    new EnemyBehaviorEntry(
+                        overcommitFeint,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true),
                     new EnemyBehaviorEntry(
                         clashDrill,
                         selectionWeight: 1,
@@ -1646,9 +1694,19 @@ namespace SER494.Gameplay.CombatSandbox
 
         private void AppendDisruptionResolution(SoloComboActionResolution resolution)
         {
-            string trigger = resolution.DisruptionTrigger == ActionDisruptionTrigger.OnGuarded
-                ? "On Guarded response: "
-                : string.Empty;
+            string trigger;
+            switch (resolution.DisruptionTrigger)
+            {
+                case ActionDisruptionTrigger.OnGuarded:
+                    trigger = "On Guarded response: ";
+                    break;
+                case ActionDisruptionTrigger.OnEvaded:
+                    trigger = "On Evaded Overcommit penalty: ";
+                    break;
+                default:
+                    trigger = string.Empty;
+                    break;
+            }
             if (resolution.AppliedDisruption != null)
             {
                 string target = resolution.DisruptedSide == TimelineActorSide.Player

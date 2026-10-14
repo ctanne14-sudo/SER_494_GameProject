@@ -219,7 +219,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int? requiredCompletedSequenceIndex = null,
             ScheduledActionCancellation cancellation = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
-            DamageClashDefinition clash = null)
+            DamageClashDefinition clash = null,
+            ActionDisruptionDefinition onEvadedDisruption = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -249,6 +250,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Cancellation = cancellation;
             OnGuardedDisruption = onGuardedDisruption;
             Clash = clash;
+            OnEvadedDisruption = onEvadedDisruption;
         }
 
         public TimelineActorSide Side { get; }
@@ -294,6 +296,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnGuardedDisruption { get; }
 
         public DamageClashDefinition Clash { get; }
+
+        public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
