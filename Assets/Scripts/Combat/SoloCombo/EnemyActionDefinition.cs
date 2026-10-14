@@ -22,7 +22,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            SustainedAttackDefinition sustainedAttack = null)
             : this(
                 actionId,
                 displayName,
@@ -38,7 +39,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 disruptionResponseSegments,
                 onGuardedDisruption,
                 clash,
-                onEvadedDisruption)
+                onEvadedDisruption,
+                sustainedAttack)
         {
         }
 
@@ -56,7 +58,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            SustainedAttackDefinition sustainedAttack = null)
             : this(
                 actionId,
                 displayName,
@@ -74,7 +77,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 disruptionResponseSegments,
                 onGuardedDisruption,
                 clash,
-                onEvadedDisruption)
+                onEvadedDisruption,
+                sustainedAttack)
         {
         }
 
@@ -93,7 +97,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
-            ActionDisruptionDefinition onEvadedDisruption)
+            ActionDisruptionDefinition onEvadedDisruption,
+            SustainedAttackDefinition sustainedAttack)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -166,6 +171,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             OnEvadedDisruption = onEvadedDisruption;
+            sustainedAttack?.ValidateForAction(LoadCost, damageEffect != null);
+            SustainedAttack = sustainedAttack;
             DisruptionResponseSegments = ComboActionDefinition
                 .CopyAndValidateDisruptionResponseSegments(
                     disruptionResponseSegments,
@@ -203,6 +210,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
+
+        public SustainedAttackDefinition SustainedAttack { get; }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,

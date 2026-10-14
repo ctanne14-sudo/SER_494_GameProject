@@ -439,15 +439,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
-                if (!actionsByTime.TryGetValue(
-                        action.ResolutionTime,
-                        out List<ScheduledTimelineAction> sameTimeActions))
+                for (int resolutionIndex = 0;
+                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex++)
                 {
-                    sameTimeActions = new List<ScheduledTimelineAction>();
-                    actionsByTime.Add(action.ResolutionTime, sameTimeActions);
-                }
+                    int resolutionTime = action.ResolutionTimes[resolutionIndex];
+                    if (!actionsByTime.TryGetValue(
+                            resolutionTime,
+                            out List<ScheduledTimelineAction> sameTimeActions))
+                    {
+                        sameTimeActions = new List<ScheduledTimelineAction>();
+                        actionsByTime.Add(resolutionTime, sameTimeActions);
+                    }
 
-                sameTimeActions.Add(action);
+                    sameTimeActions.Add(action);
+                }
             }
 
             var steps = new List<TimelineResolutionStep>(actionsByTime.Count);
@@ -488,10 +494,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ISet<int> occupiedTimes = action.Side == TimelineActorSide.Player
                     ? playerTimes
                     : enemyTimes;
-                if (!occupiedTimes.Add(action.ResolutionTime))
+                for (int resolutionIndex = 0;
+                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex++)
                 {
-                    throw new InvalidOperationException(
-                        "Damage, Guard, and Evade Resolution Points cannot overlap for the same character.");
+                    if (!occupiedTimes.Add(action.ResolutionTimes[resolutionIndex]))
+                    {
+                        throw new InvalidOperationException(
+                            "Damage, Guard, and Evade Resolution Points cannot overlap for the same character.");
+                    }
                 }
             }
         }
@@ -519,6 +530,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     currentTime,
                     endTime,
                     checked(currentTime + (definition.ResolutionWindowStart
+                        ?? definition.SustainedAttack?.FirstHitOffset
                         ?? definition.ResolutionOffset)),
                     definition.DamageEffect,
                     definition.ResolutionEffect,
@@ -538,7 +550,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     requiredCompletedSequenceIndex: requiredCompletedSequenceIndex,
                     onGuardedDisruption: definition.OnGuardedDisruption,
                     clash: definition.Clash,
-                    onEvadedDisruption: definition.OnEvadedDisruption));
+                    onEvadedDisruption: definition.OnEvadedDisruption,
+                    resolutionTimes: ScheduleResolutionTimes(
+                        definition.SustainedAttack,
+                        currentTime,
+                        definition.ResolutionOffset)));
                 currentTime = endTime;
             }
 
@@ -561,7 +577,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.DisplayName,
                     currentTime,
                     endTime,
-                    checked(currentTime + definition.ResolutionOffset),
+                    checked(currentTime + (definition.SustainedAttack?.FirstHitOffset
+                        ?? definition.ResolutionOffset)),
                     definition.DamageEffect,
                     definition.ResolutionEffect,
                     definition.DamageTags,
@@ -574,7 +591,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     disruptionResponseSegments: definition.DisruptionResponseSegments,
                     onGuardedDisruption: definition.OnGuardedDisruption,
                     clash: definition.Clash,
-                    onEvadedDisruption: definition.OnEvadedDisruption));
+                    onEvadedDisruption: definition.OnEvadedDisruption,
+                    resolutionTimes: ScheduleResolutionTimes(
+                        definition.SustainedAttack,
+                        currentTime,
+                        definition.ResolutionOffset)));
                 currentTime = endTime;
             }
 
@@ -621,7 +642,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ShiftCancellation(action.Cancellation, startShift),
                 action.OnGuardedDisruption,
                 action.Clash,
-                action.OnEvadedDisruption);
+                action.OnEvadedDisruption,
+                ShiftResolutionTimes(action.ResolutionTimes, resolutionShift));
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
@@ -683,7 +705,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.Cancellation,
                 action.OnGuardedDisruption,
                 action.Clash,
-                action.OnEvadedDisruption);
+                action.OnEvadedDisruption,
+                PauseResolutionTimes(
+                    action.ResolutionTimes,
+                    disruptionTime,
+                    duration));
         }
 
         private static ScheduledTimelineAction RestartScheduledAction(
@@ -745,7 +771,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 requiredCompletedSequenceIndex: action.RequiredCompletedSequenceIndex,
                 onGuardedDisruption: action.OnGuardedDisruption,
                 clash: action.Clash,
-                onEvadedDisruption: action.OnEvadedDisruption);
+                onEvadedDisruption: action.OnEvadedDisruption,
+                resolutionTimes: RestartResolutionTimes(
+                    action,
+                    restartTime));
         }
 
         private static ScheduledTimelineAction CancelScheduledAction(
@@ -794,7 +823,71 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     dependencyFailed),
                 action.OnGuardedDisruption,
                 action.Clash,
-                action.OnEvadedDisruption);
+                action.OnEvadedDisruption,
+                action.ResolutionTimes);
+        }
+
+        private static IReadOnlyList<int> ScheduleResolutionTimes(
+            SustainedAttackDefinition sustainedAttack,
+            int actionStartTime,
+            int fallbackResolutionOffset)
+        {
+            if (sustainedAttack == null)
+            {
+                return new[] { checked(actionStartTime + fallbackResolutionOffset) };
+            }
+
+            IReadOnlyList<int> offsets = sustainedAttack.BuildHitOffsets();
+            var times = new int[offsets.Count];
+            for (int index = 0; index < offsets.Count; index++)
+            {
+                times[index] = checked(actionStartTime + offsets[index]);
+            }
+
+            return Array.AsReadOnly(times);
+        }
+
+        private static IReadOnlyList<int> ShiftResolutionTimes(
+            IReadOnlyList<int> source,
+            int shift)
+        {
+            var shifted = new int[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                shifted[index] = checked(source[index] + shift);
+            }
+
+            return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<int> PauseResolutionTimes(
+            IReadOnlyList<int> source,
+            int disruptionTime,
+            int duration)
+        {
+            var shifted = new int[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                shifted[index] = source[index] > disruptionTime
+                    ? checked(source[index] + duration)
+                    : source[index];
+            }
+
+            return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<int> RestartResolutionTimes(
+            ScheduledTimelineAction action,
+            int restartTime)
+        {
+            var restarted = new int[action.ResolutionTimes.Count];
+            for (int index = 0; index < action.ResolutionTimes.Count; index++)
+            {
+                restarted[index] = checked(
+                    restartTime + action.GetLocalTimeAt(action.ResolutionTimes[index]));
+            }
+
+            return Array.AsReadOnly(restarted);
         }
 
         private static DamageEffectDefinition ScaleDamageEffect(

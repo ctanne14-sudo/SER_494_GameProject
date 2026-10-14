@@ -326,6 +326,82 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public double DamageMultiplierScale { get; }
     }
 
+    public sealed class SustainedAttackDefinition
+    {
+        public SustainedAttackDefinition(
+            int windowStartOffset,
+            int windowEndOffset,
+            int firstHitOffset,
+            int hitInterval,
+            int maximumHitCount)
+        {
+            if (windowStartOffset < 1 || windowEndOffset < windowStartOffset)
+            {
+                throw new ArgumentException(
+                    "A Sustained Attack must use an ordered window beginning at Local Time 1 or later.");
+            }
+
+            if (firstHitOffset < windowStartOffset || firstHitOffset > windowEndOffset)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(firstHitOffset),
+                    "The first Sustained Attack hit must be inside its Active Window.");
+            }
+
+            if (hitInterval <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hitInterval));
+            }
+
+            if (maximumHitCount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumHitCount));
+            }
+
+            WindowStartOffset = windowStartOffset;
+            WindowEndOffset = windowEndOffset;
+            FirstHitOffset = firstHitOffset;
+            HitInterval = hitInterval;
+            MaximumHitCount = maximumHitCount;
+        }
+
+        public int WindowStartOffset { get; }
+
+        public int WindowEndOffset { get; }
+
+        public int FirstHitOffset { get; }
+
+        public int HitInterval { get; }
+
+        public int MaximumHitCount { get; }
+
+        public IReadOnlyList<int> BuildHitOffsets()
+        {
+            var offsets = new List<int>(MaximumHitCount);
+            int offset = FirstHitOffset;
+            while (offset <= WindowEndOffset && offsets.Count < MaximumHitCount)
+            {
+                offsets.Add(offset);
+                offset = checked(offset + HitInterval);
+            }
+
+            return Array.AsReadOnly(offsets.ToArray());
+        }
+
+        internal void ValidateForAction(int loadCost, bool hasDamage)
+        {
+            if (!hasDamage)
+            {
+                throw new ArgumentException("Only a damaging Action can be a Sustained Attack.");
+            }
+
+            if (WindowEndOffset > loadCost)
+            {
+                throw new ArgumentException("A Sustained Attack window cannot extend beyond its Action Load.");
+            }
+        }
+    }
+
     [Flags]
     public enum DamageResolutionTag
     {
@@ -395,7 +471,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            SustainedAttackDefinition sustainedAttack = null)
             : this(
                 actionId,
                 displayName,
@@ -418,7 +495,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 disruptionResponseSegments,
                 onGuardedDisruption,
                 clash,
-                onEvadedDisruption)
+                onEvadedDisruption,
+                sustainedAttack)
         {
         }
 
@@ -443,7 +521,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            SustainedAttackDefinition sustainedAttack = null)
             : this(
                 actionId,
                 displayName,
@@ -468,7 +547,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 disruptionResponseSegments,
                 onGuardedDisruption,
                 clash,
-                onEvadedDisruption)
+                onEvadedDisruption,
+                sustainedAttack)
         {
         }
 
@@ -494,7 +574,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments,
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
-            ActionDisruptionDefinition onEvadedDisruption)
+            ActionDisruptionDefinition onEvadedDisruption,
+            SustainedAttackDefinition sustainedAttack)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -545,6 +626,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 LoadCost);
+            sustainedAttack?.ValidateForAction(LoadCost, damageEffect != null);
+            if (sustainedAttack != null && (HasResolutionWindow || ChargeLevels.Count > 0))
+            {
+                throw new ArgumentException(
+                    "The MVP does not combine Sustained Attacks with Resolution Windows or Charge Levels.");
+            }
+
+            SustainedAttack = sustainedAttack;
             if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
             {
                 throw new ArgumentException(
@@ -601,6 +690,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
+
+        public SustainedAttackDefinition SustainedAttack { get; }
 
         private static int RequirePositive(int value, string parameterName)
         {

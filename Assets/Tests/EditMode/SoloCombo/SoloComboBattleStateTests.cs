@@ -1657,6 +1657,133 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(result.Schedule.CompletionTime, Is.EqualTo(6));
         }
 
+        [Test]
+        public void SustainedAttack_EachHitChecksEvadeIndependently()
+        {
+            var evade = new ComboActionDefinition(
+                "evade",
+                "Evade",
+                ComboActionCategory.Opening,
+                loadCost: 2,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionOffset: 1,
+                resolutionEffect: ActionResolutionEffect.Evade);
+            ComboConfiguration combo = new ComboConfiguration(
+                "combo1",
+                evade,
+                new ComboActionDefinition(
+                    "main",
+                    "Main",
+                    ComboActionCategory.Main,
+                    loadCost: 2,
+                    manaCost: 0,
+                    staminaCost: 0,
+                    cooldown: 0),
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            EnemyActionSequence enemy = new EnemyActionSequence(
+                "sustained",
+                "Sustained",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "sweep",
+                        "Sweep",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.30d,
+                        sustainedAttack: new SustainedAttackDefinition(1, 3, 1, 2, 2))
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[] { combo },
+                enemy,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            SoloComboActionResolution[] hits = result.ActionResolutions
+                .Where(item => item.ActionId == "sweep")
+                .ToArray();
+
+            Assert.That(hits, Has.Length.EqualTo(2));
+            Assert.That(hits[0].TimeStep, Is.EqualTo(1));
+            Assert.That(hits[0].DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.Evaded));
+            Assert.That(hits[0].DamageDealt, Is.Zero);
+            Assert.That(hits[1].TimeStep, Is.EqualTo(3));
+            Assert.That(hits[1].DamageAvoidance, Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(hits[1].DamageDealt, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void SustainedAttack_CancelActionPreventsLaterHits()
+        {
+            var breaker = new ComboActionDefinition(
+                "breaker",
+                "Breaker",
+                ComboActionCategory.Main,
+                loadCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.30d,
+                resolutionOffset: 1,
+                onHitDisruption: new ActionDisruptionDefinition(
+                    ActionDisruptionType.Stagger,
+                    duration: 1));
+            var enemy = new EnemyActionSequence(
+                "sustained",
+                "Sustained",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "sweep",
+                        "Sweep",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.30d,
+                        disruptionResponseSegments: new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                1,
+                                4,
+                                ActionDisruptionResponse.Continue,
+                                ActionDisruptionResponse.CancelAction,
+                                ActionDisruptionResponse.CancelAction)
+                        },
+                        sustainedAttack: new SustainedAttackDefinition(1, 3, 1, 2, 2))
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 60, 60)),
+                new[]
+                {
+                    new ComboConfiguration(
+                        "combo1",
+                        openingAction: null,
+                        breaker,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null)
+                },
+                enemy,
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(
+                result.ActionResolutions.Count(item => item.ActionId == "sweep"),
+                Is.EqualTo(1));
+            Assert.That(
+                result.Schedule.Actions.Single(item => item.ActionId == "sweep").IsCanceled,
+                Is.True);
+        }
+
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
             var player = new CombatantState(

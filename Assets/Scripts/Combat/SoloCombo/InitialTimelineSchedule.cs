@@ -220,7 +220,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ScheduledActionCancellation cancellation = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            IReadOnlyList<int> resolutionTimes = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -229,6 +230,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StartTime = startTime;
             EndTime = endTime;
             ResolutionTime = resolutionTime;
+            ResolutionTimes = resolutionTimes ?? new[] { resolutionTime };
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = damageTags;
@@ -266,6 +268,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int EndTime { get; }
 
         public int ResolutionTime { get; }
+
+        public IReadOnlyList<int> ResolutionTimes { get; }
 
         public DamageEffectDefinition DamageEffect { get; }
 

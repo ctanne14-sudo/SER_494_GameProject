@@ -447,6 +447,42 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(validationError, Does.Contain("without Overcommit"));
         }
 
+        [Test]
+        public void TryCreateDefinition_SustainedAttack_CopiesSerializedTiming()
+        {
+            ConfigureAsset(
+                actionId: "barrage",
+                displayName: "Barrage",
+                category: ComboActionCategory.Main,
+                loadCost: 6,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 1,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("useSustainedAttack").boolValue = true;
+            serializedAsset.FindProperty("sustainedWindowStartOffset").intValue = 2;
+            serializedAsset.FindProperty("sustainedWindowEndOffset").intValue = 6;
+            serializedAsset.FindProperty("sustainedFirstHitOffset").intValue = 2;
+            serializedAsset.FindProperty("sustainedHitInterval").intValue = 2;
+            serializedAsset.FindProperty("sustainedMaximumHitCount").intValue = 3;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.SustainedAttack, Is.Not.Null);
+            Assert.That(definition.SustainedAttack.BuildHitOffsets(),
+                Is.EqualTo(new[] { 2, 4, 6 }));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

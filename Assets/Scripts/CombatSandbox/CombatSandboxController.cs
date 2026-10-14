@@ -656,16 +656,21 @@ namespace SER494.Gameplay.CombatSandbox
                     GUI.color = previousColor;
                 }
 
-                float resolutionRatio = Mathf.Clamp01(
-                    action.ResolutionTime / (float)displayEnd);
-                GUI.color = new Color(1f, 0.86f, 0.22f, 1f);
-                GUI.DrawTexture(
-                    new Rect(
-                        trackRect.x + trackRect.width * resolutionRatio - 1f,
-                        actionRect.y,
-                        2f,
-                        actionRect.height),
-                    Texture2D.whiteTexture);
+                for (int resolutionIndex = 0;
+                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex++)
+                {
+                    float resolutionRatio = Mathf.Clamp01(
+                        action.ResolutionTimes[resolutionIndex] / (float)displayEnd);
+                    GUI.color = new Color(1f, 0.86f, 0.22f, 1f);
+                    GUI.DrawTexture(
+                        new Rect(
+                            trackRect.x + trackRect.width * resolutionRatio - 1f,
+                            actionRect.y,
+                            2f,
+                            actionRect.height),
+                        Texture2D.whiteTexture);
+                }
                 GUI.color = previousColor;
             }
 
@@ -888,16 +893,22 @@ namespace SER494.Gameplay.CombatSandbox
                 }
 
                 GUI.color = IntentColor(action.ResolutionEffect);
-                float startRatio = Mathf.Clamp01(
-                    (action.ResolutionTime - 1f) / IntentTimelineLength);
-                float endRatio = Mathf.Clamp01(
-                    action.ResolutionTime / (float)IntentTimelineLength);
-                Rect marker = new Rect(
-                    timelineRect.x + timelineRect.width * startRatio,
-                    timelineRect.y + 2f,
-                    Mathf.Max(3f, timelineRect.width * (endRatio - startRatio)),
-                    timelineRect.height - 4f);
-                GUI.DrawTexture(marker, Texture2D.whiteTexture);
+                for (int resolutionIndex = 0;
+                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex++)
+                {
+                    int resolutionTime = action.ResolutionTimes[resolutionIndex];
+                    float startRatio = Mathf.Clamp01(
+                        (resolutionTime - 1f) / IntentTimelineLength);
+                    float endRatio = Mathf.Clamp01(
+                        resolutionTime / (float)IntentTimelineLength);
+                    Rect marker = new Rect(
+                        timelineRect.x + timelineRect.width * startRatio,
+                        timelineRect.y + 2f,
+                        Mathf.Max(3f, timelineRect.width * (endRatio - startRatio)),
+                        timelineRect.height - 4f);
+                    GUI.DrawTexture(marker, Texture2D.whiteTexture);
+                }
             }
 
             GUI.color = previousColor;
@@ -941,7 +952,8 @@ namespace SER494.Gameplay.CombatSandbox
                         + $"for {action.OnEvadedDisruption.Duration} Time Steps";
                 }
 
-                GUILayout.Label($"T{action.ResolutionTime}: {action.DisplayName} — {effect}");
+                string times = string.Join(", T", action.ResolutionTimes);
+                GUILayout.Label($"T{times}: {action.DisplayName} — {effect}");
             }
         }
 
@@ -1125,6 +1137,29 @@ namespace SER494.Gameplay.CombatSandbox
                 CombatStatusModifierDirection.DamageTaken,
                 DamageModifier.All(0.20d));
 
+            // The seeded first intent is an interactive Sustained Attack drill.
+            // combo3 evades the T1 hit but not the T3 hit, making the independent
+            // per-hit avoidance checks immediately visible in Play Mode.
+            var sustainedBarrage = new EnemyActionSequence(
+                "training.sustained-barrage-pattern",
+                "Sustained Barrage",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "training.twin-sweep",
+                        "Twin Sweep",
+                        loadCost: 4,
+                        resolutionOffset: 1,
+                        damageMultiplier: 0.30d,
+                        disruptionResponseSegments: PauseOnStagger(loadCost: 4),
+                        sustainedAttack: new SustainedAttackDefinition(
+                            windowStartOffset: 1,
+                            windowEndOffset: 3,
+                            firstHitOffset: 1,
+                            hitInterval: 2,
+                            maximumHitCount: 2))
+                });
+
             var overcommitFeint = new EnemyActionSequence(
                 "training.overcommit-feint-pattern",
                 "Overcommit Feint",
@@ -1306,6 +1341,10 @@ namespace SER494.Gameplay.CombatSandbox
             var enemyBehavior = new EnemyBehaviorTable(
                 new[]
                 {
+                    new EnemyBehaviorEntry(
+                        sustainedBarrage,
+                        selectionWeight: 1,
+                        preventImmediateRepeat: true),
                     new EnemyBehaviorEntry(
                         overcommitFeint,
                         selectionWeight: 1,

@@ -528,6 +528,74 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 disruptionResponseSegments: segments));
         }
 
+        [Test]
+        public void Build_SustainedAttack_CreatesIndependentResolutionStepsInsideWindow()
+        {
+            var sustained = new EnemyActionDefinition(
+                "sweep",
+                "Sweep",
+                loadCost: 6,
+                resolutionOffset: 1,
+                damageMultiplier: 0.30d,
+                sustainedAttack: new SustainedAttackDefinition(
+                    windowStartOffset: 2,
+                    windowEndOffset: 6,
+                    firstHitOffset: 2,
+                    hitInterval: 2,
+                    maximumHitCount: 3));
+
+            InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(
+                    PlayerAction("player", ComboActionCategory.Main, load: 6, resolution: 6)),
+                EnemySequence(sustained));
+
+            ScheduledTimelineAction enemy = schedule.Actions.Single(
+                action => action.Side == TimelineActorSide.Enemy);
+            Assert.That(enemy.ResolutionTimes, Is.EqualTo(new[] { 2, 4, 6 }));
+            Assert.That(
+                schedule.ResolutionSteps
+                    .Where(step => step.Actions.Contains(enemy))
+                    .Select(step => step.TimeStep),
+                Is.EqualTo(new[] { 2, 4, 6 }));
+        }
+
+        [Test]
+        public void Build_SustainedAttackOverlappingOwnGuard_IsRejected()
+        {
+            var sustained = new ComboActionDefinition(
+                "sustained",
+                "Sustained",
+                ComboActionCategory.Opening,
+                loadCost: 3,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.20d,
+                resolutionOffset: 1,
+                sustainedAttack: new SustainedAttackDefinition(1, 3, 1, 2, 2));
+            var guard = new ComboActionDefinition(
+                "guard",
+                "Guard",
+                ComboActionCategory.Main,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionOffset: 0,
+                resolutionEffect: ActionResolutionEffect.Guard);
+
+            Assert.Throws<InvalidOperationException>(() =>
+                InitialTimelineScheduleBuilder.Build(
+                    new ComboConfiguration(
+                        "combo1",
+                        sustained,
+                        guard,
+                        closingAction: null,
+                        linkedAction: null,
+                        linkedActionPlacement: null),
+                    EnemySequence(EnemyAction("enemy", load: 4, resolution: 4))));
+        }
+
         private static InitialTimelineSchedule ApplyPauseToDefensiveWindow(
             ActiveWindowDisruptionPolicy policy)
         {

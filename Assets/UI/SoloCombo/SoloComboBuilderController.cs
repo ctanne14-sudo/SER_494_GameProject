@@ -571,10 +571,15 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     .Append(action.StaminaCost)
                     .Append(" | CD ")
                     .Append(action.Cooldown)
-                    .Append(action.UsesResolutionWindow
+                    .Append(action.UsesSustainedAttack
+                        ? " | Sustained Hits — Local T+"
+                        : action.UsesResolutionWindow
                         ? " | Resolution Window — Local T+"
                         : " | Resolution Point — Local T+")
-                    .Append(action.UsesResolutionWindow
+                    .Append(action.UsesSustainedAttack
+                        ? $"{action.SustainedFirstHitOffset}–{action.SustainedWindowEndOffset}"
+                            + $" every {action.SustainedHitInterval} (max {action.SustainedMaximumHitCount})"
+                        : action.UsesResolutionWindow
                         ? $"{action.ResolutionWindowStart}–{action.ResolutionWindowEnd}"
                         : action.ResolutionOffset.ToString())
                     .Append(": ")

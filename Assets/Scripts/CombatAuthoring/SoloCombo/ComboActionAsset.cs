@@ -93,6 +93,25 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             Array.Empty<ActiveWindowAuthoringData>();
 
         [SerializeField]
+        [Tooltip("Resolve this damaging Action repeatedly inside an inclusive local-time window.")]
+        private bool useSustainedAttack = false;
+
+        [SerializeField, Min(1)]
+        private int sustainedWindowStartOffset = 1;
+
+        [SerializeField, Min(1)]
+        private int sustainedWindowEndOffset = 1;
+
+        [SerializeField, Min(1)]
+        private int sustainedFirstHitOffset = 1;
+
+        [SerializeField, Min(1)]
+        private int sustainedHitInterval = 1;
+
+        [SerializeField, Min(1)]
+        private int sustainedMaximumHitCount = 1;
+
+        [SerializeField]
         [Min(0)]
         private int manaCost;
 
@@ -185,6 +204,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public int ChargeLevelCount => chargeLevels?.Length ?? 0;
 
         public int ActiveWindowCount => activeWindows?.Length ?? 0;
+
+        public bool UsesSustainedAttack => useSustainedAttack;
+
+        public int SustainedWindowStartOffset => sustainedWindowStartOffset;
+
+        public int SustainedWindowEndOffset => sustainedWindowEndOffset;
+
+        public int SustainedFirstHitOffset => sustainedFirstHitOffset;
+
+        public int SustainedHitInterval => sustainedHitInterval;
+
+        public int SustainedMaximumHitCount => sustainedMaximumHitCount;
 
         public string GetActiveWindowDisplayName(int index)
         {
@@ -305,6 +336,22 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             if (useResolutionWindow && chargeDefinitions.Count > 0)
             {
                 validationError = $"{name} cannot use both a Resolution Window and Charge Levels in the MVP.";
+                return false;
+            }
+
+            if (useSustainedAttack
+                && (damageMultiplier <= 0f
+                    || useResolutionWindow
+                    || chargeDefinitions.Count > 0
+                    || sustainedWindowStartOffset < 1
+                    || sustainedWindowEndOffset < sustainedWindowStartOffset
+                    || sustainedWindowEndOffset > loadCost
+                    || sustainedFirstHitOffset < sustainedWindowStartOffset
+                    || sustainedFirstHitOffset > sustainedWindowEndOffset
+                    || sustainedHitInterval <= 0
+                    || sustainedMaximumHitCount <= 0))
+            {
+                validationError = $"{name} contains invalid Sustained Attack timing or an unsupported combination.";
                 return false;
             }
 
@@ -463,6 +510,14 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     ? new ActionDisruptionDefinition(
                         onEvadedDisruptionType,
                         onEvadedDisruptionDuration)
+                    : null,
+                sustainedAttack: useSustainedAttack
+                    ? new SustainedAttackDefinition(
+                        sustainedWindowStartOffset,
+                        sustainedWindowEndOffset,
+                        sustainedFirstHitOffset,
+                        sustainedHitInterval,
+                        sustainedMaximumHitCount)
                     : null);
 
             validationError = null;
@@ -475,6 +530,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             resolutionOffset = Mathf.Clamp(resolutionOffset, 0, loadCost);
             resolutionWindowStart = Mathf.Clamp(resolutionWindowStart, 0, loadCost);
             resolutionWindowEnd = Mathf.Clamp(resolutionWindowEnd, 0, loadCost);
+            sustainedWindowStartOffset = Mathf.Clamp(sustainedWindowStartOffset, 1, loadCost);
+            sustainedWindowEndOffset = Mathf.Clamp(sustainedWindowEndOffset, 1, loadCost);
+            sustainedFirstHitOffset = Mathf.Clamp(sustainedFirstHitOffset, 1, loadCost);
+            sustainedHitInterval = Mathf.Max(1, sustainedHitInterval);
+            sustainedMaximumHitCount = Mathf.Max(1, sustainedMaximumHitCount);
             manaCost = Mathf.Max(0, manaCost);
             staminaCost = Mathf.Max(0, staminaCost);
             cooldown = Mathf.Max(0, cooldown);
