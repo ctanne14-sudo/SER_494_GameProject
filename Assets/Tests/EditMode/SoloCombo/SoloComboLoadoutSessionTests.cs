@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
@@ -42,6 +43,21 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             Assert.That(_session.HasPreparedLoadout, Is.False);
             Assert.That(_session.TryGetPreparedLoadout(out _), Is.False);
+            Assert.That(_session.EquippedWeapon, Is.Null);
+        }
+
+        [Test]
+        public void Prepare_WithWeapon_PreservesRuntimeWeaponDefinition()
+        {
+            var weapon = new WeaponDefinition(
+                "weapon.bow",
+                "Bow",
+                WeaponType.Bow,
+                weaponAttack: 50);
+
+            _session.Prepare(new[] { MainOnlyCombo() }, weapon);
+
+            Assert.That(_session.EquippedWeapon, Is.SameAs(weapon));
         }
 
         private static ComboConfiguration MainOnlyCombo()

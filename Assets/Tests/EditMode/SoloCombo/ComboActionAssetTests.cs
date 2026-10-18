@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.Combat.Weapons;
 using UnityEditor;
 using UnityEngine;
 
@@ -481,6 +482,68 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.SustainedAttack, Is.Not.Null);
             Assert.That(definition.SustainedAttack.BuildHitOffsets(),
                 Is.EqualTo(new[] { 2, 4, 6 }));
+        }
+
+        [Test]
+        public void TryCreateDefinition_CompatibleWeapons_CopiesSerializedFlags()
+        {
+            ConfigureAsset(
+                actionId: "shield-strike",
+                displayName: "Shield Strike",
+                category: ComboActionCategory.Main,
+                loadCost: 2,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Blunt,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("compatibleWeaponTypes").intValue =
+                (int)(CompatibleWeaponTypes.SwordAndShield
+                    | CompatibleWeaponTypes.SpearAndShield);
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.IsCompatibleWith(WeaponType.SwordAndShield), Is.True);
+            Assert.That(definition.IsCompatibleWith(WeaponType.SpearAndShield), Is.True);
+            Assert.That(definition.IsCompatibleWith(WeaponType.Bow), Is.False);
+        }
+
+        [Test]
+        public void TryCreateDefinition_LegacyMissingWeaponFlags_DefaultsToAllWeapons()
+        {
+            ConfigureAsset(
+                actionId: "legacy-main",
+                displayName: "Legacy Main",
+                category: ComboActionCategory.Main,
+                loadCost: 2,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("compatibleWeaponTypes").intValue = 0;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.CompatibleWeaponTypes, Is.EqualTo(CompatibleWeaponTypes.All));
         }
 
         private void ConfigureAsset(

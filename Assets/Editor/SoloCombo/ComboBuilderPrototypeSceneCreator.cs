@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Authoring.Weapons;
 using SER494.Gameplay.Combat.UI.SoloCombo;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -45,6 +46,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             }
 
             ComboActionAsset[] sampleActions = LoadSampleActions();
+            WeaponDefinitionAsset[] sampleWeapons =
+                SampleWeaponAssetCreator.SynchronizeSampleWeapons();
 
             SceneAsset existingScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
             Scene scene = existingScene == null
@@ -64,7 +67,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             SoloComboBuilderController controller =
                 GetOrAddComponent<SoloComboBuilderController>(builderObject);
-            ConfigureController(controller, sampleActions, loadoutSession);
+            ConfigureController(controller, sampleActions, sampleWeapons, loadoutSession);
             EnsureCamera(scene);
 
             if (document.panelSettings == null)
@@ -89,7 +92,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             EditorGUIUtility.PingObject(builderObject);
             Debug.Log(
                 $"Created or repaired Combo Builder prototype scene at {ScenePath} with "
-                + $"{sampleActions.Length} sample Action asset(s).");
+                + $"{sampleActions.Length} sample Action asset(s) and "
+                + $"{sampleWeapons.Length} Weapon asset(s).");
         }
 
         private static void ConfigureDocument(
@@ -107,6 +111,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
         private static void ConfigureController(
             SoloComboBuilderController controller,
             ComboActionAsset[] sampleActions,
+            WeaponDefinitionAsset[] sampleWeapons,
             SoloComboLoadoutSession loadoutSession)
         {
             Undo.RecordObject(controller, "Assign Solo Combo Loadout Session");
@@ -121,6 +126,19 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 actionArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleActions[index];
             }
 
+            SerializedProperty weaponArray = serializedController.FindProperty("availableWeapons");
+            weaponArray.arraySize = sampleWeapons.Length;
+            for (int index = 0; index < sampleWeapons.Length; index++)
+            {
+                weaponArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleWeapons[index];
+            }
+
+            WeaponDefinitionAsset defaultWeapon = FindWeapon(
+                sampleWeapons,
+                "weapon.sword-and-shield");
+            serializedController.FindProperty("equippedWeapon").objectReferenceValue =
+                defaultWeapon ?? (sampleWeapons.Length > 0 ? sampleWeapons[0] : null);
+
             serializedController.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(controller);
 
@@ -128,6 +146,23 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             {
                 Debug.LogError("Failed to assign the runtime loadout session to SoloComboBuilderController.");
             }
+        }
+
+        private static WeaponDefinitionAsset FindWeapon(
+            IReadOnlyList<WeaponDefinitionAsset> weapons,
+            string weaponId)
+        {
+            for (int index = 0; index < weapons.Count; index++)
+            {
+                WeaponDefinitionAsset weapon = weapons[index];
+                if (weapon != null
+                    && string.Equals(weapon.WeaponId, weaponId, StringComparison.Ordinal))
+                {
+                    return weapon;
+                }
+            }
+
+            return null;
         }
 
         private static void ConfigureCombatSandbox(SoloComboLoadoutSession loadoutSession)

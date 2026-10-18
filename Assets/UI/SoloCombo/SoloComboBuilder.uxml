@@ -16,6 +16,12 @@
 
             <ui:ScrollView name="contentScroll" class="content-scroll">
                 <ui:VisualElement class="section-card">
+                    <ui:Label text="Equipped Weapon" class="section-title" />
+                    <ui:DropdownField name="weaponField" label="Weapon" class="combo-field" />
+                    <ui:Label name="weaponSummaryLabel" text="No Weapon data assigned." class="library-text" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="section-card">
                     <ui:Label text="Combo Identity" class="section-title" />
                     <ui:TextField name="comboNameField" label="Combo Name" class="combo-field" />
                 </ui:VisualElement>

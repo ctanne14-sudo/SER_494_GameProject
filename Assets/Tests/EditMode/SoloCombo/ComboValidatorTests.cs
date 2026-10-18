@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
@@ -135,6 +136,51 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(
                 result.Issues.Select(issue => issue.Code),
                 Contains.Item(ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap));
+        }
+
+        [Test]
+        public void Validate_ActionCompatibleWithEquippedWeapon_IsValid()
+        {
+            var main = new ComboActionDefinition(
+                "bow-main",
+                "Bow Main",
+                ComboActionCategory.Main,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                compatibleWeaponTypes: CompatibleWeaponTypes.Bow);
+
+            ComboValidationResult result = ComboValidator.Validate(
+                MainOnlyCombo("combo1", main),
+                GenerousLimits,
+                WeaponType.Bow);
+
+            Assert.That(result.IsValid, Is.True);
+        }
+
+        [Test]
+        public void Validate_ActionIncompatibleWithEquippedWeapon_IsInvalid()
+        {
+            var main = new ComboActionDefinition(
+                "bow-main",
+                "Bow Main",
+                ComboActionCategory.Main,
+                loadCost: 1,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                compatibleWeaponTypes: CompatibleWeaponTypes.Bow);
+
+            ComboValidationResult result = ComboValidator.Validate(
+                MainOnlyCombo("combo1", main),
+                GenerousLimits,
+                WeaponType.Greatsword);
+
+            Assert.That(result.IsValid, Is.False);
+            Assert.That(
+                result.Issues.Select(issue => issue.Code),
+                Contains.Item(ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon));
         }
 
         private static ComboConfiguration MainOnlyCombo(

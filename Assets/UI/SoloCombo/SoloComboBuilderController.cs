@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Authoring.Weapons;
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -24,6 +26,13 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         [SerializeField]
         private ComboActionAsset[] availableActions = Array.Empty<ComboActionAsset>();
 
+        [Header("Available Weapons")]
+        [SerializeField]
+        private WeaponDefinitionAsset[] availableWeapons = Array.Empty<WeaponDefinitionAsset>();
+
+        [SerializeField]
+        private WeaponDefinitionAsset equippedWeapon = null;
+
         [Header("Character Limits")]
         [SerializeField]
         [Min(0)]
@@ -43,6 +52,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private VisualElement _root;
         private Button[] _comboButtons;
         private TextField _comboNameField;
+        private DropdownField _weaponField;
+        private Label _weaponSummaryLabel;
         private DropdownField _openingActionField;
         private DropdownField _mainActionField;
         private DropdownField _closingActionField;
@@ -70,6 +81,12 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         {
             get => loadoutSession;
             set => loadoutSession = value;
+        }
+
+        public WeaponDefinitionAsset EquippedWeapon
+        {
+            get => equippedWeapon;
+            set => equippedWeapon = value;
         }
 
         private void Awake()
@@ -119,6 +136,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 _root.Q<Button>("combo4Button")
             };
             _comboNameField = _root.Q<TextField>("comboNameField");
+            _weaponField = _root.Q<DropdownField>("weaponField");
+            _weaponSummaryLabel = _root.Q<Label>("weaponSummaryLabel");
             _openingActionField = _root.Q<DropdownField>("openingActionField");
             _mainActionField = _root.Q<DropdownField>("mainActionField");
             _closingActionField = _root.Q<DropdownField>("closingActionField");
@@ -141,6 +160,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 return;
             }
 
+            BuildWeaponOptions();
             BuildActionOptions();
             RegisterCallbacks();
             _isBound = true;
@@ -160,6 +180,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _comboButtons[2].clicked -= SelectCombo3;
             _comboButtons[3].clicked -= SelectCombo4;
             _comboNameField.UnregisterValueChangedCallback(OnComboNameChanged);
+            _weaponField.UnregisterValueChangedCallback(OnWeaponChanged);
             _openingActionField.UnregisterValueChangedCallback(OnOpeningActionChanged);
             _mainActionField.UnregisterValueChangedCallback(OnMainActionChanged);
             _closingActionField.UnregisterValueChangedCallback(OnClosingActionChanged);
@@ -182,6 +203,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             }
 
             return _comboNameField != null
+                && _weaponField != null
+                && _weaponSummaryLabel != null
                 && _openingActionField != null
                 && _mainActionField != null
                 && _closingActionField != null
@@ -218,6 +241,37 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             };
         }
 
+        private void BuildWeaponOptions()
+        {
+            var choices = new List<string>();
+            WeaponDefinitionAsset firstAvailableWeapon = null;
+            bool containsEquippedWeapon = false;
+
+            for (int index = 0; index < availableWeapons.Length; index++)
+            {
+                WeaponDefinitionAsset weapon = availableWeapons[index];
+                if (weapon == null)
+                {
+                    continue;
+                }
+
+                firstAvailableWeapon ??= weapon;
+                containsEquippedWeapon |= weapon == equippedWeapon;
+                choices.Add(WeaponOptionLabel(weapon));
+            }
+
+            if (!containsEquippedWeapon)
+            {
+                equippedWeapon = firstAvailableWeapon;
+            }
+
+            _weaponField.choices = choices;
+            _weaponField.SetValueWithoutNotify(
+                equippedWeapon == null ? string.Empty : WeaponOptionLabel(equippedWeapon));
+            _weaponField.SetEnabled(choices.Count > 1);
+            RefreshWeaponSummary();
+        }
+
         private List<ComboActionAsset> BuildOptions(ComboActionCategory category)
         {
             var options = new List<ComboActionAsset> { null };
@@ -225,7 +279,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             for (int index = 0; index < availableActions.Length; index++)
             {
                 ComboActionAsset action = availableActions[index];
-                if (action != null && action.Category == category)
+                if (action != null
+                    && action.Category == category
+                    && (equippedWeapon == null
+                        || action.IsCompatibleWith(equippedWeapon.WeaponType)))
                 {
                     options.Add(action);
                 }
@@ -241,6 +298,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _comboButtons[2].clicked += SelectCombo3;
             _comboButtons[3].clicked += SelectCombo4;
             _comboNameField.RegisterValueChangedCallback(OnComboNameChanged);
+            _weaponField.RegisterValueChangedCallback(OnWeaponChanged);
             _openingActionField.RegisterValueChangedCallback(OnOpeningActionChanged);
             _mainActionField.RegisterValueChangedCallback(OnMainActionChanged);
             _closingActionField.RegisterValueChangedCallback(OnClosingActionChanged);
@@ -258,6 +316,50 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private void SelectCombo3() => SelectCombo(2);
 
         private void SelectCombo4() => SelectCombo(3);
+
+        private void OnWeaponChanged(ChangeEvent<string> changeEvent)
+        {
+            equippedWeapon = FindWeaponOption(changeEvent.newValue);
+            RemoveIncompatibleDraftActions();
+            BuildActionOptions();
+            RefreshEditorFields();
+            RefreshActionLibrary();
+            RefreshWeaponSummary();
+            RefreshSummaryAndValidation();
+        }
+
+        private void RemoveIncompatibleDraftActions()
+        {
+            if (equippedWeapon == null)
+            {
+                return;
+            }
+
+            WeaponType weaponType = equippedWeapon.WeaponType;
+            for (int index = 0; index < _drafts.Length; index++)
+            {
+                ComboDraft draft = _drafts[index];
+                if (draft.OpeningAction != null && !draft.OpeningAction.IsCompatibleWith(weaponType))
+                {
+                    draft.OpeningAction = null;
+                }
+
+                if (draft.MainAction != null && !draft.MainAction.IsCompatibleWith(weaponType))
+                {
+                    draft.MainAction = null;
+                }
+
+                if (draft.ClosingAction != null && !draft.ClosingAction.IsCompatibleWith(weaponType))
+                {
+                    draft.ClosingAction = null;
+                }
+
+                if (draft.LinkedAction != null && !draft.LinkedAction.IsCompatibleWith(weaponType))
+                {
+                    draft.LinkedAction = null;
+                }
+            }
+        }
 
         private void SelectCombo(int comboIndex)
         {
@@ -385,14 +487,25 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             }
 
             var limits = new ComboValidationLimits(maximumLoad, maximumMana, maximumStamina);
-            ComboValidationResult result = ComboLoadoutValidator.Validate(configurations, limits);
+            if (!TryCreateEquippedWeapon(
+                    out WeaponDefinition weaponDefinition,
+                    out string weaponError))
+            {
+                Debug.LogError($"Cannot start the test battle: {weaponError}", this);
+                return;
+            }
+
+            ComboValidationResult result = ComboLoadoutValidator.Validate(
+                configurations,
+                limits,
+                weaponDefinition?.WeaponType);
             if (!result.IsValid)
             {
                 Debug.LogError("Cannot start the test battle while the Combo loadout is invalid.", this);
                 return;
             }
 
-            loadoutSession.Prepare(configurations);
+            loadoutSession.Prepare(configurations, weaponDefinition);
             SceneManager.LoadScene(CombatSceneName);
         }
 
@@ -429,6 +542,15 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _cooldownLabel.text = $"Cooldown: {draft.TotalCooldown}";
 
             var limits = new ComboValidationLimits(maximumLoad, maximumMana, maximumStamina);
+            if (!TryCreateEquippedWeapon(
+                    out WeaponDefinition weaponDefinition,
+                    out string weaponError))
+            {
+                SetStatus(_currentComboStatusLabel, $"Weapon: {weaponError}", isValid: false);
+                SetStatus(_loadoutStatusLabel, $"Loadout: {weaponError}", isValid: false);
+                _startBattleButton.SetEnabled(false);
+                return;
+            }
 
             if (!TryBuildConfiguration(draft, out ComboConfiguration currentCombo, out string authoringError))
             {
@@ -436,7 +558,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             }
             else
             {
-                ComboValidationResult currentResult = ComboValidator.Validate(currentCombo, limits);
+                ComboValidationResult currentResult = ComboValidator.Validate(
+                    currentCombo,
+                    limits,
+                    weaponDefinition?.WeaponType);
                 SetStatus(
                     _currentComboStatusLabel,
                     currentResult.IsValid
@@ -452,7 +577,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 return;
             }
 
-            ComboValidationResult loadoutResult = ComboLoadoutValidator.Validate(configurations, limits);
+            ComboValidationResult loadoutResult = ComboLoadoutValidator.Validate(
+                configurations,
+                limits,
+                weaponDefinition?.WeaponType);
             if (loadoutSession == null)
             {
                 SetStatus(
@@ -543,6 +671,55 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             return asset.TryCreateDefinition(out definition, out validationError);
         }
 
+        private bool TryCreateEquippedWeapon(
+            out WeaponDefinition definition,
+            out string validationError)
+        {
+            if (equippedWeapon == null)
+            {
+                definition = null;
+                validationError = HasAvailableWeapon()
+                    ? "Select an equipped Weapon."
+                    : null;
+                return validationError == null;
+            }
+
+            return equippedWeapon.TryCreateDefinition(out definition, out validationError);
+        }
+
+        private bool HasAvailableWeapon()
+        {
+            for (int index = 0; index < availableWeapons.Length; index++)
+            {
+                if (availableWeapons[index] != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void RefreshWeaponSummary()
+        {
+            if (_weaponSummaryLabel == null)
+            {
+                return;
+            }
+
+            if (!TryCreateEquippedWeapon(
+                    out WeaponDefinition definition,
+                    out string validationError))
+            {
+                _weaponSummaryLabel.text = validationError;
+                return;
+            }
+
+            _weaponSummaryLabel.text = definition == null
+                ? "Legacy mode: no Weapon data assigned; all compatible Actions are shown."
+                : $"{definition.DisplayName} — {definition.WeaponType} | Weapon ATK {definition.WeaponAttack}";
+        }
+
         private void RefreshActionLibrary()
         {
             var builder = new StringBuilder();
@@ -571,6 +748,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     .Append(action.StaminaCost)
                     .Append(" | CD ")
                     .Append(action.Cooldown)
+                    .Append(" | Weapons ")
+                    .Append(FormatCompatibleWeapons(action.CompatibleWeaponTypes))
                     .Append(action.UsesSustainedAttack
                         ? " | Sustained Hits — Local T+"
                         : action.UsesResolutionWindow
@@ -723,6 +902,32 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             return null;
         }
 
+        private WeaponDefinitionAsset FindWeaponOption(string selectedLabel)
+        {
+            for (int index = 0; index < availableWeapons.Length; index++)
+            {
+                WeaponDefinitionAsset weapon = availableWeapons[index];
+                if (weapon != null && WeaponOptionLabel(weapon) == selectedLabel)
+                {
+                    return weapon;
+                }
+            }
+
+            return null;
+        }
+
+        private static string WeaponOptionLabel(WeaponDefinitionAsset weapon)
+        {
+            return $"{weapon.DisplayName} [{weapon.WeaponType}]";
+        }
+
+        private static string FormatCompatibleWeapons(CompatibleWeaponTypes compatibleWeapons)
+        {
+            return compatibleWeapons == CompatibleWeaponTypes.All
+                ? "All"
+                : compatibleWeapons.ToString();
+        }
+
         private static string OptionLabel(ComboActionAsset action)
         {
             return action == null
@@ -827,6 +1032,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     return "Damage, Guard, and Evade Resolution Points cannot overlap.";
                 case ComboValidationErrorCode.ActionAssignedMoreThanOnce:
                     return "The same Action is assigned more than once.";
+                case ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon:
+                    return "An Action is incompatible with the equipped Weapon.";
                 case ComboValidationErrorCode.EmptyLoadout:
                     return "The loadout has no Combos.";
                 case ComboValidationErrorCode.NullCombo:

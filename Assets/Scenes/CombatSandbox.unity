@@ -413,6 +413,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SER494.Gameplay.CombatSandbox.CombatSandboxController
   loadoutSession: {fileID: 11400000, guid: ba0fe5856911c414f99e97d6d91ae85a, type: 2}
+  secondsPerTimeStep: 0.2
+  timingInputLimit: 3
+  timingCandidateSeconds: 0.35
+  chargeInputLimit: 3
+  chargeHoldLimit: 3
+  chargeCycleSeconds: 1.5
 --- !u!4 &1097888647
 Transform:
   m_ObjectHideFlags: 0

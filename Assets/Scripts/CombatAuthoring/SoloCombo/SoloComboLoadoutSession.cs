@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
 
 namespace SER494.Gameplay.Combat.Authoring.SoloCombo
@@ -13,9 +14,21 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [NonSerialized]
         private ComboConfiguration[] _preparedCombos;
 
+        [NonSerialized]
+        private WeaponDefinition _equippedWeapon;
+
         public bool HasPreparedLoadout => _preparedCombos != null && _preparedCombos.Length > 0;
 
+        public WeaponDefinition EquippedWeapon => _equippedWeapon;
+
         public void Prepare(IReadOnlyList<ComboConfiguration> combos)
+        {
+            Prepare(combos, equippedWeapon: null);
+        }
+
+        public void Prepare(
+            IReadOnlyList<ComboConfiguration> combos,
+            WeaponDefinition equippedWeapon)
         {
             if (combos == null)
             {
@@ -35,6 +48,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             }
 
             _preparedCombos = copy;
+            _equippedWeapon = equippedWeapon;
         }
 
         public bool TryGetPreparedLoadout(out IReadOnlyList<ComboConfiguration> combos)
@@ -46,6 +60,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public void Clear()
         {
             _preparedCombos = null;
+            _equippedWeapon = null;
         }
     }
 }

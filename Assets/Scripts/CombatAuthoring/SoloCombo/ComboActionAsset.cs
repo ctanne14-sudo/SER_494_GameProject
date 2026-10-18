@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
 
 namespace SER494.Gameplay.Combat.Authoring.SoloCombo
@@ -59,6 +60,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Header("Combo Role")]
         [SerializeField]
         private ComboActionCategory category = ComboActionCategory.Opening;
+
+        [SerializeField]
+        [Tooltip("Weapon Types that can use this Action. Existing Actions default to all five Weapon Types.")]
+        private CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All;
 
         [Header("Costs")]
         [SerializeField]
@@ -189,6 +194,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public ComboActionCategory Category => category;
 
+        public CompatibleWeaponTypes CompatibleWeaponTypes => NormalizedCompatibleWeaponTypes;
+
+        public bool IsCompatibleWith(WeaponType weaponType)
+        {
+            return NormalizedCompatibleWeaponTypes.Supports(weaponType);
+        }
+
         public int LoadCost => loadCost;
 
         public int ManaCost => manaCost;
@@ -307,6 +319,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             if (loadCost <= 0)
             {
                 validationError = $"{name} must have a Load Cost greater than zero.";
+                return false;
+            }
+
+            if ((compatibleWeaponTypes & ~CompatibleWeaponTypes.All) != 0)
+            {
+                validationError = $"{name} must support at least one known Weapon Type.";
                 return false;
             }
 
@@ -518,7 +536,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         sustainedFirstHitOffset,
                         sustainedHitInterval,
                         sustainedMaximumHitCount)
-                    : null);
+                    : null,
+                compatibleWeaponTypes: NormalizedCompatibleWeaponTypes);
 
             validationError = null;
             return true;
@@ -526,6 +545,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         private void OnValidate()
         {
+            if (compatibleWeaponTypes == CompatibleWeaponTypes.None)
+            {
+                compatibleWeaponTypes = CompatibleWeaponTypes.All;
+            }
+
             loadCost = Mathf.Max(1, loadCost);
             resolutionOffset = Mathf.Clamp(resolutionOffset, 0, loadCost);
             resolutionWindowStart = Mathf.Clamp(resolutionWindowStart, 0, loadCost);
@@ -590,6 +614,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     : 0;
             }
         }
+
+        private CompatibleWeaponTypes NormalizedCompatibleWeaponTypes =>
+            compatibleWeaponTypes == CompatibleWeaponTypes.None
+                ? CompatibleWeaponTypes.All
+                : compatibleWeaponTypes;
 
         private bool TryCreateChargeLevels(
             out IReadOnlyList<ComboActionChargeLevelDefinition> definitions,

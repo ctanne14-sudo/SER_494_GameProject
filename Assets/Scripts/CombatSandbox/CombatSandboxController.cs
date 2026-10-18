@@ -1110,7 +1110,7 @@ namespace SER494.Gameplay.CombatSandbox
                     maxHealth: 100,
                     maxMana: 30,
                     maxStamina: 30,
-                    attack: 50,
+                    attack: loadoutSession.EquippedWeapon?.WeaponAttack ?? 50,
                     defense: 50));
 
             var enemy = new CombatantState(

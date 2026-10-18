@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo
 {
@@ -19,7 +20,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         ManaCostExceeded,
         StaminaCostExceeded,
         MutuallyExclusiveResolutionEffectsOverlap,
-        ActionAssignedMoreThanOnce
+        ActionAssignedMoreThanOnce,
+        ActionIncompatibleWithEquippedWeapon
     }
 
     public sealed class ComboValidationLimits
@@ -93,7 +95,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     {
         public static ComboValidationResult Validate(
             ComboConfiguration combo,
-            ComboValidationLimits limits)
+            ComboValidationLimits limits,
+            WeaponType? equippedWeaponType = null)
         {
             if (combo == null)
             {
@@ -110,7 +113,32 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ValidateLinkedAction(combo, result);
             ValidateCosts(combo, limits, result);
             ValidateResolutionPointExclusivity(combo, result);
+            ValidateWeaponCompatibility(combo, equippedWeaponType, result);
             return result;
+        }
+
+        private static void ValidateWeaponCompatibility(
+            ComboConfiguration combo,
+            WeaponType? equippedWeaponType,
+            ComboValidationResult result)
+        {
+            if (!equippedWeaponType.HasValue)
+            {
+                return;
+            }
+
+            IReadOnlyList<ComboActionDefinition> actions = combo.GetAssignedActions();
+            for (int index = 0; index < actions.Count; index++)
+            {
+                ComboActionDefinition action = actions[index];
+                if (!action.IsCompatibleWith(equippedWeaponType.Value))
+                {
+                    result.Add(
+                        ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon,
+                        combo.Name,
+                        action.ActionId);
+                }
+            }
         }
 
         private static void ValidateActionSlots(
@@ -282,7 +310,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     {
         public static ComboValidationResult Validate(
             IReadOnlyList<ComboConfiguration> combos,
-            ComboValidationLimits limits)
+            ComboValidationLimits limits,
+            WeaponType? equippedWeaponType = null)
         {
             if (combos == null)
             {
@@ -312,7 +341,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
-                ComboValidationResult comboResult = ComboValidator.Validate(combo, limits);
+                ComboValidationResult comboResult = ComboValidator.Validate(
+                    combo,
+                    limits,
+                    equippedWeaponType);
                 result.AddRange(comboResult.Issues);
                 ValidateUniqueActions(combo, assignedActionIds, result);
             }

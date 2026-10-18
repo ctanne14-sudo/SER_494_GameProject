@@ -167,6 +167,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 67fc963fbf084965bfb2dfb44451a034, type: 2}
   - {fileID: 11400000, guid: df609958289745d3b9a038ad6b81311f, type: 2}
   - {fileID: 11400000, guid: ab478a11930443d7b098bf79e5b06f78, type: 2}
+  availableWeapons:
+  - {fileID: 11400000, guid: 56962bb5fa8a8934e8f23c224fbdd12f, type: 2}
+  - {fileID: 11400000, guid: 504ad9dcaf800344c8df26144b6d39d6, type: 2}
+  - {fileID: 11400000, guid: 3d79693e9eb03d447bdbec0e7f4dc450, type: 2}
+  - {fileID: 11400000, guid: bdee4ae1cc451664ea29fe991816cec4, type: 2}
+  - {fileID: 11400000, guid: 25005428a5fb0b44db4417acda66612a, type: 2}
+  equippedWeapon: {fileID: 11400000, guid: 3d79693e9eb03d447bdbec0e7f4dc450, type: 2}
   maximumLoad: 30
   maximumMana: 30
   maximumStamina: 30

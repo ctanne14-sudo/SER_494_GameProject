@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo
 {
@@ -472,7 +473,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
-            SustainedAttackDefinition sustainedAttack = null)
+            SustainedAttackDefinition sustainedAttack = null,
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
             : this(
                 actionId,
                 displayName,
@@ -496,7 +498,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
-                sustainedAttack)
+                sustainedAttack,
+                compatibleWeaponTypes)
         {
         }
 
@@ -522,7 +525,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
-            SustainedAttackDefinition sustainedAttack = null)
+            SustainedAttackDefinition sustainedAttack = null,
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
             : this(
                 actionId,
                 displayName,
@@ -548,7 +552,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
-                sustainedAttack)
+                sustainedAttack,
+                compatibleWeaponTypes)
         {
         }
 
@@ -575,7 +580,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
             ActionDisruptionDefinition onEvadedDisruption,
-            SustainedAttackDefinition sustainedAttack)
+            SustainedAttackDefinition sustainedAttack,
+            CompatibleWeaponTypes compatibleWeaponTypes)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -594,6 +600,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ManaCost = RequireNonNegative(manaCost, nameof(manaCost));
             StaminaCost = RequireNonNegative(staminaCost, nameof(staminaCost));
             Cooldown = RequireNonNegative(cooldown, nameof(cooldown));
+            CompatibleWeaponTypes = ValidateCompatibleWeaponTypes(compatibleWeaponTypes);
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = ValidateDamageTags(damageEffect, damageTags);
@@ -655,6 +662,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public int Cooldown { get; }
 
+        public CompatibleWeaponTypes CompatibleWeaponTypes { get; }
+
+        public bool IsCompatibleWith(WeaponType weaponType)
+        {
+            return CompatibleWeaponTypes.Supports(weaponType);
+        }
+
         public DamageEffectDefinition DamageEffect { get; }
 
         public bool HasDamage => DamageEffect != null;
@@ -714,6 +728,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return value;
+        }
+
+        private static CompatibleWeaponTypes ValidateCompatibleWeaponTypes(
+            CompatibleWeaponTypes compatibleWeaponTypes)
+        {
+            if (compatibleWeaponTypes == CompatibleWeaponTypes.None
+                || (compatibleWeaponTypes & ~CompatibleWeaponTypes.All) != 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(compatibleWeaponTypes),
+                    compatibleWeaponTypes,
+                    "An Action must support at least one known Weapon Type.");
+            }
+
+            return compatibleWeaponTypes;
         }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
