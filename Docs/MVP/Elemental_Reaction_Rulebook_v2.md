@@ -5,7 +5,7 @@
 - Version: 2.0
 - Date: October 17, 2026
 - Scope: Solo Combo Combat MVP
-- Status: Approved design specification; implementation is pending
+- Status: Approved design specification; implementation is intentionally deferred until the physical weapon combat MVP is complete
 - Related document: [Simultaneous Timeline Combat Rules](Solo_Combat_Idea/Simultaneous_Timeline_Combat_Rules.md)
 
 This document is the authoritative English specification for the current elemental damage, tag, status, environment, and reaction rules. Older elemental design documents are historical references only. If an older document conflicts with this rulebook, this rulebook takes precedence.
@@ -313,9 +313,11 @@ The following concepts are retained for possible future development but are outs
 
 These concepts must not be implemented until their detailed rules are approved.
 
-## 18. Implementation Order
+## 18. Deferred Implementation Order
 
-The recommended implementation sequence is:
+Elemental Reaction implementation is not part of the current development milestone. The team will first complete and validate the shared physical combat rules, weapon Action structure, and initial physical weapon content. This rulebook is retained so elemental work can resume later without reopening the completed design discussion.
+
+When elemental implementation resumes, the recommended sequence is:
 
 1. Migrate finalized terminology while preserving serialized enum values and stable IDs.
 2. Add Water Damage and separate Fire, Ice, Water, and Lightning Attack values.
