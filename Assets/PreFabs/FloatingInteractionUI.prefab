@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4084094985758410119}
   - component: {fileID: 3880641229214016048}
   - component: {fileID: 7207625754179545557}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: InteractionText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '[E] Open Chest'
+  m_text: Test
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -92,7 +92,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 38.8
+  m_fontSize: 44.75
   m_fontSizeBase: 5
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 4130151349017460781}
   - component: {fileID: 2316931200173446025}
   - component: {fileID: 479647004518817184}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: FloatingInteractionUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -249,6 +249,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 7695588182924130738}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8e360269ae1766d4cbae7be38d5382e7, type: 3}
+  m_Script: {fileID: 11500000, guid: 901e5e695af3e1740882c6b6e2cf5010, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BillboardUI

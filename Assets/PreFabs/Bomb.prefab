@@ -68,8 +68,122 @@ PrefabInstance:
       propertyPath: m_Name
       value: Bomb
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8289271043061003760}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2502105847496076243}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8210072110282260730}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2525846082501300594}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6737700855291281608}
   m_SourcePrefab: {fileID: 100100000, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+--- !u!1 &7687813558056526008 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 57016bbe526fa9f4486a20d822d495b6, type: 3}
+  m_PrefabInstance: {fileID: 7381945571816840681}
+  m_PrefabAsset: {fileID: 0}
+--- !u!54 &8289271043061003760
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7687813558056526008}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!135 &2502105847496076243
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7687813558056526008}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 1.2219129
+  m_Center: {x: 0, y: 0.24871472, z: -0.006569177}
+--- !u!114 &8210072110282260730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7687813558056526008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d79db5848d551543a45d5506a81d32a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObjectInteraction
+  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
+  uiOffset: {x: 0, y: 0.2, z: 0}
+  uiScale: 0.025
+  objectAction: {fileID: -6737700855291281608}
+--- !u!114 &2525846082501300594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7687813558056526008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d70f2814a575ef34a8eaf63197977289, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RotateAndBounce
+  rotSpeed: 75
+  speed: 0.25
+--- !u!114 &-6737700855291281608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7687813558056526008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdea255426b684946a168cd98a63120e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickUp

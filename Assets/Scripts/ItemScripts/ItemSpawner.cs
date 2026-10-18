@@ -23,12 +23,6 @@ public class ItemSpawner : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            spawn();
-        }
-
-        /*
         int numSpawn = countSpawned();
 
         if (numSpawn < 3)
@@ -40,7 +34,7 @@ public class ItemSpawner : MonoBehaviour
         if (isWaiting) return;
 
         StartCoroutine(WaitTime());
-        */
+        
     }
 
     int countSpawned()
