@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BillboardUI : MonoBehaviour
+public class ObjectUI : MonoBehaviour
 {
     private Transform _mainCameraTransform;
 

@@ -474,6 +474,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   controller: {fileID: 1103768644}
+  animator: {fileID: 1103768657}
   homePosition: {x: 0, y: 0, z: 0}
   speed: 3
   jumpHeight: 1.5
@@ -512,6 +513,11 @@ MonoBehaviour:
   interactionMask:
     serializedVersion: 2
     m_Bits: 64
+--- !u!95 &1103768657 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
+  m_PrefabInstance: {fileID: 1411624090}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1120449816 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3702916039854949902, guid: 7e9aa81937cd0b048ad913a2205bc87f, type: 3}
@@ -978,10 +984,19 @@ PrefabInstance:
       value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: 8030973525234696536, guid: 871c6cdb427e43f49b7b2b4c27e275b4, type: 3}
+      propertyPath: heal
+      value: 
+      objectReference: {fileID: 621584630249350254, guid: af9d1131c788d454fa7dae4544fa99d2, type: 3}
+    - target: {fileID: 8030973525234696536, guid: 871c6cdb427e43f49b7b2b4c27e275b4, type: 3}
+      propertyPath: hazard
+      value: 
+      objectReference: {fileID: 9021979860543945138, guid: e02b31792a067c74a81e275fcda3930b, type: 3}
+    - target: {fileID: 8030973525234696536, guid: 871c6cdb427e43f49b7b2b4c27e275b4, type: 3}
       propertyPath: canClose
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6082543597746084170, guid: 871c6cdb427e43f49b7b2b4c27e275b4, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

@@ -9,27 +9,20 @@ public class ChestAction : Action {
 	private Transform spawnPoint;
     [SerializeField]
     private GameObject hazard;
-    [SerializeField]
+	[SerializeField]
     private GameObject heal;
+    [SerializeField]
+	private float speed = 5F;
+    [SerializeField]
+	private bool canClose;
+	private GameObject itemSpawned;
 	private bool spawned;
-	public float speed = 5F;
-	public bool canClose;
+	private bool isOpen;
 	
-	[HideInInspector]
-	public bool isOpen;
 
 	void Update ()
 	{
-		if(isOpen){
-			ChestClicked(open.rotation);
-		}
-		else{
-			ChestClicked(close.rotation);
-		}
-
-	}
-	
-	void ChestClicked(Quaternion toRot){
+		Quaternion toRot = isOpen ? open.rotation : close.rotation;
 		if(top.rotation != toRot){
 			top.rotation = Quaternion.Lerp(top.rotation, toRot, Time.deltaTime * speed);
 		}
@@ -40,27 +33,23 @@ public class ChestAction : Action {
 		
 		isOpen = canClose ? !isOpen : true;
 		if (!spawned && isOpen) spawnItem();
+		if (spawned && !isOpen) {
+			Destroy(itemSpawned);
+			spawned = false;
+		}
 		if (!canClose && isOpen) gameObject.layer = 0;
 	}
 
 	public override string setUiPrompt()
 	{
 		if (!canClose && isOpen) return "";
-
 		return isOpen ? "[E] Close Chest" : "[E] Open Chest";
 	}
 
 	void spawnItem()
 	{
-        GameObject item = Random.value < .5f ? hazard : hazard;
-        var itemSpawned = Instantiate(item, spawnPoint.position, Quaternion.identity, spawnPoint);
-
-		var rb = itemSpawned.GetComponent<Rigidbody>();
-		if (rb != null)
-		{
-			rb.isKinematic = true;
-			rb.useGravity = false;
-		}
+        GameObject item = Random.value < .5f ? heal : hazard;
+        itemSpawned = Instantiate(item, spawnPoint.position, Quaternion.identity, spawnPoint);
         if (item == hazard)
         {
             itemSpawned.transform.Rotate(10f, 0 ,0);

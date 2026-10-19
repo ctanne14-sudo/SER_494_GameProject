@@ -102,7 +102,6 @@ GameObject:
   - component: {fileID: 5150526539554094388}
   - component: {fileID: 3417931020544548509}
   - component: {fileID: 8030973525234696536}
-  - component: {fileID: 6082543597746084170}
   m_Layer: 6
   m_Name: test
   m_TagString: Untagged
@@ -165,6 +164,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Chest
   uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
   uiOffset: {x: 0, y: 1.5, z: 0}
+  uiScale: 0.01
   objectAction: {fileID: 8030973525234696536}
 --- !u!114 &8030973525234696536
 MonoBehaviour:
@@ -187,33 +187,6 @@ MonoBehaviour:
   speed: 5
   canClose: 0
   isOpen: 0
---- !u!54 &6082543597746084170
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 185523098129814489}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!1 &1400531812519530984
 GameObject:
   m_ObjectHideFlags: 0

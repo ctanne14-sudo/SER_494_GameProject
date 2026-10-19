@@ -2,13 +2,11 @@ using UnityEngine;
 
 public class PlayerInteractor : MonoBehaviour
 {
-    
     [SerializeField]
     private float interactRadius = 2f;
     [SerializeField]
     private LayerMask interactionMask;
     
-
     private ObjectInteraction prevObj;
     private readonly Collider[] hits = new Collider[16];
 

@@ -58,7 +58,6 @@ public class ItemSpawner : MonoBehaviour
     {
         if (countSpawned() >= 10) return;
 
-        Debug.Log("Spawning Item...");
         List<int> points = new List<int>();
         for (int i = 0; i < spwanPoints.Length; i++)
         {
@@ -78,7 +77,5 @@ public class ItemSpawner : MonoBehaviour
         {
             spawned[index].transform.Rotate(10f, 0 ,0);
         }
-
-        Debug.Log(index + 1);
     }
 }

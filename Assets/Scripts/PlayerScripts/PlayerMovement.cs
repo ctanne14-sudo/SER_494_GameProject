@@ -5,8 +5,8 @@ public class PlayerMovement : MonoBehaviour
 {
     [SerializeField]
     private CharacterController controller;
-    private Animator animator;
     [SerializeField]
+    private Animator animator;
     public Vector3 homePosition;
     public float speed = 3f;
     private float gravity = -9.81f;
@@ -66,7 +66,6 @@ public class PlayerMovement : MonoBehaviour
             verticalVelocity = -2f;
         }
 
-        // Handle Jumping
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);

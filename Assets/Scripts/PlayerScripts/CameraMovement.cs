@@ -47,6 +47,5 @@ public class CameraMovement : MonoBehaviour
             transform.position = target.position + positionOffset;
 
             target.root.transform.rotation = Quaternion.Euler(0, x, 0);
-        
     }
 }
