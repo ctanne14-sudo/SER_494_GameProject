@@ -65,6 +65,159 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void TryCreateDefinition_MultipleResolutionEvents_PreservesEachEvent()
+        {
+            ConfigureAsset(
+                actionId: "sword-shield.main.test-combo",
+                displayName: "Test Combo [M]",
+                category: ComboActionCategory.Main,
+                timelineCost: 10,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 3,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty events = serializedAsset.FindProperty("resolutionEvents");
+            events.arraySize = 3;
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(0),
+                offset: 3,
+                effect: ActionResolutionEffect.Damage,
+                damageMultiplier: 0.10f,
+                damageType: DamageType.Slashing);
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(1),
+                offset: 4,
+                effect: ActionResolutionEffect.Damage,
+                damageMultiplier: 0.10f,
+                damageType: DamageType.Blunt);
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(2),
+                offset: 8,
+                effect: ActionResolutionEffect.Guard,
+                damageMultiplier: 0f,
+                damageType: DamageType.Blunt);
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(definition.ResolutionEvents, Has.Count.EqualTo(3));
+            Assert.That(definition.ResolutionEvents[0].Offset, Is.EqualTo(3));
+            Assert.That(definition.ResolutionEvents[0].DamageEffect.Components[0].Type,
+                Is.EqualTo(DamageType.Slashing));
+            Assert.That(definition.ResolutionEvents[1].Offset, Is.EqualTo(4));
+            Assert.That(definition.ResolutionEvents[1].DamageEffect.Components[0].Type,
+                Is.EqualTo(DamageType.Blunt));
+            Assert.That(definition.ResolutionEvents[2].Offset, Is.EqualTo(8));
+            Assert.That(definition.ResolutionEvents[2].Effect,
+                Is.EqualTo(ActionResolutionEffect.Guard));
+        }
+
+        [Test]
+        public void TryCreateDefinition_OverlappingExclusiveEvents_ReturnsValidationError()
+        {
+            ConfigureAsset(
+                actionId: "invalid-overlap",
+                displayName: "Invalid Overlap [M]",
+                category: ComboActionCategory.Main,
+                timelineCost: 5,
+                resolutionOffset: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty events = serializedAsset.FindProperty("resolutionEvents");
+            events.arraySize = 2;
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(0),
+                offset: 2,
+                effect: ActionResolutionEffect.Damage,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Slashing);
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(1),
+                offset: 2,
+                effect: ActionResolutionEffect.Evade,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing);
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("cannot share an offset"));
+        }
+
+        [Test]
+        public void TryCreateDefinition_DisruptionSegments_PreservePerTypeResponses()
+        {
+            ConfigureAsset(
+                actionId: "segmented-response",
+                displayName: "Segmented Response [M]",
+                category: ComboActionCategory.Main,
+                timelineCost: 5,
+                resolutionOffset: 4,
+                manaCost: 0,
+                staminaCost: 2,
+                cooldown: 0,
+                damageMultiplier: 0.50f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty segments = serializedAsset.FindProperty(
+                "disruptionResponseSegments");
+            segments.arraySize = 2;
+            ConfigureResponseSegment(
+                segments.GetArrayElementAtIndex(0),
+                1,
+                3,
+                ActionDisruptionResponse.PauseAndResume,
+                ActionDisruptionResponse.CancelAction,
+                ActionDisruptionResponse.CancelAction);
+            ConfigureResponseSegment(
+                segments.GetArrayElementAtIndex(1),
+                4,
+                5,
+                ActionDisruptionResponse.Continue,
+                ActionDisruptionResponse.PauseAndResume,
+                ActionDisruptionResponse.CancelAction);
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(definition.DisruptionResponseSegments, Has.Count.EqualTo(2));
+            Assert.That(
+                definition.DisruptionResponseSegments[0].GetResponse(
+                    ActionDisruptionType.Stagger),
+                Is.EqualTo(ActionDisruptionResponse.CancelAction));
+            Assert.That(
+                definition.DisruptionResponseSegments[1].GetResponse(
+                    ActionDisruptionType.Flinch),
+                Is.EqualTo(ActionDisruptionResponse.Continue));
+        }
+
+        [Test]
         public void TryCreateDefinition_EmptyActionId_ReturnsValidationError()
         {
             ConfigureAsset(
@@ -574,6 +727,35 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             serializedAsset.FindProperty("resolutionEffect").enumValueIndex = (int)resolutionEffect;
             serializedAsset.FindProperty("damageTags").intValue = (int)damageTags;
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureResolutionEvent(
+            SerializedProperty resolutionEvent,
+            int offset,
+            ActionResolutionEffect effect,
+            float damageMultiplier,
+            DamageType damageType)
+        {
+            resolutionEvent.FindPropertyRelative("offset").intValue = offset;
+            resolutionEvent.FindPropertyRelative("effect").enumValueIndex = (int)effect;
+            resolutionEvent.FindPropertyRelative("damageMultiplier").floatValue = damageMultiplier;
+            resolutionEvent.FindPropertyRelative("damageType").enumValueIndex = (int)damageType;
+            resolutionEvent.FindPropertyRelative("damageTags").intValue = 0;
+        }
+
+        private static void ConfigureResponseSegment(
+            SerializedProperty segment,
+            int startOffset,
+            int endOffset,
+            ActionDisruptionResponse flinch,
+            ActionDisruptionResponse stagger,
+            ActionDisruptionResponse knockdown)
+        {
+            segment.FindPropertyRelative("startOffset").intValue = startOffset;
+            segment.FindPropertyRelative("endOffset").intValue = endOffset;
+            segment.FindPropertyRelative("flinchResponse").enumValueIndex = (int)flinch;
+            segment.FindPropertyRelative("staggerResponse").enumValueIndex = (int)stagger;
+            segment.FindPropertyRelative("knockdownResponse").enumValueIndex = (int)knockdown;
         }
     }
 }

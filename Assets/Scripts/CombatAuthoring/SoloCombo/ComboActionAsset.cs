@@ -51,6 +51,54 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 ActiveWindowDisruptionPolicy.PersistThroughDisruption;
         }
 
+        [Serializable]
+        private sealed class ResolutionEventAuthoringData
+        {
+            [Min(0)]
+            [Tooltip("Resolution Point in Action Local Time. Zero resolves when the Action starts.")]
+            public int offset = 1;
+
+            public ActionResolutionEffect effect = ActionResolutionEffect.None;
+
+            [Min(0f)]
+            public float damageMultiplier = 0f;
+
+            public DamageType damageType = DamageType.Slashing;
+
+            public DamageResolutionTag damageTags = DamageResolutionTag.None;
+
+            [Range(0f, 1f)]
+            public float clashDamageReduction = 0f;
+
+            [Range(0, 5)]
+            public int clashSuperArmorLevel = 0;
+
+            public bool appliesOnHitDisruption = false;
+            public ActionDisruptionType onHitDisruptionType = ActionDisruptionType.Stagger;
+            [Min(1)] public int onHitDisruptionDuration = 1;
+
+            public bool appliesOnGuardedDisruption = false;
+            public ActionDisruptionType onGuardedDisruptionType = ActionDisruptionType.Flinch;
+            [Min(1)] public int onGuardedDisruptionDuration = 1;
+
+            public bool appliesOnEvadedDisruption = false;
+            public ActionDisruptionType onEvadedDisruptionType = ActionDisruptionType.Stagger;
+            [Min(1)] public int onEvadedDisruptionDuration = 1;
+        }
+
+        [Serializable]
+        private sealed class DisruptionResponseSegmentAuthoringData
+        {
+            [Min(1)] public int startOffset = 1;
+            [Min(1)] public int endOffset = 1;
+            public ActionDisruptionResponse flinchResponse =
+                ActionDisruptionResponse.PauseAndResume;
+            public ActionDisruptionResponse staggerResponse =
+                ActionDisruptionResponse.PauseAndResume;
+            public ActionDisruptionResponse knockdownResponse =
+                ActionDisruptionResponse.PauseAndResume;
+        }
+
         [Header("Identity")]
         [SerializeField]
         [Tooltip("Stable internal ID. It must be unique across all owned Actions.")]
@@ -131,7 +179,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Min(0)]
         private int cooldown;
 
-        [Header("Prototype Effect")]
+        [Header("Resolution Events")]
+        [SerializeField]
+        [Tooltip("Optional multi-event authoring. When populated, these entries replace the legacy Prototype Effect fields below.")]
+        private ResolutionEventAuthoringData[] resolutionEvents =
+            Array.Empty<ResolutionEventAuthoringData>();
+
+        [SerializeField]
+        [Tooltip("Ordered Local Time segments that define how this Action responds to each Disruption type. Leave empty to Continue by default.")]
+        private DisruptionResponseSegmentAuthoringData[] disruptionResponseSegments =
+            Array.Empty<DisruptionResponseSegmentAuthoringData>();
+
+        [Header("Legacy Single Resolution Effect")]
         [SerializeField]
         [Min(0)]
         [Tooltip("Ordinary damage multiplier. For example, 0.50 means 50% of relevant Weapon Attack before the remaining damage buckets.")]
@@ -271,6 +330,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public int Cooldown => cooldown;
 
+        public int ResolutionEventCount => resolutionEvents?.Length ?? 0;
+
         public float DamageMultiplier => damageMultiplier;
 
         public DamageType DamageType => damageType;
@@ -331,13 +392,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (resolutionOffset < 0 || resolutionOffset > timelineCost)
+            bool usesResolutionEvents = resolutionEvents != null
+                && resolutionEvents.Length > 0;
+
+            if (!usesResolutionEvents
+                && (resolutionOffset < 0 || resolutionOffset > timelineCost))
             {
                 validationError = $"{name} has a Resolution Offset outside its Action Timeline Cost.";
                 return false;
             }
 
-            if (useResolutionWindow
+            if (!usesResolutionEvents
+                && useResolutionWindow
                 && (resolutionWindowStart < 0
                     || resolutionWindowEnd > timelineCost
                     || resolutionWindowStart >= resolutionWindowEnd))
@@ -383,6 +449,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (!TryCreateDisruptionResponseSegments(
+                    out IReadOnlyList<DisruptionResponseSegmentDefinition> responseDefinitions,
+                    out validationError))
+            {
+                return false;
+            }
+
             if (chargeDefinitions.Count > 0 && activeWindowDefinitions.Count > 0)
             {
                 validationError = $"{name} cannot use both Charge Levels and Active Windows "
@@ -390,9 +463,57 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (manaCost < 0 || staminaCost < 0 || cooldown < 0 || damageMultiplier < 0f)
+            if (manaCost < 0 || staminaCost < 0 || cooldown < 0)
             {
-                validationError = $"{name} contains a negative cost or Damage Multiplier value.";
+                validationError = $"{name} contains a negative cost value.";
+                return false;
+            }
+
+            if (usesResolutionEvents)
+            {
+                if (useResolutionWindow || useSustainedAttack)
+                {
+                    validationError = $"{name} cannot combine multi-event authoring with a "
+                        + "Resolution Window or Sustained Attack yet.";
+                    return false;
+                }
+
+                if (!TryCreateResolutionEvents(
+                        out IReadOnlyList<ActionResolutionDefinition> eventDefinitions,
+                        out validationError))
+                {
+                    return false;
+                }
+
+                try
+                {
+                    definition = new ComboActionDefinition(
+                        actionId.Trim(),
+                        displayName.Trim(),
+                        category,
+                        timelineCost,
+                        manaCost,
+                        staminaCost,
+                        cooldown,
+                        eventDefinitions,
+                        chargeDefinitions,
+                        activeWindowDefinitions,
+                        responseDefinitions,
+                        compatibleWeaponTypes: NormalizedCompatibleWeaponTypes);
+                }
+                catch (ArgumentException exception)
+                {
+                    validationError = $"{name}: {exception.Message}";
+                    return false;
+                }
+
+                validationError = null;
+                return true;
+            }
+
+            if (damageMultiplier < 0f)
+            {
+                validationError = $"{name} contains a negative Damage Multiplier value.";
                 return false;
             }
 
@@ -512,6 +633,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     : null,
                 chargeLevels: chargeDefinitions,
                 activeWindows: activeWindowDefinitions,
+                disruptionResponseSegments: responseDefinitions,
                 onHitDisruption: appliesOnHitDisruption
                     ? new ActionDisruptionDefinition(
                         onHitDisruptionType,
@@ -615,6 +737,59 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 window.superArmorLevel = window.effect == ActiveWindowEffect.SuperArmor
                     ? Mathf.Clamp(window.superArmorLevel, 1, 5)
                     : 0;
+            }
+
+            if (resolutionEvents == null)
+            {
+                resolutionEvents = Array.Empty<ResolutionEventAuthoringData>();
+            }
+
+            for (int index = 0; index < resolutionEvents.Length; index++)
+            {
+                ResolutionEventAuthoringData resolution = resolutionEvents[index];
+                if (resolution == null)
+                {
+                    continue;
+                }
+
+                resolution.offset = Mathf.Clamp(resolution.offset, 0, timelineCost);
+                resolution.damageMultiplier = Mathf.Max(0f, resolution.damageMultiplier);
+                resolution.clashDamageReduction = Mathf.Clamp01(resolution.clashDamageReduction);
+                resolution.clashSuperArmorLevel = Mathf.Clamp(
+                    resolution.clashSuperArmorLevel,
+                    0,
+                    5);
+                resolution.onHitDisruptionDuration = Mathf.Max(
+                    1,
+                    resolution.onHitDisruptionDuration);
+                resolution.onGuardedDisruptionDuration = Mathf.Max(
+                    1,
+                    resolution.onGuardedDisruptionDuration);
+                resolution.onEvadedDisruptionDuration = Mathf.Max(
+                    1,
+                    resolution.onEvadedDisruptionDuration);
+            }
+
+            if (disruptionResponseSegments == null)
+            {
+                disruptionResponseSegments =
+                    Array.Empty<DisruptionResponseSegmentAuthoringData>();
+            }
+
+            for (int index = 0; index < disruptionResponseSegments.Length; index++)
+            {
+                DisruptionResponseSegmentAuthoringData segment =
+                    disruptionResponseSegments[index];
+                if (segment == null)
+                {
+                    continue;
+                }
+
+                segment.startOffset = Mathf.Clamp(segment.startOffset, 1, timelineCost);
+                segment.endOffset = Mathf.Clamp(
+                    segment.endOffset,
+                    segment.startOffset,
+                    timelineCost);
             }
         }
 
@@ -738,6 +913,149 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             }
 
             return activeWindows[index];
+        }
+
+        private bool TryCreateResolutionEvents(
+            out IReadOnlyList<ActionResolutionDefinition> definitions,
+            out string validationError)
+        {
+            var created = new ActionResolutionDefinition[resolutionEvents.Length];
+            for (int index = 0; index < resolutionEvents.Length; index++)
+            {
+                ResolutionEventAuthoringData authored = resolutionEvents[index];
+                if (authored == null
+                    || authored.offset < 0
+                    || authored.offset > timelineCost
+                    || authored.damageMultiplier < 0f
+                    || (authored.effect == ActionResolutionEffect.Damage
+                        && authored.damageMultiplier <= 0f)
+                    || (authored.effect != ActionResolutionEffect.Damage
+                        && authored.damageMultiplier > 0f)
+                    || (authored.effect != ActionResolutionEffect.Damage
+                        && authored.damageTags != DamageResolutionTag.None)
+                    || authored.effect == ActionResolutionEffect.ApplyBuff
+                    || authored.effect == ActionResolutionEffect.ApplyDebuff)
+                {
+                    definitions = null;
+                    validationError = $"{name} contains an invalid Resolution Event at index {index}.";
+                    return false;
+                }
+
+                bool hasClash = (authored.damageTags & DamageResolutionTag.Clash) != 0;
+                if (hasClash
+                    != (authored.clashDamageReduction > 0f
+                        && authored.clashDamageReduction <= 1f))
+                {
+                    definitions = null;
+                    validationError = $"{name} Resolution Event {index} must author the Clash "
+                        + "tag and reduction together.";
+                    return false;
+                }
+
+                if (authored.appliesOnEvadedDisruption
+                    && (authored.damageTags & DamageResolutionTag.Overcommit) == 0)
+                {
+                    definitions = null;
+                    validationError = $"{name} Resolution Event {index} applies On Evaded "
+                        + "Disruption without Overcommit.";
+                    return false;
+                }
+
+                try
+                {
+                    created[index] = new ActionResolutionDefinition(
+                        authored.offset,
+                        authored.effect,
+                        authored.effect == ActionResolutionEffect.Damage
+                            ? DamageEffectDefinition.Single(
+                                authored.damageType,
+                                authored.damageMultiplier)
+                            : null,
+                        authored.damageTags,
+                        onHitDisruption: authored.appliesOnHitDisruption
+                            ? new ActionDisruptionDefinition(
+                                authored.onHitDisruptionType,
+                                authored.onHitDisruptionDuration)
+                            : null,
+                        onGuardedDisruption: authored.appliesOnGuardedDisruption
+                            ? new ActionDisruptionDefinition(
+                                authored.onGuardedDisruptionType,
+                                authored.onGuardedDisruptionDuration)
+                            : null,
+                        clash: hasClash
+                            ? new DamageClashDefinition(
+                                authored.clashDamageReduction,
+                                authored.clashSuperArmorLevel)
+                            : null,
+                        onEvadedDisruption: authored.appliesOnEvadedDisruption
+                            ? new ActionDisruptionDefinition(
+                                authored.onEvadedDisruptionType,
+                                authored.onEvadedDisruptionDuration)
+                            : null);
+                }
+                catch (ArgumentException exception)
+                {
+                    definitions = null;
+                    validationError = $"{name} Resolution Event {index}: {exception.Message}";
+                    return false;
+                }
+            }
+
+            definitions = Array.AsReadOnly(created);
+            validationError = null;
+            return true;
+        }
+
+        private bool TryCreateDisruptionResponseSegments(
+            out IReadOnlyList<DisruptionResponseSegmentDefinition> definitions,
+            out string validationError)
+        {
+            if (disruptionResponseSegments == null
+                || disruptionResponseSegments.Length == 0)
+            {
+                definitions = Array.Empty<DisruptionResponseSegmentDefinition>();
+                validationError = null;
+                return true;
+            }
+
+            var created = new DisruptionResponseSegmentDefinition[
+                disruptionResponseSegments.Length];
+            int expectedStart = 1;
+            for (int index = 0; index < disruptionResponseSegments.Length; index++)
+            {
+                DisruptionResponseSegmentAuthoringData authored =
+                    disruptionResponseSegments[index];
+                if (authored == null
+                    || authored.startOffset != expectedStart
+                    || authored.endOffset < authored.startOffset
+                    || authored.endOffset > timelineCost)
+                {
+                    definitions = null;
+                    validationError = $"{name} Disruption Response Segments must be ordered, "
+                        + "non-overlapping, and cover the complete Action Local Timeline.";
+                    return false;
+                }
+
+                created[index] = new DisruptionResponseSegmentDefinition(
+                    authored.startOffset,
+                    authored.endOffset,
+                    authored.flinchResponse,
+                    authored.staggerResponse,
+                    authored.knockdownResponse);
+                expectedStart = authored.endOffset + 1;
+            }
+
+            if (expectedStart != timelineCost + 1)
+            {
+                definitions = null;
+                validationError = $"{name} Disruption Response Segments must cover "
+                    + "the complete Action Local Timeline.";
+                return false;
+            }
+
+            definitions = Array.AsReadOnly(created);
+            validationError = null;
+            return true;
         }
     }
 }

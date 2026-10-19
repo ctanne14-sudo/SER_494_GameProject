@@ -447,8 +447,255 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int SuperArmorLevel { get; }
     }
 
+    public sealed class ActionResolutionDefinition
+    {
+        public ActionResolutionDefinition(
+            int offset,
+            ActionResolutionEffect effect,
+            DamageEffectDefinition damageEffect = null,
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+            ActionDisruptionDefinition onHitDisruption = null,
+            ActionDisruptionDefinition onGuardedDisruption = null,
+            DamageClashDefinition clash = null,
+            ActionDisruptionDefinition onEvadedDisruption = null)
+        {
+            if (offset < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
+
+            if (!Enum.IsDefined(typeof(ActionResolutionEffect), effect))
+            {
+                throw new ArgumentOutOfRangeException(nameof(effect));
+            }
+
+            Offset = offset;
+            Effect = ValidateEffect(effect, damageEffect);
+            DamageEffect = damageEffect;
+            DamageTags = ValidateDamageTags(damageEffect, damageTags);
+            StatusEffect = ValidateStatusEffect(effect, statusEffect);
+            StatusTarget = ValidateStatusTarget(statusTarget);
+            OnHitDisruption = ValidateDamageDisruption(
+                damageEffect,
+                onHitDisruption,
+                "On Hit");
+            OnGuardedDisruption = ValidateDamageDisruption(
+                damageEffect,
+                onGuardedDisruption,
+                "On Guarded");
+            Clash = ValidateClash(damageEffect, DamageTags, clash);
+            OnEvadedDisruption = ValidateOnEvadedDisruption(
+                damageEffect,
+                DamageTags,
+                onEvadedDisruption);
+        }
+
+        public int Offset { get; }
+
+        public ActionResolutionEffect Effect { get; }
+
+        public DamageEffectDefinition DamageEffect { get; }
+
+        public bool HasDamage => DamageEffect != null;
+
+        public DamageResolutionTag DamageTags { get; }
+
+        public CombatStatusDefinition StatusEffect { get; }
+
+        public ActionStatusTarget StatusTarget { get; }
+
+        public ActionDisruptionDefinition OnHitDisruption { get; }
+
+        public ActionDisruptionDefinition OnGuardedDisruption { get; }
+
+        public DamageClashDefinition Clash { get; }
+
+        public ActionDisruptionDefinition OnEvadedDisruption { get; }
+
+        internal void ValidateForActionTimelineCost(int timelineCost)
+        {
+            if (Offset > timelineCost)
+            {
+                throw new ArgumentException(
+                    "A Resolution Event cannot occur after its Action Timeline Cost.");
+            }
+        }
+
+        private static ActionResolutionEffect ValidateEffect(
+            ActionResolutionEffect effect,
+            DamageEffectDefinition damageEffect)
+        {
+            if (damageEffect != null && effect != ActionResolutionEffect.Damage)
+            {
+                throw new ArgumentException(
+                    "A Resolution Event with damage must use the Damage effect.",
+                    nameof(effect));
+            }
+
+            if (damageEffect == null && effect == ActionResolutionEffect.Damage)
+            {
+                throw new ArgumentException(
+                    "A Damage Resolution Event requires damage values.",
+                    nameof(damageEffect));
+            }
+
+            return effect;
+        }
+
+        private static DamageResolutionTag ValidateDamageTags(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags)
+        {
+            const DamageResolutionTag supportedTags = DamageResolutionTag.IgnoresEvade
+                | DamageResolutionTag.Unguardable
+                | DamageResolutionTag.Overcommit
+                | DamageResolutionTag.Clash;
+            if ((damageTags & ~supportedTags) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(damageTags));
+            }
+
+            if (damageEffect == null && damageTags != DamageResolutionTag.None)
+            {
+                throw new ArgumentException(
+                    "Damage Resolution Tags require damage values.",
+                    nameof(damageTags));
+            }
+
+            return damageTags;
+        }
+
+        private static CombatStatusDefinition ValidateStatusEffect(
+            ActionResolutionEffect effect,
+            CombatStatusDefinition statusEffect)
+        {
+            bool appliesStatus = effect == ActionResolutionEffect.ApplyBuff
+                || effect == ActionResolutionEffect.ApplyDebuff;
+            if (appliesStatus != (statusEffect != null))
+            {
+                throw new ArgumentException(
+                    "Only Apply Buff and Apply Debuff events require a Status Effect.",
+                    nameof(statusEffect));
+            }
+
+            return statusEffect;
+        }
+
+        private static ActionStatusTarget ValidateStatusTarget(ActionStatusTarget statusTarget)
+        {
+            if (!Enum.IsDefined(typeof(ActionStatusTarget), statusTarget))
+            {
+                throw new ArgumentOutOfRangeException(nameof(statusTarget));
+            }
+
+            return statusTarget;
+        }
+
+        private static ActionDisruptionDefinition ValidateDamageDisruption(
+            DamageEffectDefinition damageEffect,
+            ActionDisruptionDefinition disruption,
+            string label)
+        {
+            if (damageEffect == null && disruption != null)
+            {
+                throw new ArgumentException($"{label} Disruption requires damage values.");
+            }
+
+            return disruption;
+        }
+
+        private static DamageClashDefinition ValidateClash(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags,
+            DamageClashDefinition clash)
+        {
+            bool hasClashTag = (damageTags & DamageResolutionTag.Clash) != 0;
+            if (hasClashTag != (clash != null))
+            {
+                throw new ArgumentException(
+                    "Clash values and the Clash Damage Tag must be authored together.",
+                    nameof(clash));
+            }
+
+            if (damageEffect == null && clash != null)
+            {
+                throw new ArgumentException("Clash values require damage values.", nameof(clash));
+            }
+
+            return clash;
+        }
+
+        private static ActionDisruptionDefinition ValidateOnEvadedDisruption(
+            DamageEffectDefinition damageEffect,
+            DamageResolutionTag damageTags,
+            ActionDisruptionDefinition disruption)
+        {
+            if (disruption == null)
+            {
+                return null;
+            }
+
+            if (damageEffect == null
+                || (damageTags & DamageResolutionTag.Overcommit) == 0)
+            {
+                throw new ArgumentException(
+                    "On Evaded Disruption requires Overcommit damage.",
+                    nameof(disruption));
+            }
+
+            return disruption;
+        }
+    }
+
     public sealed class ComboActionDefinition
     {
+        public ComboActionDefinition(
+            string actionId,
+            string displayName,
+            ComboActionCategory category,
+            int timelineCost,
+            int manaCost,
+            int staminaCost,
+            int cooldown,
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
+            : this(
+                actionId,
+                displayName,
+                category,
+                timelineCost,
+                manaCost,
+                staminaCost,
+                cooldown,
+                GetPrimaryResolution(resolutionEvents).DamageEffect,
+                GetPrimaryResolution(resolutionEvents).Offset,
+                GetPrimaryResolution(resolutionEvents).Effect,
+                GetPrimaryResolution(resolutionEvents).DamageTags,
+                GetPrimaryResolution(resolutionEvents).StatusEffect,
+                GetPrimaryResolution(resolutionEvents).StatusTarget,
+                null,
+                null,
+                chargeLevels,
+                activeWindows,
+                GetPrimaryResolution(resolutionEvents).OnHitDisruption,
+                disruptionResponseSegments,
+                GetPrimaryResolution(resolutionEvents).OnGuardedDisruption,
+                GetPrimaryResolution(resolutionEvents).Clash,
+                GetPrimaryResolution(resolutionEvents).OnEvadedDisruption,
+                null,
+                compatibleWeaponTypes)
+        {
+            ResolutionEvents = CopyAndValidateResolutionEvents(
+                resolutionEvents,
+                TimelineCost,
+                chargeLevels);
+        }
+
         public ComboActionDefinition(
             string actionId,
             string displayName,
@@ -641,6 +888,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             SustainedAttack = sustainedAttack;
+            ResolutionEvents = Array.AsReadOnly(new[]
+            {
+                new ActionResolutionDefinition(
+                    ResolutionOffset,
+                    ResolutionEffect,
+                    DamageEffect,
+                    DamageTags,
+                    StatusEffect,
+                    StatusTarget,
+                    OnHitDisruption,
+                    OnGuardedDisruption,
+                    Clash,
+                    OnEvadedDisruption)
+            });
             if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
             {
                 throw new ArgumentException(
@@ -706,6 +967,70 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
         public SustainedAttackDefinition SustainedAttack { get; }
+
+        public IReadOnlyList<ActionResolutionDefinition> ResolutionEvents { get; private set; }
+
+        private static ActionResolutionDefinition GetPrimaryResolution(
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents)
+        {
+            if (resolutionEvents == null || resolutionEvents.Count == 0)
+            {
+                throw new ArgumentException(
+                    "An Action must contain at least one Resolution Event.",
+                    nameof(resolutionEvents));
+            }
+
+            return resolutionEvents[0]
+                ?? throw new ArgumentException(
+                    "A Resolution Event cannot be null.",
+                    nameof(resolutionEvents));
+        }
+
+        private static IReadOnlyList<ActionResolutionDefinition> CopyAndValidateResolutionEvents(
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents,
+            int timelineCost,
+            IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels)
+        {
+            if (resolutionEvents == null || resolutionEvents.Count == 0)
+            {
+                throw new ArgumentException(
+                    "An Action must contain at least one Resolution Event.",
+                    nameof(resolutionEvents));
+            }
+
+            if (resolutionEvents.Count > 1
+                && chargeLevels != null
+                && chargeLevels.Count > 0)
+            {
+                throw new ArgumentException(
+                    "Charge timing for multiple Resolution Events is not yet defined.",
+                    nameof(chargeLevels));
+            }
+
+            var copy = new ActionResolutionDefinition[resolutionEvents.Count];
+            var exclusiveOffsets = new HashSet<int>();
+            for (int index = 0; index < resolutionEvents.Count; index++)
+            {
+                ActionResolutionDefinition resolution = resolutionEvents[index]
+                    ?? throw new ArgumentException(
+                        "A Resolution Event cannot be null.",
+                        nameof(resolutionEvents));
+                resolution.ValidateForActionTimelineCost(timelineCost);
+                if ((resolution.Effect == ActionResolutionEffect.Damage
+                        || resolution.Effect == ActionResolutionEffect.Guard
+                        || resolution.Effect == ActionResolutionEffect.Evade)
+                    && !exclusiveOffsets.Add(resolution.Offset))
+                {
+                    throw new ArgumentException(
+                        "Damage, Guard, and Evade Resolution Events cannot share an offset in one Action.",
+                        nameof(resolutionEvents));
+                }
+
+                copy[index] = resolution;
+            }
+
+            return Array.AsReadOnly(copy);
+        }
 
         private static int RequirePositive(int value, string parameterName)
         {
