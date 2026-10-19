@@ -192,6 +192,45 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public bool DependencyFailed { get; }
     }
 
+    public sealed class ScheduledResolutionEvent
+    {
+        internal ScheduledResolutionEvent(
+            int time,
+            DamageEffectDefinition damageEffect,
+            ActionResolutionEffect effect,
+            DamageResolutionTag damageTags,
+            CombatStatusDefinition statusEffect,
+            ActionStatusTarget statusTarget,
+            ActionDisruptionDefinition onHitDisruption,
+            ActionDisruptionDefinition onGuardedDisruption,
+            DamageClashDefinition clash,
+            ActionDisruptionDefinition onEvadedDisruption)
+        {
+            Time = time;
+            DamageEffect = damageEffect;
+            Effect = effect;
+            DamageTags = damageTags;
+            StatusEffect = statusEffect;
+            StatusTarget = statusTarget;
+            OnHitDisruption = onHitDisruption;
+            OnGuardedDisruption = onGuardedDisruption;
+            Clash = clash;
+            OnEvadedDisruption = onEvadedDisruption;
+        }
+
+        public int Time { get; }
+        public DamageEffectDefinition DamageEffect { get; }
+        public bool HasDamage => DamageEffect != null;
+        public ActionResolutionEffect Effect { get; }
+        public DamageResolutionTag DamageTags { get; }
+        public CombatStatusDefinition StatusEffect { get; }
+        public ActionStatusTarget StatusTarget { get; }
+        public ActionDisruptionDefinition OnHitDisruption { get; }
+        public ActionDisruptionDefinition OnGuardedDisruption { get; }
+        public DamageClashDefinition Clash { get; }
+        public ActionDisruptionDefinition OnEvadedDisruption { get; }
+    }
+
     public sealed class ScheduledTimelineAction
     {
         internal ScheduledTimelineAction(
@@ -221,7 +260,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
-            IReadOnlyList<int> resolutionTimes = null)
+            IReadOnlyList<int> resolutionTimes = null,
+            IReadOnlyList<ScheduledResolutionEvent> resolutionEvents = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -229,19 +269,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DisplayName = displayName;
             StartTime = startTime;
             EndTime = endTime;
-            ResolutionTime = resolutionTime;
-            ResolutionTimes = resolutionTimes ?? new[] { resolutionTime };
-            DamageEffect = damageEffect;
-            ResolutionEffect = resolutionEffect;
-            DamageTags = damageTags;
-            StatusEffect = statusEffect;
-            StatusTarget = statusTarget;
+            ResolutionEvents = resolutionEvents ?? CreateLegacyResolutionEvents(
+                resolutionTimes ?? new[] { resolutionTime },
+                damageEffect,
+                resolutionEffect,
+                damageTags,
+                statusEffect,
+                statusTarget,
+                onHitDisruption,
+                onGuardedDisruption,
+                clash,
+                onEvadedDisruption);
+            if (ResolutionEvents.Count == 0)
+            {
+                throw new ArgumentException("A scheduled Action needs a Resolution Event.");
+            }
+
+            ScheduledResolutionEvent primary = ResolutionEvents[0];
+            ResolutionTime = primary.Time;
+            ResolutionTimes = CopyResolutionTimes(ResolutionEvents);
+            DamageEffect = primary.DamageEffect;
+            ResolutionEffect = primary.Effect;
+            DamageTags = primary.DamageTags;
+            StatusEffect = primary.StatusEffect;
+            StatusTarget = primary.StatusTarget;
             ResolutionWindowStartTime = resolutionWindowStartTime;
             ResolutionWindowEndTime = resolutionWindowEndTime;
             ChargeLevels = chargeLevels
                 ?? Array.Empty<ComboActionChargeLevelDefinition>();
             ActiveWindows = activeWindows ?? Array.Empty<ScheduledActiveWindow>();
-            OnHitDisruption = onHitDisruption;
+            OnHitDisruption = primary.OnHitDisruption;
             DisruptionResponseSegments = disruptionResponseSegments
                 ?? Array.Empty<DisruptionResponseSegmentDefinition>();
             AccumulatedPauseDuration = accumulatedPauseDuration;
@@ -250,9 +307,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Restarts = restarts ?? Array.Empty<ScheduledActionRestart>();
             RequiredCompletedSequenceIndex = requiredCompletedSequenceIndex;
             Cancellation = cancellation;
-            OnGuardedDisruption = onGuardedDisruption;
-            Clash = clash;
-            OnEvadedDisruption = onEvadedDisruption;
+            OnGuardedDisruption = primary.OnGuardedDisruption;
+            Clash = primary.Clash;
+            OnEvadedDisruption = primary.OnEvadedDisruption;
         }
 
         public TimelineActorSide Side { get; }
@@ -270,6 +327,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int ResolutionTime { get; }
 
         public IReadOnlyList<int> ResolutionTimes { get; }
+
+        public IReadOnlyList<ScheduledResolutionEvent> ResolutionEvents { get; }
 
         public DamageEffectDefinition DamageEffect { get; }
 
@@ -350,6 +409,96 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return ActionDisruptionResponse.Continue;
+        }
+
+        internal ScheduledTimelineAction CreateResolutionView(
+            ScheduledResolutionEvent resolutionEvent)
+        {
+            return new ScheduledTimelineAction(
+                Side,
+                SequenceIndex,
+                ActionId,
+                DisplayName,
+                StartTime,
+                EndTime,
+                resolutionEvent.Time,
+                resolutionEvent.DamageEffect,
+                resolutionEvent.Effect,
+                resolutionEvent.DamageTags,
+                resolutionEvent.StatusEffect,
+                resolutionEvent.StatusTarget,
+                ResolutionWindowStartTime,
+                ResolutionWindowEndTime,
+                ChargeLevels,
+                ActiveWindows,
+                resolutionEvent.OnHitDisruption,
+                DisruptionResponseSegments,
+                AccumulatedPauseDuration,
+                DisruptionPauses,
+                Restarts,
+                RequiredCompletedSequenceIndex,
+                Cancellation,
+                resolutionEvent.OnGuardedDisruption,
+                resolutionEvent.Clash,
+                resolutionEvent.OnEvadedDisruption,
+                resolutionEvents: new[] { resolutionEvent });
+        }
+
+        internal bool UsesPrimaryResolutionData(ScheduledResolutionEvent resolutionEvent)
+        {
+            return resolutionEvent != null
+                && ReferenceEquals(resolutionEvent.DamageEffect, DamageEffect)
+                && resolutionEvent.Effect == ResolutionEffect
+                && resolutionEvent.DamageTags == DamageTags
+                && ReferenceEquals(resolutionEvent.StatusEffect, StatusEffect)
+                && resolutionEvent.StatusTarget == StatusTarget
+                && ReferenceEquals(resolutionEvent.OnHitDisruption, OnHitDisruption)
+                && ReferenceEquals(resolutionEvent.OnGuardedDisruption, OnGuardedDisruption)
+                && ReferenceEquals(resolutionEvent.Clash, Clash)
+                && ReferenceEquals(resolutionEvent.OnEvadedDisruption, OnEvadedDisruption);
+        }
+
+        private static IReadOnlyList<ScheduledResolutionEvent> CreateLegacyResolutionEvents(
+            IReadOnlyList<int> times,
+            DamageEffectDefinition damageEffect,
+            ActionResolutionEffect effect,
+            DamageResolutionTag damageTags,
+            CombatStatusDefinition statusEffect,
+            ActionStatusTarget statusTarget,
+            ActionDisruptionDefinition onHitDisruption,
+            ActionDisruptionDefinition onGuardedDisruption,
+            DamageClashDefinition clash,
+            ActionDisruptionDefinition onEvadedDisruption)
+        {
+            var events = new ScheduledResolutionEvent[times.Count];
+            for (int index = 0; index < times.Count; index++)
+            {
+                events[index] = new ScheduledResolutionEvent(
+                    times[index],
+                    damageEffect,
+                    effect,
+                    damageTags,
+                    statusEffect,
+                    statusTarget,
+                    onHitDisruption,
+                    onGuardedDisruption,
+                    clash,
+                    onEvadedDisruption);
+            }
+
+            return Array.AsReadOnly(events);
+        }
+
+        private static IReadOnlyList<int> CopyResolutionTimes(
+            IReadOnlyList<ScheduledResolutionEvent> events)
+        {
+            var times = new int[events.Count];
+            for (int index = 0; index < events.Count; index++)
+            {
+                times[index] = events[index].Time;
+            }
+
+            return Array.AsReadOnly(times);
         }
     }
 

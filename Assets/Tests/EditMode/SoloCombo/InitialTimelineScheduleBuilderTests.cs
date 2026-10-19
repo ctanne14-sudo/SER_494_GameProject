@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using NUnit.Framework;
+using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
@@ -58,6 +59,106 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(
                 sharedStep.Actions.Select(action => action.Side),
                 Is.EquivalentTo(new[] { TimelineActorSide.Player, TimelineActorSide.Enemy }));
+        }
+
+        [Test]
+        public void Build_MultiEventAction_SchedulesEachEffectAtItsOwnTime()
+        {
+            var main = new ComboActionDefinition(
+                "multi-main",
+                "Multi Main [M]",
+                ComboActionCategory.Main,
+                timelineCost: 6,
+                manaCost: 0,
+                staminaCost: 2,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Slashing, 0.30d)),
+                    new ActionResolutionDefinition(
+                        4,
+                        ActionResolutionEffect.Guard),
+                    new ActionResolutionDefinition(
+                        5,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.50d))
+                });
+
+            InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(main),
+                EnemySequence(EnemyAction("enemy", timelineCost: 6, resolution: 6)));
+
+            ScheduledTimelineAction scheduled = schedule.Actions.Single(
+                action => action.Side == TimelineActorSide.Player);
+            Assert.That(scheduled.ResolutionTimes, Is.EqualTo(new[] { 2, 4, 5 }));
+            Assert.That(
+                schedule.ResolutionSteps
+                    .SelectMany(step => step.Actions)
+                    .Where(action => action.Side == TimelineActorSide.Player)
+                    .Select(action => action.ResolutionEffect),
+                Is.EqualTo(new[]
+                {
+                    ActionResolutionEffect.Damage,
+                    ActionResolutionEffect.Guard,
+                    ActionResolutionEffect.Damage
+                }));
+            Assert.That(
+                schedule.ResolutionSteps.Single(step => step.TimeStep == 5)
+                    .Actions.Single(action => action.Side == TimelineActorSide.Player)
+                    .DamageEffect.Components[0].Type,
+                Is.EqualTo(DamageType.Blunt));
+        }
+
+        [Test]
+        public void ApplyPauseAndResume_MultiEventAction_ShiftsOnlyUnresolvedEvents()
+        {
+            var main = new ComboActionDefinition(
+                "multi-main",
+                "Multi Main [M]",
+                ComboActionCategory.Main,
+                timelineCost: 6,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Slashing, 0.20d)),
+                    new ActionResolutionDefinition(4, ActionResolutionEffect.Guard),
+                    new ActionResolutionDefinition(
+                        5,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.40d))
+                });
+            InitialTimelineSchedule initial = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(main),
+                EnemySequence(EnemyAction("enemy", timelineCost: 6, resolution: 6)));
+
+            InitialTimelineSchedule delayed =
+                InitialTimelineScheduleBuilder.ApplyPauseAndResume(
+                    initial,
+                    TimelineActorSide.Player,
+                    sequenceIndex: 0,
+                    disruptionTime: 3,
+                    duration: 2,
+                    disruptionType: ActionDisruptionType.Stagger);
+
+            ScheduledTimelineAction scheduled = delayed.Actions.Single(
+                action => action.Side == TimelineActorSide.Player);
+            Assert.That(scheduled.ResolutionTimes, Is.EqualTo(new[] { 2, 6, 7 }));
+            Assert.That(
+                scheduled.ResolutionEvents.Select(resolution => resolution.Effect),
+                Is.EqualTo(new[]
+                {
+                    ActionResolutionEffect.Damage,
+                    ActionResolutionEffect.Guard,
+                    ActionResolutionEffect.Damage
+                }));
         }
 
         [Test]

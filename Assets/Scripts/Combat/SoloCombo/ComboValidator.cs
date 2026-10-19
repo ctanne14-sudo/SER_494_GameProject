@@ -268,32 +268,64 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < executionOrder.Count; index++)
             {
                 ComboActionDefinition action = executionOrder[index];
-                if (IsMutuallyExclusiveResolutionEffect(action.ResolutionEffect))
+                if (action.HasResolutionWindow
+                    && IsMutuallyExclusiveResolutionEffect(action.ResolutionEffect))
                 {
-                    int firstOffset = action.ResolutionWindowStart
-                        ?? action.ResolutionOffset;
-                    int lastOffset = action.ResolutionWindowEnd
-                        ?? action.ResolutionOffset;
+                    int firstOffset = action.ResolutionWindowStart.Value;
+                    int lastOffset = action.ResolutionWindowEnd.Value;
                     for (int offset = firstOffset; offset <= lastOffset; offset++)
                     {
-                        int resolutionTime = checked(actionStartTime + offset);
-                        if (occupiedResolutionTimes.TryGetValue(
-                                resolutionTime,
-                                out ComboActionDefinition existingAction))
+                        AddExclusiveResolutionTime(
+                            actionStartTime + offset,
+                            action,
+                            combo,
+                            occupiedResolutionTimes,
+                            result);
+                    }
+                }
+                else
+                {
+                    for (int resolutionIndex = 0;
+                        resolutionIndex < action.ResolutionEvents.Count;
+                        resolutionIndex++)
+                    {
+                        ActionResolutionDefinition resolution =
+                            action.ResolutionEvents[resolutionIndex];
+                        if (IsMutuallyExclusiveResolutionEffect(resolution.Effect))
                         {
-                            result.Add(
-                                ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap,
-                                combo.Name,
-                                $"{existingAction.ActionId}|{action.ActionId}");
-                        }
-                        else
-                        {
-                            occupiedResolutionTimes.Add(resolutionTime, action);
+                            AddExclusiveResolutionTime(
+                                actionStartTime + resolution.Offset,
+                                action,
+                                combo,
+                                occupiedResolutionTimes,
+                                result);
                         }
                     }
                 }
 
                 actionStartTime = checked(actionStartTime + action.TimelineCost);
+            }
+        }
+
+        private static void AddExclusiveResolutionTime(
+            int resolutionTime,
+            ComboActionDefinition action,
+            ComboConfiguration combo,
+            IDictionary<int, ComboActionDefinition> occupiedResolutionTimes,
+            ComboValidationResult result)
+        {
+            if (occupiedResolutionTimes.TryGetValue(
+                    resolutionTime,
+                    out ComboActionDefinition existingAction))
+            {
+                result.Add(
+                    ComboValidationErrorCode.MutuallyExclusiveResolutionEffectsOverlap,
+                    combo.Name,
+                    $"{existingAction.ActionId}|{action.ActionId}");
+            }
+            else
+            {
+                occupiedResolutionTimes.Add(resolutionTime, action);
             }
         }
 

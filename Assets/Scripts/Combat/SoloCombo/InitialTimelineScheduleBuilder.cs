@@ -104,7 +104,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         cancellation: action.Cancellation,
                         onGuardedDisruption: action.OnGuardedDisruption,
                         clash: action.Clash,
-                        onEvadedDisruption: action.OnEvadedDisruption);
+                        onEvadedDisruption: action.OnEvadedDisruption,
+                        resolutionEvents: TransformResolutionEvents(
+                            action.ResolutionEvents,
+                            time => selectedTime,
+                            damageScale: 1d));
                     replaced = true;
                 }
 
@@ -440,10 +444,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 }
 
                 for (int resolutionIndex = 0;
-                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex < action.ResolutionEvents.Count;
                     resolutionIndex++)
                 {
-                    int resolutionTime = action.ResolutionTimes[resolutionIndex];
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[resolutionIndex];
+                    int resolutionTime = resolution.Time;
                     if (!actionsByTime.TryGetValue(
                             resolutionTime,
                             out List<ScheduledTimelineAction> sameTimeActions))
@@ -452,7 +458,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         actionsByTime.Add(resolutionTime, sameTimeActions);
                     }
 
-                    sameTimeActions.Add(action);
+                    sameTimeActions.Add(action.UsesPrimaryResolutionData(resolution)
+                        ? action
+                        : action.CreateResolutionView(resolution));
                 }
             }
 
@@ -484,21 +492,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
-                if (action.ResolutionEffect != ActionResolutionEffect.Damage
-                    && action.ResolutionEffect != ActionResolutionEffect.Guard
-                    && action.ResolutionEffect != ActionResolutionEffect.Evade)
-                {
-                    continue;
-                }
-
                 ISet<int> occupiedTimes = action.Side == TimelineActorSide.Player
                     ? playerTimes
                     : enemyTimes;
                 for (int resolutionIndex = 0;
-                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex < action.ResolutionEvents.Count;
                     resolutionIndex++)
                 {
-                    if (!occupiedTimes.Add(action.ResolutionTimes[resolutionIndex]))
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[resolutionIndex];
+                    if (resolution.Effect != ActionResolutionEffect.Damage
+                        && resolution.Effect != ActionResolutionEffect.Guard
+                        && resolution.Effect != ActionResolutionEffect.Evade)
+                    {
+                        continue;
+                    }
+
+                    if (!occupiedTimes.Add(resolution.Time))
                     {
                         throw new InvalidOperationException(
                             "Damage, Guard, and Evade Resolution Points cannot overlap for the same character.");
@@ -554,7 +564,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     resolutionTimes: ScheduleResolutionTimes(
                         definition.SustainedAttack,
                         currentTime,
-                        definition.ResolutionOffset)));
+                        definition.ResolutionOffset),
+                    resolutionEvents: definition.SustainedAttack == null
+                        ? ScheduleResolutionEvents(definition.ResolutionEvents, currentTime)
+                        : null));
                 currentTime = endTime;
             }
 
@@ -643,7 +656,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.OnGuardedDisruption,
                 action.Clash,
                 action.OnEvadedDisruption,
-                ShiftResolutionTimes(action.ResolutionTimes, resolutionShift));
+                ShiftResolutionTimes(action.ResolutionTimes, resolutionShift),
+                TransformResolutionEvents(
+                    action.ResolutionEvents,
+                    time => checked(time + resolutionShift),
+                    damageScale));
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
@@ -709,7 +726,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 PauseResolutionTimes(
                     action.ResolutionTimes,
                     disruptionTime,
-                    duration));
+                    duration),
+                TransformResolutionEvents(
+                    action.ResolutionEvents,
+                    time => time > disruptionTime
+                        ? checked(time + duration)
+                        : time,
+                    damageScale: 1d));
         }
 
         private static ScheduledTimelineAction RestartScheduledAction(
@@ -774,7 +797,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onEvadedDisruption: action.OnEvadedDisruption,
                 resolutionTimes: RestartResolutionTimes(
                     action,
-                    restartTime));
+                    restartTime),
+                resolutionEvents: TransformResolutionEvents(
+                    action.ResolutionEvents,
+                    time => checked(restartTime + action.GetLocalTimeAt(time)),
+                    damageScale: 1d));
         }
 
         private static ScheduledTimelineAction CancelScheduledAction(
@@ -824,7 +851,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 action.OnGuardedDisruption,
                 action.Clash,
                 action.OnEvadedDisruption,
-                action.ResolutionTimes);
+                action.ResolutionTimes,
+                action.ResolutionEvents);
         }
 
         private static IReadOnlyList<int> ScheduleResolutionTimes(
@@ -847,6 +875,30 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return Array.AsReadOnly(times);
         }
 
+        private static IReadOnlyList<ScheduledResolutionEvent> ScheduleResolutionEvents(
+            IReadOnlyList<ActionResolutionDefinition> definitions,
+            int actionStartTime)
+        {
+            var scheduled = new ScheduledResolutionEvent[definitions.Count];
+            for (int index = 0; index < definitions.Count; index++)
+            {
+                ActionResolutionDefinition definition = definitions[index];
+                scheduled[index] = new ScheduledResolutionEvent(
+                    checked(actionStartTime + definition.Offset),
+                    definition.DamageEffect,
+                    definition.Effect,
+                    definition.DamageTags,
+                    definition.StatusEffect,
+                    definition.StatusTarget,
+                    definition.OnHitDisruption,
+                    definition.OnGuardedDisruption,
+                    definition.Clash,
+                    definition.OnEvadedDisruption);
+            }
+
+            return Array.AsReadOnly(scheduled);
+        }
+
         private static IReadOnlyList<int> ShiftResolutionTimes(
             IReadOnlyList<int> source,
             int shift)
@@ -858,6 +910,31 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<ScheduledResolutionEvent> TransformResolutionEvents(
+            IReadOnlyList<ScheduledResolutionEvent> source,
+            Func<int, int> transformTime,
+            double damageScale)
+        {
+            var transformed = new ScheduledResolutionEvent[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                ScheduledResolutionEvent resolution = source[index];
+                transformed[index] = new ScheduledResolutionEvent(
+                    transformTime(resolution.Time),
+                    ScaleDamageEffect(resolution.DamageEffect, damageScale),
+                    resolution.Effect,
+                    resolution.DamageTags,
+                    resolution.StatusEffect,
+                    resolution.StatusTarget,
+                    resolution.OnHitDisruption,
+                    resolution.OnGuardedDisruption,
+                    resolution.Clash,
+                    resolution.OnEvadedDisruption);
+            }
+
+            return Array.AsReadOnly(transformed);
         }
 
         private static IReadOnlyList<int> PauseResolutionTimes(

@@ -34,6 +34,58 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ExecuteCombo_MultiEventAction_ResolvesDamageGuardAndDamageInOrder()
+        {
+            var main = new ComboActionDefinition(
+                "multi-main",
+                "Multi Main [M]",
+                ComboActionCategory.Main,
+                timelineCost: 6,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Slashing, 0.30d)),
+                    new ActionResolutionDefinition(4, ActionResolutionEffect.Guard),
+                    new ActionResolutionDefinition(
+                        5,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.50d))
+                });
+            var combo = new ComboConfiguration(
+                "combo1",
+                openingAction: null,
+                mainAction: main,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            SoloComboBattleState battle = CreateBattle(new[] { combo });
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(
+                result.ActionResolutions
+                    .Where(resolution => resolution.Side == TimelineActorSide.Player)
+                    .Select(resolution => (resolution.TimeStep, resolution.ResolutionEffect)),
+                Is.EqualTo(new[]
+                {
+                    (2, ActionResolutionEffect.Damage),
+                    (4, ActionResolutionEffect.Guard),
+                    (5, ActionResolutionEffect.Damage)
+                }));
+            Assert.That(
+                result.ActionResolutions
+                    .Where(resolution => resolution.Side == TimelineActorSide.Player)
+                    .Sum(resolution => resolution.DamageDealt),
+                Is.GreaterThan(0));
+        }
+
+        [Test]
         public void FailedTurn_HasNoLastResolvedTimeStep()
         {
             SoloComboBattleState battle = CreateBattle(

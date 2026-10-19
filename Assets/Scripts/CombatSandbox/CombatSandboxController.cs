@@ -657,12 +657,14 @@ namespace SER494.Gameplay.CombatSandbox
                 }
 
                 for (int resolutionIndex = 0;
-                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex < action.ResolutionEvents.Count;
                     resolutionIndex++)
                 {
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[resolutionIndex];
                     float resolutionRatio = Mathf.Clamp01(
-                        action.ResolutionTimes[resolutionIndex] / (float)displayEnd);
-                    GUI.color = new Color(1f, 0.86f, 0.22f, 1f);
+                        resolution.Time / (float)displayEnd);
+                    GUI.color = IntentColor(resolution.Effect);
                     GUI.DrawTexture(
                         new Rect(
                             trackRect.x + trackRect.width * resolutionRatio - 1f,
@@ -887,17 +889,19 @@ namespace SER494.Gameplay.CombatSandbox
             for (int index = 0; index < _battle.EnemyIntent.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _battle.EnemyIntent.Actions[index];
-                if (action.ResolutionEffect == ActionResolutionEffect.None)
-                {
-                    continue;
-                }
-
-                GUI.color = IntentColor(action.ResolutionEffect);
                 for (int resolutionIndex = 0;
-                    resolutionIndex < action.ResolutionTimes.Count;
+                    resolutionIndex < action.ResolutionEvents.Count;
                     resolutionIndex++)
                 {
-                    int resolutionTime = action.ResolutionTimes[resolutionIndex];
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[resolutionIndex];
+                    if (resolution.Effect == ActionResolutionEffect.None)
+                    {
+                        continue;
+                    }
+
+                    GUI.color = IntentColor(resolution.Effect);
+                    int resolutionTime = resolution.Time;
                     float startRatio = Mathf.Clamp01(
                         (resolutionTime - 1f) / IntentTimelineLength);
                     float endRatio = Mathf.Clamp01(
@@ -935,25 +939,32 @@ namespace SER494.Gameplay.CombatSandbox
             for (int index = 0; index < _battle.EnemyIntent.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _battle.EnemyIntent.Actions[index];
-                string effect = action.ResolutionEffect.ToString();
-                if (action.StatusEffect != null)
+                for (int resolutionIndex = 0;
+                    resolutionIndex < action.ResolutionEvents.Count;
+                    resolutionIndex++)
                 {
-                    effect += $" ({action.StatusEffect.DisplayName})";
-                }
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[resolutionIndex];
+                    string effect = resolution.Effect.ToString();
+                    if (resolution.StatusEffect != null)
+                    {
+                        effect += $" ({resolution.StatusEffect.DisplayName})";
+                    }
 
-                if (action.DamageTags != DamageResolutionTag.None)
-                {
-                    effect += $" [{action.DamageTags}]";
-                }
+                    if (resolution.DamageTags != DamageResolutionTag.None)
+                    {
+                        effect += $" [{resolution.DamageTags}]";
+                    }
 
-                if (action.OnEvadedDisruption != null)
-                {
-                    effect += $" | On Evaded: self-{action.OnEvadedDisruption.Type} "
-                        + $"for {action.OnEvadedDisruption.Duration} Time Steps";
-                }
+                    if (resolution.OnEvadedDisruption != null)
+                    {
+                        effect += $" | On Evaded: self-{resolution.OnEvadedDisruption.Type} "
+                            + $"for {resolution.OnEvadedDisruption.Duration} Time Steps";
+                    }
 
-                string times = string.Join(", T", action.ResolutionTimes);
-                GUILayout.Label($"T{times}: {action.DisplayName} — {effect}");
+                    GUILayout.Label(
+                        $"T{resolution.Time}: {action.DisplayName} — {effect}");
+                }
             }
         }
 
