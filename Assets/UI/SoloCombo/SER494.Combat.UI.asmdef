@@ -1,0 +1,17 @@
+{
+  "name": "SER494.Combat.UI",
+  "rootNamespace": "SER494.Gameplay.Combat.UI",
+  "references": [
+    "SER494.Combat",
+    "SER494.Combat.Authoring"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
