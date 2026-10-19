@@ -3,14 +3,10 @@ using TMPro;
 
 public class ObjectInteraction : MonoBehaviour
 {
-    [SerializeField] 
-    private GameObject uiPrefab;
-    [SerializeField] 
-    private Vector3 uiOffset = new Vector3(0, 1.5f, 0);
-    [SerializeField] 
-    private float uiScale = .01f;
-    [SerializeField] 
-    private Action objectAction;
+    [SerializeField] private GameObject uiPrefab;
+    [SerializeField] private Vector3 uiOffset = new Vector3(0, 1.5f, 0);
+    [SerializeField] private float uiScale = .01f;
+    [SerializeField] private WorldAction objectAction;
     private GameObject spawnedUI;
     private TextMeshProUGUI uiTextComponent;
 
@@ -32,10 +28,15 @@ public class ObjectInteraction : MonoBehaviour
         if (spawnedUI != null) spawnedUI.SetActive(show);
     }
 
-    public void action(PlayerInteractor interactor)
+    public void worldAction(PlayerInteractor interactor)
     {
         objectAction.action(interactor);
         uiTextComponent.text = objectAction.setUiPrompt();
     }
 
+    public void inventoryAction(PlayerInteractor interactor)
+    {
+        objectAction.action(interactor);
+        uiTextComponent.text = objectAction.setUiPrompt();
+    }
 }

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ChestAction : Action {
+public class ChestAction : WorldAction {
 
 	[SerializeField]
 	private Transform top, open, close;	// Lid, Lid  rotation, Lid close rotation
