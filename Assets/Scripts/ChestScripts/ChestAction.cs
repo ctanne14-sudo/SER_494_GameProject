@@ -1,17 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ChestAction : WorldAction {
+public class ChestAction : Action {
 
 	[SerializeField]
 	private Transform top, open, close;	// Lid, Lid  rotation, Lid close rotation
 	[SerializeField]
 	private Transform spawnPoint;
     [SerializeField]
-    private GameObject hazard;
+    private GameObject[] items;
 	[SerializeField]
-    private GameObject heal;
-    [SerializeField]
 	private float speed = 5F;
     [SerializeField]
 	private bool canClose;
@@ -48,12 +46,8 @@ public class ChestAction : WorldAction {
 
 	void spawnItem()
 	{
-        GameObject item = Random.value < .5f ? heal : hazard;
+        GameObject item = items[Random.Range(0, items.Length)];
         itemSpawned = Instantiate(item, spawnPoint.position, Quaternion.identity, spawnPoint);
-        if (item == hazard)
-        {
-            itemSpawned.transform.Rotate(10f, 0 ,0);
-        }
 		spawned = true;
 	}
 }

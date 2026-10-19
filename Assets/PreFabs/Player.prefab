@@ -153,7 +153,7 @@ MonoBehaviour:
   target: {fileID: 1066467300407757438}
   sensitivity: 5
   distance: 3
---- !u!1 &9049555911599277006
+--- !u!1 &6606748192689181812
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -161,28 +161,28 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6071303192036332069}
+  - component: {fileID: 5137402975963665322}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6071303192036332069
+--- !u!4 &5137402975963665322
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9049555911599277006}
+  m_GameObject: {fileID: 6606748192689181812}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.844, z: 0.086}
+  m_LocalRotation: {x: -0.3699794, y: 0.8139334, z: -0.21955065, w: -0.39041686}
+  m_LocalPosition: {x: 0.0501, y: -0.0735, z: -0.0275}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5516601254310704279}
+  m_Father: {fileID: 3069897887063638072}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &5405549776099119996
 PrefabInstance:
@@ -254,9 +254,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 227145974070647311}
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
+    - targetCorrespondingSourceObject: {fileID: -2189267025489947836, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6071303192036332069}
+      addedObject: {fileID: 5137402975963665322}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
       insertIndex: -1
@@ -276,6 +276,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8080495851253184983}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1476984372760284214}
   m_SourcePrefab: {fileID: 100100000, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
 --- !u!4 &1066467300407757438 stripped
 Transform:
@@ -285,6 +288,11 @@ Transform:
 --- !u!95 &1904683203995905773 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
+  m_PrefabInstance: {fileID: 5405549776099119996}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3069897887063638072 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2189267025489947836, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}
   m_PrefabInstance: {fileID: 5405549776099119996}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &5171600427612483117 stripped
@@ -345,11 +353,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ea7bdedbd5db6441a8efeb7f8dd883d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpeed
-  currentSpeed: 0
+  runSpeed: 7
+  walkSpeed: 3.5
   speedMultiplyer: 1
   maxStamina: 80
   stamina: 80
-  staminaSpeed: 5
 --- !u!114 &2830373835529903181
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -403,6 +411,29 @@ MonoBehaviour:
   interactionMask:
     serializedVersion: 2
     m_Bits: 64
+  inventory: {fileID: 1476984372760284214}
+  hc: {fileID: 2532465867328811228}
+--- !u!114 &1476984372760284214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171600427612483117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7eefb10ee363c94dad2e070306f82ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Inventory
+  slots:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  interactor: {fileID: 8080495851253184983}
+  ps: {fileID: 8959616026326612721}
+  spawnPoint: {fileID: 6606748192689181812}
 --- !u!4 &5516601254310704279 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c9cce506f48441e459ebbd52a3f6f19a, type: 3}

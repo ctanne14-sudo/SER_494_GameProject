@@ -5,6 +5,7 @@ public class PlayerInteractor : MonoBehaviour
     [SerializeField] private float interactRadius = 2f;
     [SerializeField] private LayerMask interactionMask;
     public Inventory inventory;
+    public HealthController hc;
     private ObjectInteraction prevObj;
     private readonly Collider[] hits = new Collider[16];
 
@@ -33,7 +34,7 @@ public class PlayerInteractor : MonoBehaviour
         
         prevObj.ShowUI(true);
 
-        if (Input.GetKeyDown(KeyCode.E)) prevObj.worldAction(this);
+        if (Input.GetKeyDown(KeyCode.E)) prevObj.action(this, 1);
     }
 
     void OnDrawGizmosSelected()

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public abstract class WorldAction : MonoBehaviour
+public abstract class Action : MonoBehaviour
 {
     public abstract void action(PlayerInteractor interactor);
 

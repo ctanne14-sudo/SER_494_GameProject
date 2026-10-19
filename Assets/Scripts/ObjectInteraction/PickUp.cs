@@ -1,15 +1,19 @@
 using UnityEngine;
 
-public class PickUp : WorldAction
+public class PickUp : Action
 {
-    [SerializeField] private GameObject uiPrefab;
     [SerializeField] private GameObject itemPrefab;
-
     [SerializeField] private Texture itemImage;
 
     public override void action(PlayerInteractor interactor)
     {
-        interactor.inventory.addItem(itemPrefab, itemImage);
+        if (gameObject.CompareTag("InventoryItem")) {
+            interactor.inventory.addItem(itemPrefab, itemImage);
+        } else
+        {
+            Action itemAction = itemPrefab.GetComponent<Action>();
+            itemAction.action(interactor);
+        }
         Destroy(gameObject);
     }
 
