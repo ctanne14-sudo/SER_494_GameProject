@@ -117,7 +117,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 185523098129814489}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000030908623, y: 0.7071068, z: 0.7071068, w: -0.000000030908623}
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0.7071068, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
   m_ConstrainProportionsScale: 1
@@ -128,7 +128,7 @@ Transform:
   - {fileID: 8042210214607362776}
   - {fileID: 6395178074192340318}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: -180}
 --- !u!65 &5150526539554094388
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -182,11 +182,10 @@ MonoBehaviour:
   open: {fileID: 6736957197369584381}
   close: {fileID: 1072655352851173883}
   spawnPoint: {fileID: 6395178074192340318}
-  hazard: {fileID: 7687813558056526008, guid: d5bf99521fb986743be16aafcba5ac60, type: 3}
-  heal: {fileID: 7687813558056526008, guid: d5bf99521fb986743be16aafcba5ac60, type: 3}
+  hazard: {fileID: 9021979860543945138, guid: e02b31792a067c74a81e275fcda3930b, type: 3}
+  heal: {fileID: 621584630249350254, guid: af9d1131c788d454fa7dae4544fa99d2, type: 3}
   speed: 5
-  canClose: 0
-  isOpen: 0
+  canClose: 1
 --- !u!1 &1400531812519530984
 GameObject:
   m_ObjectHideFlags: 0

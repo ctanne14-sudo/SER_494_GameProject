@@ -3,17 +3,14 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField]
-    private CharacterController controller;
-    [SerializeField]
-    private Animator animator;
-    public Vector3 homePosition;
-    public float speed = 3f;
+    [SerializeField] private CharacterController controller;
+    [SerializeField] private Animator animator;
+    [SerializeField] private PlayerSpeed playerSpeed;
+    private Vector3 homePosition;
     private float gravity = -9.81f;
     public float jumpHeight = 1.5f;
     private float verticalVelocity;
     private bool isGrounded;
-    private bool isRunning;
     private bool inAir;
 
     void Start() {
@@ -22,15 +19,6 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.LeftShift)) {
-            speed = 7f;
-            isRunning = true;
-        }
-        if (Input.GetKey(KeyCode.S)) {
-            speed = 2f;
-            isRunning = false;
-        }
-        
         if (Input.GetKeyDown(KeyCode.K))
         {
             GetComponent<HealthController>().damagePlayer(50);
@@ -47,19 +35,17 @@ public class PlayerMovement : MonoBehaviour
             move.Normalize();
         }
         
-        bool isMoving = move != Vector3.zero && speed != 0f;
+        bool isMoving = move != Vector3.zero && playerSpeed.currentSpeed != 0f;
 
-        if (isRunning) {
-            animator.SetBool("isRunning", isMoving);
-        } else {
-            animator.SetBool("isRunning", isRunning);
-        }
+        bool isRunning = playerSpeed.isRunning();
 
-        if (isMoving) {
-            animator.SetBool("isWalking", !isRunning);
-        } else {
-            animator.SetBool("isWalking", isMoving);
-        }
+        if (isRunning) animator.SetBool("isRunning", isMoving);
+        else animator.SetBool("isRunning", isRunning);
+        
+
+        if (isMoving)  animator.SetBool("isWalking", !isRunning);
+        else animator.SetBool("isWalking", isMoving);
+        
         
 
         if (isGrounded) {
@@ -68,6 +54,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
+            playerSpeed.stamina -= 10;
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             animator.SetTrigger("isJump");
             inAir = true;
@@ -80,7 +67,7 @@ public class PlayerMovement : MonoBehaviour
 
         verticalVelocity += gravity * Time.deltaTime;
 
-        Vector3 finalMove = move * speed + new Vector3(0, verticalVelocity, 0);
+        Vector3 finalMove = move * playerSpeed.currentSpeed + new Vector3(0, verticalVelocity, 0);
 
         controller.Move(finalMove * Time.deltaTime);
 
@@ -93,7 +80,6 @@ public class PlayerMovement : MonoBehaviour
     {
         animator.SetBool("isWalking", false);
         animator.SetBool("isRunning", false);
-        speed = 0f;
         this.enabled = false;
     }
 }

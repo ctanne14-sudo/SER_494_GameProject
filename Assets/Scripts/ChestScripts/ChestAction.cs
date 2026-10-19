@@ -3,18 +3,11 @@ using System.Collections;
 
 public class ChestAction : Action {
 
-	[SerializeField]
-	private Transform top, open, close;	// Lid, Lid  rotation, Lid close rotation
-	[SerializeField]
-	private Transform spawnPoint;
-    [SerializeField]
-    private GameObject hazard;
-	[SerializeField]
-    private GameObject heal;
-    [SerializeField]
-	private float speed = 5F;
-    [SerializeField]
-	private bool canClose;
+	[SerializeField] private Transform top, open, close;
+	[SerializeField] private Transform spawnPoint;
+    [SerializeField] private GameObject[] items;
+	[SerializeField] private float speed = 5F;
+    [SerializeField] private bool canClose;
 	private GameObject itemSpawned;
 	private bool spawned;
 	private bool isOpen;
@@ -48,12 +41,8 @@ public class ChestAction : Action {
 
 	void spawnItem()
 	{
-        GameObject item = Random.value < .5f ? heal : hazard;
+        GameObject item = items[Random.Range(0, items.Length)];
         itemSpawned = Instantiate(item, spawnPoint.position, Quaternion.identity, spawnPoint);
-        if (item == hazard)
-        {
-            itemSpawned.transform.Rotate(10f, 0 ,0);
-        }
 		spawned = true;
 	}
 }
