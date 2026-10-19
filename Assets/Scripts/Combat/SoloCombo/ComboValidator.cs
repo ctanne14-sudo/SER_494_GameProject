@@ -16,7 +16,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         MissingLinkedActionPlacement,
         LinkedActionPlacementWithoutLinkedAction,
         LinkedActionPlacementHasNoAction,
-        LoadCostExceeded,
+        TimelineCostExceeded,
         ManaCostExceeded,
         StaminaCostExceeded,
         MutuallyExclusiveResolutionEffectsOverlap,
@@ -26,14 +26,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
     public sealed class ComboValidationLimits
     {
-        public ComboValidationLimits(int maximumLoad, int maximumMana, int maximumStamina)
+        public ComboValidationLimits(int maximumTimelineCost, int maximumMana, int maximumStamina)
         {
-            MaximumLoad = RequireNonNegative(maximumLoad, nameof(maximumLoad));
+            MaximumTimelineCost = RequireNonNegative(maximumTimelineCost, nameof(maximumTimelineCost));
             MaximumMana = RequireNonNegative(maximumMana, nameof(maximumMana));
             MaximumStamina = RequireNonNegative(maximumStamina, nameof(maximumStamina));
         }
 
-        public int MaximumLoad { get; }
+        public int MaximumTimelineCost { get; }
 
         public int MaximumMana { get; }
 
@@ -241,9 +241,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ComboValidationLimits limits,
             ComboValidationResult result)
         {
-            if (combo.TotalLoadCost > limits.MaximumLoad)
+            if (combo.TotalTimelineCost > limits.MaximumTimelineCost)
             {
-                result.Add(ComboValidationErrorCode.LoadCostExceeded, combo.Name);
+                result.Add(ComboValidationErrorCode.TimelineCostExceeded, combo.Name);
             }
 
             if (combo.TotalManaCost > limits.MaximumMana)
@@ -293,7 +293,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     }
                 }
 
-                actionStartTime = checked(actionStartTime + action.LoadCost);
+                actionStartTime = checked(actionStartTime + action.TimelineCost);
             }
         }
 

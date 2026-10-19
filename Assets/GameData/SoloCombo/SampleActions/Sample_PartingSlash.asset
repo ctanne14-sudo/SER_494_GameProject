@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.parting-slash
   displayName: Parting Slash
   category: 2
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 1
   manaCost: 0
   staminaCost: 2

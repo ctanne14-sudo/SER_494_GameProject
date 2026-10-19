@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.steady-finish
   displayName: Steady Finish
   category: 2
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 2
   manaCost: 0
   staminaCost: 1

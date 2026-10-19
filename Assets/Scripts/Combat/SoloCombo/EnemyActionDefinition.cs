@@ -9,7 +9,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public EnemyActionDefinition(
             string actionId,
             string displayName,
-            int loadCost,
+            int timelineCost,
             int resolutionOffset,
             double damageMultiplier = 0d,
             DamageType damageType = DamageType.Slashing,
@@ -27,7 +27,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             : this(
                 actionId,
                 displayName,
-                loadCost,
+                timelineCost,
                 resolutionOffset,
                 CreateSingleDamageEffect(damageMultiplier, damageType),
                 ResolveEffect(damageMultiplier, resolutionEffect),
@@ -47,7 +47,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public EnemyActionDefinition(
             string actionId,
             string displayName,
-            int loadCost,
+            int timelineCost,
             int resolutionOffset,
             DamageEffectDefinition damageEffect,
             DamageResolutionTag damageTags = DamageResolutionTag.None,
@@ -63,7 +63,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             : this(
                 actionId,
                 displayName,
-                loadCost,
+                timelineCost,
                 resolutionOffset,
                 damageEffect,
                 damageEffect != null
@@ -85,7 +85,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private EnemyActionDefinition(
             string actionId,
             string displayName,
-            int loadCost,
+            int timelineCost,
             int resolutionOffset,
             DamageEffectDefinition damageEffect,
             ActionResolutionEffect resolutionEffect,
@@ -112,32 +112,32 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     nameof(displayName));
             }
 
-            if (loadCost <= 0)
+            if (timelineCost <= 0)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(loadCost),
-                    loadCost,
-                    "Load Cost must be greater than zero.");
+                    nameof(timelineCost),
+                    timelineCost,
+                    "Timeline Cost must be greater than zero.");
             }
 
-            if (resolutionOffset < 0 || resolutionOffset > loadCost)
+            if (resolutionOffset < 0 || resolutionOffset > timelineCost)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(resolutionOffset),
                     resolutionOffset,
-                    "Resolution Offset must be between zero and the Action Load Cost.");
+                    "Resolution Offset must be between zero and the Action Timeline Cost.");
             }
 
             ActionId = actionId;
             DisplayName = displayName;
-            LoadCost = loadCost;
+            TimelineCost = timelineCost;
             ResolutionOffset = resolutionOffset;
             DamageEffect = damageEffect;
             ResolutionEffect = resolutionEffect;
             DamageTags = ValidateDamageTags(damageEffect, damageTags);
             StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
             StatusTarget = ValidateStatusTarget(statusTarget);
-            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
+            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, TimelineCost);
             if (onHitDisruption != null && damageEffect == null)
             {
                 throw new ArgumentException(
@@ -171,19 +171,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             OnEvadedDisruption = onEvadedDisruption;
-            sustainedAttack?.ValidateForAction(LoadCost, damageEffect != null);
+            sustainedAttack?.ValidateForAction(TimelineCost, damageEffect != null);
             SustainedAttack = sustainedAttack;
             DisruptionResponseSegments = ComboActionDefinition
                 .CopyAndValidateDisruptionResponseSegments(
                     disruptionResponseSegments,
-                    LoadCost);
+                    TimelineCost);
         }
 
         public string ActionId { get; }
 
         public string DisplayName { get; }
 
-        public int LoadCost { get; }
+        public int TimelineCost { get; }
 
         public int ResolutionOffset { get; }
 
@@ -271,7 +271,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             DamageResolutionTag damageTags)
         {
-            const DamageResolutionTag supportedTags = DamageResolutionTag.Area
+            const DamageResolutionTag supportedTags = DamageResolutionTag.IgnoresEvade
                 | DamageResolutionTag.Unguardable
                 | DamageResolutionTag.Overcommit
                 | DamageResolutionTag.Clash;
@@ -358,7 +358,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         private static IReadOnlyList<ActionActiveWindowDefinition> CopyAndValidateActiveWindows(
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
-            int loadCost)
+            int timelineCost)
         {
             if (activeWindows == null || activeWindows.Count == 0)
             {
@@ -373,7 +373,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ?? throw new ArgumentException(
                         "Active Window entries cannot be null.",
                         nameof(activeWindows));
-                window.ValidateForActionLoad(loadCost);
+                window.ValidateForActionTimelineCost(timelineCost);
                 if (!ids.Add(window.WindowId))
                 {
                     throw new ArgumentException(

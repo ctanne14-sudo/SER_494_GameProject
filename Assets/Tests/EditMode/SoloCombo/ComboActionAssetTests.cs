@@ -31,7 +31,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "test-main",
                 displayName: "Test Main",
                 category: ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 resolutionOffset: 3,
                 manaCost: 3,
                 staminaCost: 2,
@@ -39,7 +39,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 damageMultiplier: 0.60f,
                 damageType: DamageType.Fire,
                 resolutionEffect: ActionResolutionEffect.Damage,
-                damageTags: DamageResolutionTag.Area | DamageResolutionTag.Unguardable);
+                damageTags: DamageResolutionTag.IgnoresEvade | DamageResolutionTag.Unguardable);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -50,7 +50,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.ActionId, Is.EqualTo("test-main"));
             Assert.That(definition.DisplayName, Is.EqualTo("Test Main"));
             Assert.That(definition.Category, Is.EqualTo(ComboActionCategory.Main));
-            Assert.That(definition.LoadCost, Is.EqualTo(5));
+            Assert.That(definition.TimelineCost, Is.EqualTo(5));
             Assert.That(definition.ResolutionOffset, Is.EqualTo(3));
             Assert.That(definition.ManaCost, Is.EqualTo(3));
             Assert.That(definition.StaminaCost, Is.EqualTo(2));
@@ -61,7 +61,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.ResolutionEffect, Is.EqualTo(ActionResolutionEffect.Damage));
             Assert.That(
                 definition.DamageTags,
-                Is.EqualTo(DamageResolutionTag.Area | DamageResolutionTag.Unguardable));
+                Is.EqualTo(DamageResolutionTag.IgnoresEvade | DamageResolutionTag.Unguardable));
         }
 
         [Test]
@@ -71,7 +71,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "",
                 displayName: "Test Main",
                 category: ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 0,
@@ -97,7 +97,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "test-guard",
                 displayName: "Test Guard",
                 category: ComboActionCategory.Opening,
-                loadCost: 3,
+                timelineCost: 3,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 2,
@@ -125,7 +125,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "invalid-damage",
                 displayName: "Invalid Damage",
                 category: ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 0,
@@ -151,7 +151,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "invalid-tags",
                 displayName: "Invalid Tags",
                 category: ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 0,
@@ -159,7 +159,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 damageMultiplier: 0f,
                 damageType: DamageType.Slashing,
                 resolutionEffect: ActionResolutionEffect.None,
-                damageTags: DamageResolutionTag.Area);
+                damageTags: DamageResolutionTag.IgnoresEvade);
 
             bool succeeded = _asset.TryCreateDefinition(
                 out ComboActionDefinition definition,
@@ -177,7 +177,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "missing-status",
                 displayName: "Missing Status",
                 category: ComboActionCategory.Opening,
-                loadCost: 2,
+                timelineCost: 2,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 0,
@@ -203,7 +203,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "focus",
                 displayName: "Focus",
                 category: ComboActionCategory.Opening,
-                loadCost: 5,
+                timelineCost: 5,
                 resolutionOffset: 5,
                 manaCost: 0,
                 staminaCost: 1,
@@ -248,7 +248,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "armored-advance",
                 displayName: "Armored Advance",
                 category: ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 resolutionOffset: 5,
                 manaCost: 0,
                 staminaCost: 4,
@@ -292,7 +292,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "clash",
                 displayName: "Clash",
                 category: ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 resolutionOffset: 4,
                 manaCost: 0,
                 staminaCost: 4,
@@ -325,7 +325,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "breaker",
                 displayName: "Breaker",
                 category: ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 5,
@@ -358,7 +358,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "committed-strike",
                 displayName: "Committed Strike",
                 category: ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 4,
@@ -391,7 +391,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "overcommit",
                 displayName: "Overcommit",
                 category: ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 4,
@@ -424,7 +424,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "unsafe-attack",
                 displayName: "Unsafe Attack",
                 category: ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 resolutionOffset: 1,
                 manaCost: 0,
                 staminaCost: 4,
@@ -455,7 +455,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "barrage",
                 displayName: "Barrage",
                 category: ComboActionCategory.Main,
-                loadCost: 6,
+                timelineCost: 6,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 4,
@@ -491,7 +491,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "shield-strike",
                 displayName: "Shield Strike",
                 category: ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 1,
@@ -503,7 +503,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             var serializedAsset = new SerializedObject(_asset);
             serializedAsset.FindProperty("compatibleWeaponTypes").intValue =
                 (int)(CompatibleWeaponTypes.SwordAndShield
-                    | CompatibleWeaponTypes.SpearAndShield);
+                    | CompatibleWeaponTypes.GlaiveAndShield);
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
 
             bool succeeded = _asset.TryCreateDefinition(
@@ -513,7 +513,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(succeeded, Is.True);
             Assert.That(validationError, Is.Null);
             Assert.That(definition.IsCompatibleWith(WeaponType.SwordAndShield), Is.True);
-            Assert.That(definition.IsCompatibleWith(WeaponType.SpearAndShield), Is.True);
+            Assert.That(definition.IsCompatibleWith(WeaponType.GlaiveAndShield), Is.True);
             Assert.That(definition.IsCompatibleWith(WeaponType.Bow), Is.False);
         }
 
@@ -524,7 +524,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 actionId: "legacy-main",
                 displayName: "Legacy Main",
                 category: ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 resolutionOffset: 2,
                 manaCost: 0,
                 staminaCost: 1,
@@ -550,7 +550,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             string actionId,
             string displayName,
             ComboActionCategory category,
-            int loadCost,
+            int timelineCost,
             int resolutionOffset,
             int manaCost,
             int staminaCost,
@@ -564,7 +564,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             serializedAsset.FindProperty("actionId").stringValue = actionId;
             serializedAsset.FindProperty("displayName").stringValue = displayName;
             serializedAsset.FindProperty("category").enumValueIndex = (int)category;
-            serializedAsset.FindProperty("loadCost").intValue = loadCost;
+            serializedAsset.FindProperty("timelineCost").intValue = timelineCost;
             serializedAsset.FindProperty("resolutionOffset").intValue = resolutionOffset;
             serializedAsset.FindProperty("manaCost").intValue = manaCost;
             serializedAsset.FindProperty("staminaCost").intValue = staminaCost;

@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.precise-shot
   displayName: Precise Shot
   category: 1
-  loadCost: 4
+  timelineCost: 4
   resolutionOffset: 4
   useResolutionWindow: 1
   resolutionWindowStart: 2

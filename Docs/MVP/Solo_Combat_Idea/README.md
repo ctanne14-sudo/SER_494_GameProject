@@ -17,7 +17,7 @@ The main design goal is to move much of the character-building depth from party 
 
 The player prepares a limited set of Combos before combat. Every player turn uses one complete Combo; there are no separate basic attack, defend, or item commands outside the Combo system. A complete game may allow four to six prepared Combos, while an early prototype can begin with four predefined Combos.
 
-The current direction is **Simultaneous Timeline Resolution**. At the start of each Round, the enemy locks and previews a Combo. The player then chooses one prepared Combo, and both sides resolve their Actions on a shared, dynamic, Load-based timeline. Resolution Points, Active Windows, QTE timing choices, Charge, Guard, Evade, Clash, and Action Disruption may affect the schedule and results.
+The current direction is **Simultaneous Timeline Resolution**. At the start of each Round, the enemy locks and previews a Combo. The player then chooses one prepared Combo, and both sides resolve their Actions on a shared, dynamic, Timeline-Cost-based timeline. Resolution Points, Active Windows, QTE timing choices, Charge, Guard, Evade, Clash, and Action Disruption may affect the schedule and results.
 
 The sequential model remains documented as an earlier alternative, but it is not the active implementation direction.
 

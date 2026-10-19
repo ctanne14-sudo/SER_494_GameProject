@@ -366,11 +366,11 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void ExecuteCombo_AreaDamage_BypassesEvade()
+        public void ExecuteCombo_IgnoresEvadeDamage_BypassesEvade()
         {
             SoloComboBattleState battle = CreateBattleAgainstTaggedDamage(
                 ActionResolutionEffect.Evade,
-                DamageResolutionTag.Area);
+                DamageResolutionTag.IgnoresEvade);
 
             SoloComboTurnResult result = battle.ExecuteCombo(0);
 
@@ -386,7 +386,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         {
             SoloComboBattleState guardBattle = CreateBattleAgainstTaggedDamage(
                 ActionResolutionEffect.Guard,
-                DamageResolutionTag.Area);
+                DamageResolutionTag.IgnoresEvade);
             SoloComboBattleState evadeBattle = CreateBattleAgainstTaggedDamage(
                 ActionResolutionEffect.Evade,
                 DamageResolutionTag.Unguardable);
@@ -505,7 +505,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "guard",
                         "Guard",
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: 1,
                         damageMultiplier: 0d,
                         resolutionEffect: ActionResolutionEffect.Guard)
@@ -777,7 +777,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -810,7 +810,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "heavy-swing",
                         "Heavy Swing",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 5,
                         damageMultiplier: 0.65d,
                         disruptionResponseSegments: response)
@@ -855,7 +855,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -868,7 +868,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "follow-up",
                 "Follow Up",
                 ComboActionCategory.Linked,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -910,7 +910,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         new EnemyActionDefinition(
                             "guarding-enemy",
                             "Guarding Enemy",
-                            loadCost: 5,
+                            timelineCost: 5,
                             resolutionOffset: 5,
                             damageMultiplier: 0.20d,
                             activeWindows: new[] { defensiveWindow },
@@ -938,7 +938,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -984,7 +984,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         new EnemyActionDefinition(
                             "armored-thrust",
                             "Armored Thrust",
-                            loadCost: 5,
+                            timelineCost: 5,
                             resolutionOffset: 5,
                             damageMultiplier: 0.40d,
                             activeWindows: new[] { superArmor },
@@ -1019,7 +1019,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1058,7 +1058,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         new EnemyActionDefinition(
                             "early-heavy",
                             "Early Heavy",
-                            loadCost: 5,
+                            timelineCost: 5,
                             resolutionOffset: 1,
                             damageMultiplier: 0.40d,
                             disruptionResponseSegments: response)
@@ -1102,7 +1102,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1141,7 +1141,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         new EnemyActionDefinition(
                             "cancelable-jab",
                             "Cancelable Jab",
-                            loadCost: 3,
+                            timelineCost: 3,
                             resolutionOffset: 3,
                             damageMultiplier: 0.40d,
                             disruptionResponseSegments: response)
@@ -1180,7 +1180,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "light-breaker",
                 "Light Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1219,7 +1219,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         new EnemyActionDefinition(
                             "heavy-swing",
                             "Heavy Swing",
-                            loadCost: 5,
+                            timelineCost: 5,
                             resolutionOffset: 5,
                             damageMultiplier: 0.65d,
                             disruptionResponseSegments: response)
@@ -1245,7 +1245,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "clash",
                 "Clash",
                 ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1263,7 +1263,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "enemy-strike",
                         "Enemy Strike",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 4,
                         damageMultiplier: 0.60d,
                         onHitDisruption: new ActionDisruptionDefinition(
@@ -1311,7 +1311,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "player-clash",
                 "Player Clash",
                 ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1327,7 +1327,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "enemy-clash",
                         "Enemy Clash",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 4,
                         damageMultiplier: 0.60d,
                         damageTags: DamageResolutionTag.Clash,
@@ -1369,7 +1369,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "early-clash",
                 "Early Clash",
                 ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1385,7 +1385,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "late-strike",
                         "Late Strike",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 4,
                         damageMultiplier: 0.60d)
                 });
@@ -1421,7 +1421,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "guard",
                 "Guard",
                 ComboActionCategory.Opening,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1433,7 +1433,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 mainAction: Action(
                     "main",
                     ComboActionCategory.Main,
-                    load: 1,
+                    timelineCost: 1,
                     mana: 0,
                     stamina: 0,
                     cooldown: 0,
@@ -1449,7 +1449,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "stagger-strike",
                         "Stagger Strike",
-                        loadCost: 2,
+                        timelineCost: 2,
                         resolutionOffset: 2,
                         damageMultiplier: 0.40d,
                         onHitDisruption: new ActionDisruptionDefinition(
@@ -1480,7 +1480,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "quick-guard",
                 "Quick Guard",
                 ComboActionCategory.Opening,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -1490,7 +1490,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "counter",
                 "Counter",
                 ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -1520,7 +1520,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "reckless-lunge",
                         "Reckless Lunge",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.50d,
                         disruptionResponseSegments: responseSegments,
@@ -1530,7 +1530,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "follow-up",
                         "Follow-up",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.30d)
                 });
@@ -1574,7 +1574,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "sidestep",
                 "Sidestep",
                 ComboActionCategory.Opening,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -1586,7 +1586,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Action(
                     "counter",
                     ComboActionCategory.Main,
-                    load: 1,
+                    timelineCost: 1,
                     mana: 0,
                     stamina: 0,
                     cooldown: 0,
@@ -1602,7 +1602,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "committed-lunge",
                         "Committed Lunge",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.60d,
                         damageTags: DamageResolutionTag.Overcommit,
@@ -1621,7 +1621,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "follow-up",
                         "Follow-up",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.35d)
                 });
@@ -1664,7 +1664,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "evade",
                 "Evade",
                 ComboActionCategory.Opening,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1677,7 +1677,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     "main",
                     "Main",
                     ComboActionCategory.Main,
-                    loadCost: 2,
+                    timelineCost: 2,
                     manaCost: 0,
                     staminaCost: 0,
                     cooldown: 0),
@@ -1692,7 +1692,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "sweep",
                         "Sweep",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.30d,
                         sustainedAttack: new SustainedAttackDefinition(1, 3, 1, 2, 2))
@@ -1726,7 +1726,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "breaker",
                 "Breaker",
                 ComboActionCategory.Main,
-                loadCost: 4,
+                timelineCost: 4,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1743,7 +1743,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "sweep",
                         "Sweep",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.30d,
                         disruptionResponseSegments: new[]
@@ -1827,7 +1827,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "focus",
                 "Focus",
                 ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1847,13 +1847,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "first-strike",
                         "First Strike",
-                        loadCost: 2,
+                        timelineCost: 2,
                         resolutionOffset: 2,
                         damageMultiplier: 0.40d),
                     new EnemyActionDefinition(
                         "second-strike",
                         "Second Strike",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.40d)
                 });
@@ -1873,7 +1873,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "timed-strike",
                 "Timed Strike",
                 ComboActionCategory.Main,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1896,7 +1896,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "observe-action",
                         "Observe",
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: 1,
                         damageMultiplier: 0d)
                 });
@@ -1916,7 +1916,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "charged-strike",
                 "Charged Strike",
                 ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1931,7 +1931,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "charged-closing",
                 "Charged Closing",
                 ComboActionCategory.Closing,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -1952,7 +1952,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "observe-action",
                         "Observe",
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: 1,
                         damageMultiplier: 0d)
                 });
@@ -1984,7 +1984,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "tagged-strike",
                         "Tagged Strike",
-                        loadCost: 2,
+                        timelineCost: 2,
                         resolutionOffset: 2,
                         damageMultiplier: 0.40d,
                         damageTags: damageTags)
@@ -2022,7 +2022,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "expose",
                         "Expose",
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: 1,
                         resolutionEffect: ActionResolutionEffect.ApplyDebuff,
                         statusEffect: exposed,
@@ -2030,7 +2030,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "claw",
                         "Claw",
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: clawResolutionOffset,
                         damageMultiplier: 0.40d)
                 });
@@ -2065,7 +2065,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 $"{defensiveEffect.ToString().ToLowerInvariant()}-opening",
                 defensiveEffect.ToString(),
                 ComboActionCategory.Opening,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -2095,7 +2095,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 mainAction: Action(
                     $"{name}-main",
                     ComboActionCategory.Main,
-                    load: 1,
+                    timelineCost: 1,
                     mana: manaCost,
                     stamina: staminaCost,
                     cooldown,
@@ -2108,7 +2108,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         private static ComboActionDefinition Action(
             string id,
             ComboActionCategory category,
-            int load,
+            int timelineCost,
             int mana,
             int stamina,
             int cooldown,
@@ -2118,7 +2118,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 id,
                 id,
                 category,
-                load,
+                timelineCost,
                 mana,
                 stamina,
                 cooldown,

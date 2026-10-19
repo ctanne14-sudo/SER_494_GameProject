@@ -38,7 +38,7 @@ This is a direction for encounter design and balance, not a fixed numerical rati
 | Main Action | The required central Action of a Combo. |
 | Closing Action | An optional Action after the Main Action. |
 | Linked Action | One optional Action attached after the Opening, Main, or Closing Action. |
-| Load Cost | The positive number of Time Steps occupied by an Action. |
+| Timeline Cost | The positive number of Time Steps occupied by an Action. |
 | Local Time | Progress measured inside one Action. |
 | Global Time | The current Time Step on the Round timeline. |
 | Resolution Point | One Time Step at which an instantaneous effect resolves. |
@@ -56,10 +56,10 @@ A valid Combo follows these rules:
 - Opening and Closing are optional.
 - A Combo may contain no more than one Linked Action.
 - Linked may be placed after Opening, Main, or Closing.
-- Linked has its own Load, Mana, Stamina, and Cooldown contribution.
-- Linked contributes to the Combo Load limit.
-- Every Action has a Load Cost of at least 1.
-- The current Base Combo Load Limit is 30 and must remain configurable.
+- Linked has its own Timeline Cost, Mana, Stamina, and Cooldown contribution.
+- Linked contributes to the Combo Timeline Cost limit.
+- Every Action has a Timeline Cost of at least 1.
+- The current Base Combo Timeline Cost Limit is 30 and must remain configurable.
 - Total Mana Cost cannot exceed the character's Max Mana during construction.
 - Total Stamina Cost cannot exceed the character's Max Stamina during construction.
 - Current Mana and Stamina are checked only when the Combo is selected in battle.
@@ -87,7 +87,7 @@ Linked becomes eligible only when its host Action successfully reaches the end o
 
 Enemy and player Actions use the same underlying timeline language. Enemy Actions may define:
 
-- Load and Local Time;
+- Timeline Cost and Local Time;
 - fixed Resolution Points;
 - Active Windows;
 - Damage, Guard, Evade, Buff, Debuff, and other effects;
@@ -170,11 +170,11 @@ Cooldown is applied when a Combo is committed. Interrupted or cancelled Actions 
 
 ## Timeline Limits and Completion
 
-- The Base Combo Load Limit is currently 30.
-- The Base Combo Load Limit may be expanded later.
+- The Base Combo Timeline Cost Limit is currently 30.
+- The Base Combo Timeline Cost Limit may be expanded later.
 - A Resolution Point at Time Step 30 is valid.
 - The timeline ends early when both sides have no remaining Actions, events, or relevant Active Windows.
-- Charge and Action Disruption may extend the actual Round beyond the original Combo Load.
+- Charge and Action Disruption may extend the actual Round beyond the original Combo Timeline Cost.
 - The Absolute Timeline Limit is 100.
 - Resolution Points moved beyond 100 do not resolve.
 - Active Windows are truncated at 100.
@@ -186,7 +186,7 @@ A normal Time Step may eventually correspond to approximately 0.2 seconds of pre
 
 ## Action Timeline Model
 
-An Action is not required to use fixed Startup, Execution, and Recovery phases. Instead, every Action owns a freely authored Local Timeline from 1 through its Load Cost.
+An Action is not required to use fixed Startup, Execution, and Recovery phases. Instead, every Action owns a freely authored Local Timeline from 1 through its Timeline Cost.
 
 An Action may contain:
 
@@ -198,7 +198,7 @@ An Action may contain:
 - Buff, Debuff, Guard, Evade, or other effects;
 - Disruption Response Segments covering its full Local Timeline.
 
-Global scheduling is calculated from cumulative Load. Linked Action time is also cumulative from all preceding Actions.
+Global scheduling is calculated from cumulative Timeline Cost. Linked Action time is also cumulative from all preceding Actions.
 
 When an Action is delayed, its Local Time does not change meaning. A marker authored at Local Time 6 remains Local Time 6 even if its Global Time moves from 15 to 18.
 
@@ -251,7 +251,7 @@ QTE is the presentation and input layer for a `Timing Interaction`; it is not th
 - Each Charge QTE has a Maximum Hold Time.
 - If the player never participates, Charge Level 0 is selected.
 - If Maximum Hold Time forces an automatic release, Charge Level 0 is selected regardless of gauge position.
-- Each Charge Level defines its own modifications. Possible changes include extra Load, power, tags, effect strength, Resolution Points, and Active Window duration.
+- Each Charge Level defines its own modifications. Possible changes include extra Timeline Cost, power, tags, effect strength, Resolution Points, and Active Window duration.
 - Extra Action time created by Charge inherits the Interruption Response of the Local Time at which charging began.
 - Charge may move the current Action and all later Actions, but cannot exceed the Absolute Timeline Limit.
 
@@ -291,7 +291,7 @@ If ordinary calculation reduces Final Damage to 0, the result is still a Hit. On
 - Guard blocks every otherwise guardable Damage Effect against that character at the same Time Step.
 - Guard can block melee and ranged Damage.
 - Guard does not inherently require a Melee tag.
-- Area has no direct interaction with Guard. Area Damage may be either guardable or unguardable according to the normal rules above.
+- Ignores Evade has no direct interaction with Guard. Ignores Evade Damage may be either guardable or unguardable according to the normal rules above.
 - Every blocked Damage Effect may define an optional `On Guarded Response` for its attacker.
 - Melee attacks commonly define an On Guarded Response such as self-Flinch or self-Stagger.
 - Ranged attacks commonly have no On Guarded Response even though their Damage is blocked.
@@ -304,7 +304,7 @@ If ordinary calculation reduces Final Damage to 0, the result is still a Hit. On
 - It avoids attacks resolving against the character at exactly the same Time Step.
 - A successful Evade cancels the entire On Hit Effect package.
 - Independent Effects remain valid.
-- Damage tagged Area ignores Evade.
+- Damage tagged Ignores Evade ignores Evade.
 - An Overcommit attack that is Evaded may apply its authored self-penalty.
 
 ## Defensive State
@@ -506,7 +506,7 @@ Current combat tags include:
 | --- | --- |
 | Overcommit | Bypasses Guard. If Evaded, it may apply an authored Action Disruption to its user. |
 | Super Armor | Grants the authored Disruption resistance level during its active time. |
-| Area | Its Damage ignores Evade. |
+| Ignores Evade | Its Damage ignores Evade. |
 | Unguardable | Makes a Damage Resolution Point bypass Guard. It is unnecessary when that point already has Overcommit. |
 | Clash | Grants authored simultaneous-attack Damage reduction and optional Super Armor. |
 

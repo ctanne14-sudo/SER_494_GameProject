@@ -284,12 +284,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
 
-        internal void ValidateForActionLoad(int loadCost)
+        internal void ValidateForActionTimelineCost(int timelineCost)
         {
-            if (EndOffset > loadCost)
+            if (EndOffset > timelineCost)
             {
                 throw new ArgumentException(
-                    $"Active Window '{DisplayName}' ends outside its Action Load.");
+                    $"Active Window '{DisplayName}' ends outside its Action Timeline Cost.");
             }
         }
     }
@@ -297,15 +297,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
     public sealed class ComboActionChargeLevelDefinition
     {
         public ComboActionChargeLevelDefinition(
-            int additionalLoad,
+            int additionalTimelineCost,
             double damageMultiplierScale)
         {
-            if (additionalLoad <= 0)
+            if (additionalTimelineCost <= 0)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(additionalLoad),
-                    additionalLoad,
-                    "A Charge Level must add at least one Load.");
+                    nameof(additionalTimelineCost),
+                    additionalTimelineCost,
+                    "A Charge Level must add at least one Timeline Cost.");
             }
 
             if (double.IsNaN(damageMultiplierScale)
@@ -318,11 +318,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     "A Charge Level damage scale must be finite and greater than zero.");
             }
 
-            AdditionalLoad = additionalLoad;
+            AdditionalTimelineCost = additionalTimelineCost;
             DamageMultiplierScale = damageMultiplierScale;
         }
 
-        public int AdditionalLoad { get; }
+        public int AdditionalTimelineCost { get; }
 
         public double DamageMultiplierScale { get; }
     }
@@ -389,16 +389,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return Array.AsReadOnly(offsets.ToArray());
         }
 
-        internal void ValidateForAction(int loadCost, bool hasDamage)
+        internal void ValidateForAction(int timelineCost, bool hasDamage)
         {
             if (!hasDamage)
             {
                 throw new ArgumentException("Only a damaging Action can be a Sustained Attack.");
             }
 
-            if (WindowEndOffset > loadCost)
+            if (WindowEndOffset > timelineCost)
             {
-                throw new ArgumentException("A Sustained Attack window cannot extend beyond its Action Load.");
+                throw new ArgumentException("A Sustained Attack window cannot extend beyond its Action Timeline Cost.");
             }
         }
     }
@@ -407,7 +407,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
     public enum DamageResolutionTag
     {
         None = 0,
-        Area = 1 << 0,
+        IgnoresEvade = 1 << 0,
         Unguardable = 1 << 1,
         Overcommit = 1 << 2,
         Clash = 1 << 3
@@ -453,7 +453,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string actionId,
             string displayName,
             ComboActionCategory category,
-            int loadCost,
+            int timelineCost,
             int manaCost,
             int staminaCost,
             int cooldown,
@@ -479,7 +479,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 actionId,
                 displayName,
                 category,
-                loadCost,
+                timelineCost,
                 manaCost,
                 staminaCost,
                 cooldown,
@@ -507,7 +507,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string actionId,
             string displayName,
             ComboActionCategory category,
-            int loadCost,
+            int timelineCost,
             int manaCost,
             int staminaCost,
             int cooldown,
@@ -531,7 +531,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 actionId,
                 displayName,
                 category,
-                loadCost,
+                timelineCost,
                 manaCost,
                 staminaCost,
                 cooldown,
@@ -561,7 +561,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string actionId,
             string displayName,
             ComboActionCategory category,
-            int loadCost,
+            int timelineCost,
             int manaCost,
             int staminaCost,
             int cooldown,
@@ -596,7 +596,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionId = actionId;
             DisplayName = displayName;
             Category = category;
-            LoadCost = RequirePositive(loadCost, nameof(loadCost));
+            TimelineCost = RequirePositive(timelineCost, nameof(timelineCost));
             ManaCost = RequireNonNegative(manaCost, nameof(manaCost));
             StaminaCost = RequireNonNegative(staminaCost, nameof(staminaCost));
             Cooldown = RequireNonNegative(cooldown, nameof(cooldown));
@@ -607,19 +607,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StatusEffect = ValidateStatusEffect(resolutionEffect, statusEffect);
             StatusTarget = ValidateStatusTarget(statusTarget);
             ResolutionOffset = RequireResolutionOffset(
-                resolutionOffset ?? LoadCost,
-                LoadCost,
+                resolutionOffset ?? TimelineCost,
+                TimelineCost,
                 nameof(resolutionOffset));
             ValidateResolutionWindow(
                 resolutionWindowStart,
                 resolutionWindowEnd,
-                LoadCost);
+                TimelineCost);
             ResolutionWindowStart = resolutionWindowStart;
             ResolutionWindowEnd = resolutionWindowEnd;
             ChargeLevels = CopyAndValidateChargeLevels(
                 chargeLevels,
                 HasResolutionWindow);
-            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, LoadCost);
+            ActiveWindows = CopyAndValidateActiveWindows(activeWindows, TimelineCost);
             OnHitDisruption = ValidateOnHitDisruption(damageEffect, onHitDisruption);
             OnGuardedDisruption = ValidateDamageDisruption(
                 damageEffect,
@@ -632,8 +632,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onEvadedDisruption);
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
-                LoadCost);
-            sustainedAttack?.ValidateForAction(LoadCost, damageEffect != null);
+                TimelineCost);
+            sustainedAttack?.ValidateForAction(TimelineCost, damageEffect != null);
             if (sustainedAttack != null && (HasResolutionWindow || ChargeLevels.Count > 0))
             {
                 throw new ArgumentException(
@@ -654,7 +654,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ComboActionCategory Category { get; }
 
-        public int LoadCost { get; }
+        public int TimelineCost { get; }
 
         public int ManaCost { get; }
 
@@ -803,7 +803,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             DamageResolutionTag damageTags)
         {
-            const DamageResolutionTag supportedTags = DamageResolutionTag.Area
+            const DamageResolutionTag supportedTags = DamageResolutionTag.IgnoresEvade
                 | DamageResolutionTag.Unguardable
                 | DamageResolutionTag.Overcommit
                 | DamageResolutionTag.Clash;
@@ -890,15 +890,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         private static int RequireResolutionOffset(
             int value,
-            int loadCost,
+            int timelineCost,
             string parameterName)
         {
-            if (value < 0 || value > loadCost)
+            if (value < 0 || value > timelineCost)
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
                     value,
-                    "Resolution Offset must be between zero and the Action Load Cost.");
+                    "Resolution Offset must be between zero and the Action Timeline Cost.");
             }
 
             return value;
@@ -907,7 +907,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private static void ValidateResolutionWindow(
             int? start,
             int? end,
-            int loadCost)
+            int timelineCost)
         {
             if (start.HasValue != end.HasValue)
             {
@@ -920,8 +920,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 return;
             }
 
-            RequireResolutionOffset(start.Value, loadCost, nameof(start));
-            RequireResolutionOffset(end.Value, loadCost, nameof(end));
+            RequireResolutionOffset(start.Value, timelineCost, nameof(start));
+            RequireResolutionOffset(end.Value, timelineCost, nameof(end));
             if (start.Value >= end.Value)
             {
                 throw new ArgumentException(
@@ -946,22 +946,22 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             var copy = new ComboActionChargeLevelDefinition[chargeLevels.Count];
-            int previousAdditionalLoad = 0;
+            int previousAdditionalTimelineCost = 0;
             for (int index = 0; index < chargeLevels.Count; index++)
             {
                 ComboActionChargeLevelDefinition level = chargeLevels[index]
                     ?? throw new ArgumentException(
                         "Charge Level entries cannot be null.",
                         nameof(chargeLevels));
-                if (level.AdditionalLoad <= previousAdditionalLoad)
+                if (level.AdditionalTimelineCost <= previousAdditionalTimelineCost)
                 {
                     throw new ArgumentException(
-                        "Charge Levels must add progressively more Load.",
+                        "Charge Levels must add progressively more Timeline Cost.",
                         nameof(chargeLevels));
                 }
 
                 copy[index] = level;
-                previousAdditionalLoad = level.AdditionalLoad;
+                previousAdditionalTimelineCost = level.AdditionalTimelineCost;
             }
 
             return Array.AsReadOnly(copy);
@@ -969,7 +969,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         private static IReadOnlyList<ActionActiveWindowDefinition> CopyAndValidateActiveWindows(
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows,
-            int loadCost)
+            int timelineCost)
         {
             if (activeWindows == null || activeWindows.Count == 0)
             {
@@ -984,7 +984,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ?? throw new ArgumentException(
                         "Active Window entries cannot be null.",
                         nameof(activeWindows));
-                window.ValidateForActionLoad(loadCost);
+                window.ValidateForActionTimelineCost(timelineCost);
                 if (!ids.Add(window.WindowId))
                 {
                     throw new ArgumentException(
@@ -1001,7 +1001,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         internal static IReadOnlyList<DisruptionResponseSegmentDefinition>
             CopyAndValidateDisruptionResponseSegments(
                 IReadOnlyList<DisruptionResponseSegmentDefinition> segments,
-                int loadCost)
+                int timelineCost)
         {
             if (segments == null || segments.Count == 0)
             {
@@ -1009,7 +1009,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 {
                     new DisruptionResponseSegmentDefinition(
                         1,
-                        loadCost,
+                        timelineCost,
                         ActionDisruptionResponse.Continue,
                         ActionDisruptionResponse.Continue,
                         ActionDisruptionResponse.Continue)
@@ -1024,7 +1024,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ?? throw new ArgumentException(
                         "Disruption Response Segment entries cannot be null.",
                         nameof(segments));
-                if (segment.StartOffset != expectedStart || segment.EndOffset > loadCost)
+                if (segment.StartOffset != expectedStart || segment.EndOffset > timelineCost)
                 {
                     throw new ArgumentException(
                         "Disruption Response Segments must cover the complete Action Local Timeline without gaps or overlaps.",
@@ -1035,7 +1035,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 expectedStart = checked(segment.EndOffset + 1);
             }
 
-            if (expectedStart != loadCost + 1)
+            if (expectedStart != timelineCost + 1)
             {
                 throw new ArgumentException(
                     "Disruption Response Segments must cover the complete Action Local Timeline.",

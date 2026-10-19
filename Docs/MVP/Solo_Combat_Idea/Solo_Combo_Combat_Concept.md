@@ -15,7 +15,7 @@ During battle, one player turn always uses one complete Combo. A longer Combo do
 | Main Action | The required central Action of every Combo. |
 | Closing Action | An optional Action resolved after the Main Action. |
 | Linked Action | One optional Action attached to an Opening, Main, or Closing Action and resolved immediately after its host. |
-| Load Cost | The amount of Combo capacity occupied by an Action. It may also determine Action timing in the simultaneous timeline model. |
+| Timeline Cost | The amount of Combo capacity occupied by an Action. It may also determine Action timing in the simultaneous timeline model. |
 | Mana Cost | Magical resource required by the Combo. |
 | Stamina Cost | Physical resource required by the Combo. |
 
@@ -25,7 +25,7 @@ A valid Combo has one required Main Action, optional Opening and Closing Actions
 
 The Combo Editor validates the following rules:
 
-- Total Load cannot exceed the character's Combo Load Limit.
+- Total Timeline Cost cannot exceed the character's Combo Timeline Cost Limit.
 - Total Mana Cost cannot exceed Max Mana.
 - Total Stamina Cost cannot exceed Max Stamina.
 - One owned Action can be assigned to only one Combo at a time.

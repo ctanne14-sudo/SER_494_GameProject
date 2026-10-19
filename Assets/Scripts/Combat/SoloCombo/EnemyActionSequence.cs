@@ -37,7 +37,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             var copy = new EnemyActionDefinition[actions.Count];
-            int totalLoad = 0;
+            int totalTimelineCost = 0;
             for (int index = 0; index < actions.Count; index++)
             {
                 EnemyActionDefinition action = actions[index];
@@ -49,13 +49,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 }
 
                 copy[index] = action;
-                totalLoad = checked(totalLoad + action.LoadCost);
+                totalTimelineCost = checked(totalTimelineCost + action.TimelineCost);
             }
 
             SequenceId = sequenceId;
             DisplayName = displayName;
             _actions = Array.AsReadOnly(copy);
-            TotalLoadCost = totalLoad;
+            TotalTimelineCost = totalTimelineCost;
         }
 
         public string SequenceId { get; }
@@ -64,6 +64,6 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public IReadOnlyList<EnemyActionDefinition> Actions => _actions;
 
-        public int TotalLoadCost { get; }
+        public int TotalTimelineCost { get; }
     }
 }

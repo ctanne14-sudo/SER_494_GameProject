@@ -283,7 +283,7 @@ namespace SER494.Gameplay.CombatSandbox
                 GUILayout.BeginVertical(GUI.skin.box);
                 GUILayout.Label($"Selected: {previewed.Name}", _sectionStyle);
                 GUILayout.Label(
-                    $"Load {previewed.TotalLoadCost}  |  Mana {previewed.TotalManaCost}  |  "
+                    $"Timeline Cost {previewed.TotalTimelineCost}  |  Mana {previewed.TotalManaCost}  |  "
                     + $"Stamina {previewed.TotalStaminaCost}  |  CD {previewed.TotalCooldown}");
                 GUILayout.BeginHorizontal();
                 GUI.enabled = !_isTimelinePlaying
@@ -1148,10 +1148,10 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.twin-sweep",
                         "Twin Sweep",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.30d,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 4),
+                        disruptionResponseSegments: PauseOnStagger(timelineCost: 4),
                         sustainedAttack: new SustainedAttackDefinition(
                             windowStartOffset: 1,
                             windowEndOffset: 3,
@@ -1168,7 +1168,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.committed-lunge",
                         "Committed Lunge",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.60d,
                         damageTags: DamageResolutionTag.Overcommit,
@@ -1187,10 +1187,10 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.feint-follow-up",
                         "Feint Follow-up",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.35d,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
                 });
 
             var clashDrill = new EnemyActionSequence(
@@ -1201,7 +1201,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.clash-strike",
                         "Clash Strike",
-                        loadCost: 10,
+                        timelineCost: 10,
                         resolutionOffset: 9,
                         damageMultiplier: 0.50d,
                         onHitDisruption: new ActionDisruptionDefinition(
@@ -1217,7 +1217,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.expose",
                         "Expose",
-                        loadCost: 2,
+                        timelineCost: 2,
                         resolutionOffset: 2,
                         damageMultiplier: 0d,
                         resolutionEffect: ActionResolutionEffect.ApplyDebuff,
@@ -1226,10 +1226,10 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.claw",
                         "Claw",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 2,
                         damageMultiplier: 0.40d,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
                 });
 
             var recklessAssault = new EnemyActionSequence(
@@ -1240,7 +1240,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.reckless-lunge",
                         "Reckless Lunge",
-                        loadCost: 4,
+                        timelineCost: 4,
                         resolutionOffset: 1,
                         damageMultiplier: 0.55d,
                         disruptionResponseSegments: new[]
@@ -1258,10 +1258,10 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.reckless-follow-up",
                         "Follow-up Slash",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.35d,
-                        disruptionResponseSegments: PauseOnStagger(loadCost: 3))
+                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
                 });
 
             var armoredAdvance = new EnemyActionSequence(
@@ -1272,7 +1272,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.armored-thrust",
                         "Armored Thrust",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 5,
                         damageMultiplier: 0.45d,
                         activeWindows: new[]
@@ -1306,7 +1306,7 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.heavy-swing",
                         "Heavy Swing",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 5,
                         damageMultiplier: 0.65d,
                         damageTags: DamageResolutionTag.Overcommit,
@@ -1321,7 +1321,7 @@ namespace SER494.Gameplay.CombatSandbox
                                 damageReduction: 0.30d,
                                 ActiveWindowDisruptionPolicy.BreakOnDisruption)
                         },
-                        disruptionResponseSegments: RestartOnStagger(loadCost: 5))
+                        disruptionResponseSegments: RestartOnStagger(timelineCost: 5))
                 });
 
             var jab = new EnemyActionSequence(
@@ -1332,10 +1332,10 @@ namespace SER494.Gameplay.CombatSandbox
                     new EnemyActionDefinition(
                         "training.jab",
                         "Jab",
-                        loadCost: 3,
+                        timelineCost: 3,
                         resolutionOffset: 3,
                         damageMultiplier: 0.30d,
-                        disruptionResponseSegments: CancelOnStagger(loadCost: 3))
+                        disruptionResponseSegments: CancelOnStagger(timelineCost: 3))
                 });
 
             var enemyBehavior = new EnemyBehaviorTable(
@@ -1391,13 +1391,13 @@ namespace SER494.Gameplay.CombatSandbox
         }
 
         private static IReadOnlyList<DisruptionResponseSegmentDefinition> PauseOnStagger(
-            int loadCost)
+            int timelineCost)
         {
             return new[]
             {
                 new DisruptionResponseSegmentDefinition(
                     startOffset: 1,
-                    endOffset: loadCost,
+                    endOffset: timelineCost,
                     flinchResponse: ActionDisruptionResponse.Continue,
                     staggerResponse: ActionDisruptionResponse.PauseAndResume,
                     knockdownResponse: ActionDisruptionResponse.PauseAndResume)
@@ -1405,13 +1405,13 @@ namespace SER494.Gameplay.CombatSandbox
         }
 
         private static IReadOnlyList<DisruptionResponseSegmentDefinition> RestartOnStagger(
-            int loadCost)
+            int timelineCost)
         {
             return new[]
             {
                 new DisruptionResponseSegmentDefinition(
                     startOffset: 1,
-                    endOffset: loadCost,
+                    endOffset: timelineCost,
                     flinchResponse: ActionDisruptionResponse.Continue,
                     staggerResponse: ActionDisruptionResponse.RestartAction,
                     knockdownResponse: ActionDisruptionResponse.RestartAction)
@@ -1419,13 +1419,13 @@ namespace SER494.Gameplay.CombatSandbox
         }
 
         private static IReadOnlyList<DisruptionResponseSegmentDefinition> CancelOnStagger(
-            int loadCost)
+            int timelineCost)
         {
             return new[]
             {
                 new DisruptionResponseSegmentDefinition(
                     startOffset: 1,
-                    endOffset: loadCost,
+                    endOffset: timelineCost,
                     flinchResponse: ActionDisruptionResponse.Continue,
                     staggerResponse: ActionDisruptionResponse.CancelAction,
                     knockdownResponse: ActionDisruptionResponse.CancelAction)

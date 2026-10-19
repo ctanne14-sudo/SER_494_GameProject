@@ -7,6 +7,7 @@ using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UIElements;
 
 namespace SER494.Gameplay.Combat.UI.SoloCombo
@@ -36,7 +37,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         [Header("Character Limits")]
         [SerializeField]
         [Min(0)]
-        private int maximumLoad = 30;
+        [FormerlySerializedAs("maximumLoad")]
+        private int maximumTimelineCost = 30;
 
         [SerializeField]
         [Min(0)]
@@ -59,7 +61,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private DropdownField _closingActionField;
         private DropdownField _linkedActionField;
         private DropdownField _linkedPlacementField;
-        private Label _loadCostLabel;
+        private Label _timelineCostLabel;
         private Label _manaCostLabel;
         private Label _staminaCostLabel;
         private Label _cooldownLabel;
@@ -116,7 +118,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
 
         private void OnValidate()
         {
-            maximumLoad = Mathf.Max(0, maximumLoad);
+            maximumTimelineCost = Mathf.Max(0, maximumTimelineCost);
             maximumMana = Mathf.Max(0, maximumMana);
             maximumStamina = Mathf.Max(0, maximumStamina);
         }
@@ -143,7 +145,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _closingActionField = _root.Q<DropdownField>("closingActionField");
             _linkedActionField = _root.Q<DropdownField>("linkedActionField");
             _linkedPlacementField = _root.Q<DropdownField>("linkedPlacementField");
-            _loadCostLabel = _root.Q<Label>("loadCostLabel");
+            _timelineCostLabel = _root.Q<Label>("timelineCostLabel");
             _manaCostLabel = _root.Q<Label>("manaCostLabel");
             _staminaCostLabel = _root.Q<Label>("staminaCostLabel");
             _cooldownLabel = _root.Q<Label>("cooldownLabel");
@@ -210,7 +212,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 && _closingActionField != null
                 && _linkedActionField != null
                 && _linkedPlacementField != null
-                && _loadCostLabel != null
+                && _timelineCostLabel != null
                 && _manaCostLabel != null
                 && _staminaCostLabel != null
                 && _cooldownLabel != null
@@ -486,7 +488,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 return;
             }
 
-            var limits = new ComboValidationLimits(maximumLoad, maximumMana, maximumStamina);
+            var limits = new ComboValidationLimits(maximumTimelineCost, maximumMana, maximumStamina);
             if (!TryCreateEquippedWeapon(
                     out WeaponDefinition weaponDefinition,
                     out string weaponError))
@@ -536,12 +538,12 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private void RefreshSummaryAndValidation()
         {
             ComboDraft draft = _drafts[_selectedComboIndex];
-            _loadCostLabel.text = $"Load: {draft.TotalLoadCost} / {maximumLoad}";
+            _timelineCostLabel.text = $"Timeline Cost: {draft.TotalTimelineCost} / {maximumTimelineCost}";
             _manaCostLabel.text = $"Mana: {draft.TotalManaCost} / {maximumMana}";
             _staminaCostLabel.text = $"Stamina: {draft.TotalStaminaCost} / {maximumStamina}";
             _cooldownLabel.text = $"Cooldown: {draft.TotalCooldown}";
 
-            var limits = new ComboValidationLimits(maximumLoad, maximumMana, maximumStamina);
+            var limits = new ComboValidationLimits(maximumTimelineCost, maximumMana, maximumStamina);
             if (!TryCreateEquippedWeapon(
                     out WeaponDefinition weaponDefinition,
                     out string weaponError))
@@ -740,8 +742,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 builder.Append(action.DisplayName)
                     .Append(" — ")
                     .Append(action.Category)
-                    .Append(" | Load ")
-                    .Append(action.LoadCost)
+                    .Append(" | Timeline Cost ")
+                    .Append(action.TimelineCost)
                     .Append(" | Mana ")
                     .Append(action.ManaCost)
                     .Append(" | Stamina ")
@@ -833,8 +835,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                         builder.Append('L')
                             .Append(level)
                             .Append(" +")
-                            .Append(action.GetChargeAdditionalLoad(level))
-                            .Append(" Load x")
+                            .Append(action.GetChargeAdditionalTimelineCost(level))
+                            .Append(" Timeline Cost x")
                             .Append(action.GetChargeDamageMultiplierScale(level).ToString("0.00"));
                     }
                 }
@@ -1022,8 +1024,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     return "Linked placement exists without a Linked Action.";
                 case ComboValidationErrorCode.LinkedActionPlacementHasNoAction:
                     return "Linked Action must follow an occupied slot.";
-                case ComboValidationErrorCode.LoadCostExceeded:
-                    return "Load Cost exceeds the character limit.";
+                case ComboValidationErrorCode.TimelineCostExceeded:
+                    return "Timeline Cost exceeds the character limit.";
                 case ComboValidationErrorCode.ManaCostExceeded:
                     return "Mana Cost exceeds Max Mana.";
                 case ComboValidationErrorCode.StaminaCostExceeded:
@@ -1059,7 +1061,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             public ComboActionAsset LinkedAction;
             public LinkedActionPlacement LinkedPlacement = LinkedActionPlacement.AfterMain;
 
-            public int TotalLoadCost => Sum(action => action.LoadCost);
+            public int TotalTimelineCost => Sum(action => action.TimelineCost);
 
             public int TotalManaCost => Sum(action => action.ManaCost);
 

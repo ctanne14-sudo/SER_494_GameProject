@@ -15,15 +15,15 @@ MonoBehaviour:
   actionId: sample.arcane-slash
   displayName: Arcane Slash
   category: 1
-  loadCost: 5
+  timelineCost: 5
   resolutionOffset: 4
   useResolutionWindow: 0
   resolutionWindowStart: 4
   resolutionWindowEnd: 4
   chargeLevels:
-  - additionalLoad: 3
+  - additionalTimelineCost: 3
     damageMultiplierScale: 1.35
-  - additionalLoad: 6
+  - additionalTimelineCost: 6
     damageMultiplierScale: 1.7
   manaCost: 3
   staminaCost: 4

@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.sidestep
   displayName: Sidestep
   category: 0
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 1
   manaCost: 0
   staminaCost: 2

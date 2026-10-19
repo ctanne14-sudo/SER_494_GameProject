@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 36a42b920b7394c4582f69857d395ed7, type: 3}
-  m_Name: SpearAndShield
+  m_Name: GlaiveAndShield
   m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.Weapons.WeaponDefinitionAsset
-  weaponId: weapon.spear-and-shield
-  displayName: Spear and Shield
+  weaponId: weapon.glaive-and-shield
+  displayName: Glaive and Shield
   weaponType: 2
   weaponAttack: 50

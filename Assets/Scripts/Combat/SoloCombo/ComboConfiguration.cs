@@ -40,7 +40,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public LinkedActionPlacement? LinkedPlacement { get; }
 
-        public int TotalLoadCost => Sum(action => action.LoadCost);
+        public int TotalTimelineCost => Sum(action => action.TimelineCost);
 
         public int TotalManaCost => Sum(action => action.ManaCost);
 

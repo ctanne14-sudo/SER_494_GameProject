@@ -6,7 +6,7 @@ namespace SER494.Gameplay.Combat.Weapons
     {
         Greatsword,
         SwordAndShield,
-        SpearAndShield,
+        GlaiveAndShield,
         Bow,
         Bladeguard
     }
@@ -17,10 +17,10 @@ namespace SER494.Gameplay.Combat.Weapons
         None = 0,
         Greatsword = 1 << 0,
         SwordAndShield = 1 << 1,
-        SpearAndShield = 1 << 2,
+        GlaiveAndShield = 1 << 2,
         Bow = 1 << 3,
         Bladeguard = 1 << 4,
-        All = Greatsword | SwordAndShield | SpearAndShield | Bow | Bladeguard
+        All = Greatsword | SwordAndShield | GlaiveAndShield | Bow | Bladeguard
     }
 
     public sealed class WeaponDefinition
@@ -76,8 +76,8 @@ namespace SER494.Gameplay.Combat.Weapons
                     return CompatibleWeaponTypes.Greatsword;
                 case WeaponType.SwordAndShield:
                     return CompatibleWeaponTypes.SwordAndShield;
-                case WeaponType.SpearAndShield:
-                    return CompatibleWeaponTypes.SpearAndShield;
+                case WeaponType.GlaiveAndShield:
+                    return CompatibleWeaponTypes.GlaiveAndShield;
                 case WeaponType.Bow:
                     return CompatibleWeaponTypes.Bow;
                 case WeaponType.Bladeguard:

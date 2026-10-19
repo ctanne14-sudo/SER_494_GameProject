@@ -29,7 +29,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         {
             ComboConfiguration combo = CreateCompleteCombo(LinkedActionPlacement.AfterMain);
 
-            Assert.That(combo.TotalLoadCost, Is.EqualTo(10));
+            Assert.That(combo.TotalTimelineCost, Is.EqualTo(10));
             Assert.That(combo.TotalManaCost, Is.EqualTo(6));
             Assert.That(combo.TotalStaminaCost, Is.EqualTo(8));
             Assert.That(combo.TotalCooldown, Is.EqualTo(10));
@@ -65,12 +65,12 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         private static ComboActionDefinition Action(
             string id,
             ComboActionCategory category,
-            int load,
+            int timelineCost,
             int mana,
             int stamina,
             int cooldown)
         {
-            return new ComboActionDefinition(id, id, category, load, mana, stamina, cooldown);
+            return new ComboActionDefinition(id, id, category, timelineCost, mana, stamina, cooldown);
         }
     }
 }

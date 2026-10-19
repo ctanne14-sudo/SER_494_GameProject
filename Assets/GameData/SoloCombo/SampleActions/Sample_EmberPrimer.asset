@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.ember-primer
   displayName: Ember Primer
   category: 0
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 2
   manaCost: 2
   staminaCost: 0

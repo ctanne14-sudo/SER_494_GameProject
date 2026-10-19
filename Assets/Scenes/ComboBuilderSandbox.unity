@@ -174,7 +174,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bdee4ae1cc451664ea29fe991816cec4, type: 2}
   - {fileID: 11400000, guid: 25005428a5fb0b44db4417acda66612a, type: 2}
   equippedWeapon: {fileID: 11400000, guid: 3d79693e9eb03d447bdbec0e7f4dc450, type: 2}
-  maximumLoad: 30
+  maximumTimelineCost: 30
   maximumMana: 30
   maximumStamina: 30
 --- !u!114 &1573911959

@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.flame-echo
   displayName: Flame Echo
   category: 3
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 2
   manaCost: 2
   staminaCost: 0

@@ -8,11 +8,11 @@ This version is easier to understand, implement, present, and balance. Its main 
 
 ## Option B: Simultaneous Timeline Resolution
 
-The enemy announces an intended Action sequence and the player chooses one prepared Combo. Both sides commit for the same turn. Each Action has a Load Cost, and cumulative Load determines when it resolves on the shared timeline.
+The enemy announces an intended Action sequence and the player chooses one prepared Combo. Both sides commit for the same turn. Each Action has a Timeline Cost, and cumulative Timeline Cost determines when it resolves on the shared timeline.
 
 For example, if the player's Action completion times are 8, 18, and 28 while the enemy's are 9, 21, and 27, the resolution order is player, enemy, player, enemy, enemy, player. A specially designed interrupt Action may cancel or weaken an unresolved enemy Action that would complete later.
 
-This model makes Load Cost useful both during Combo construction and during battle. It also creates more interaction, prediction, and counterplay. Its main risks are timeline readability, interrupt balance, enemy-intent design, animation presentation, and higher implementation cost.
+This model makes Timeline Cost useful both during Combo construction and during battle. It also creates more interaction, prediction, and counterplay. Its main risks are timeline readability, interrupt balance, enemy-intent design, animation presentation, and higher implementation cost.
 
 The combat rules and presentation do not need to be equally simultaneous. The system can calculate a shared timeline first and then play the resulting events in a readable order, allowing the team to test the gameplay before attempting complex overlapping animations.
 
@@ -26,7 +26,7 @@ Current provisional surface examples are Oil + Fire and Water + Lightning. Possi
 
 ## D&D-Inspired Rules
 
-D&D-inspired damage dice, saving throws, ability checks, advantage or disadvantage, and event checks could be layered onto either resolution option. Traditional D&D initiative is not required: sequential combat already defines alternating turns, while simultaneous combat uses Load to determine timing.
+D&D-inspired damage dice, saving throws, ability checks, advantage or disadvantage, and event checks could be layered onto either resolution option. Traditional D&D initiative is not required: sequential combat already defines alternating turns, while simultaneous combat uses Timeline Cost to determine timing.
 
 ## Suggested Prototype Scope
 

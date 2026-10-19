@@ -11,14 +11,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         {
             ComboConfiguration playerCombo = new ComboConfiguration(
                 "combo1",
-                PlayerAction("opening", ComboActionCategory.Opening, load: 2, resolution: 1),
-                PlayerAction("main", ComboActionCategory.Main, load: 4, resolution: 3),
+                PlayerAction("opening", ComboActionCategory.Opening, timelineCost: 2, resolution: 1),
+                PlayerAction("main", ComboActionCategory.Main, timelineCost: 4, resolution: 3),
                 closingAction: null,
                 linkedAction: null,
                 linkedActionPlacement: null);
             EnemyActionSequence enemySequence = EnemySequence(
-                EnemyAction("enemy-first", load: 3, resolution: 2),
-                EnemyAction("enemy-second", load: 2, resolution: 2));
+                EnemyAction("enemy-first", timelineCost: 3, resolution: 2),
+                EnemyAction("enemy-second", timelineCost: 2, resolution: 2));
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 playerCombo,
@@ -44,9 +44,9 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         public void Build_GroupsBothSidesAtSameTimeStepWithoutResolvingEitherFirst()
         {
             ComboConfiguration playerCombo = MainOnlyCombo(
-                PlayerAction("player-strike", ComboActionCategory.Main, load: 3, resolution: 2));
+                PlayerAction("player-strike", ComboActionCategory.Main, timelineCost: 3, resolution: 2));
             EnemyActionSequence enemySequence = EnemySequence(
-                EnemyAction("enemy-strike", load: 4, resolution: 2));
+                EnemyAction("enemy-strike", timelineCost: 4, resolution: 2));
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 playerCombo,
@@ -67,7 +67,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main",
                 "Main",
                 ComboActionCategory.Main,
-                loadCost: 5,
+                timelineCost: 5,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0);
@@ -82,7 +82,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "guard",
                 "Guard",
                 ComboActionCategory.Opening,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -92,14 +92,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             ComboConfiguration combo = new ComboConfiguration(
                 "combo1",
                 guard,
-                PlayerAction("main", ComboActionCategory.Main, load: 2, resolution: 2),
+                PlayerAction("main", ComboActionCategory.Main, timelineCost: 2, resolution: 2),
                 closingAction: null,
                 linkedAction: null,
                 linkedActionPlacement: null);
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 combo,
-                EnemySequence(EnemyAction("enemy", load: 2, resolution: 2)));
+                EnemySequence(EnemyAction("enemy", timelineCost: 2, resolution: 2)));
 
             ScheduledTimelineAction scheduledGuard = schedule.Actions.Single(
                 action => action.Side == TimelineActorSide.Player
@@ -116,7 +116,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "invalid",
                 "Invalid",
                 ComboActionCategory.Main,
-                loadCost: 2,
+                timelineCost: 2,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -132,7 +132,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "opening-damage",
                 "Opening Damage",
                 ComboActionCategory.Opening,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -142,7 +142,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main-guard",
                 "Main Guard",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -159,7 +159,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             Assert.Throws<InvalidOperationException>(() => InitialTimelineScheduleBuilder.Build(
                 combo,
-                EnemySequence(EnemyAction("enemy", load: 2, resolution: 2))));
+                EnemySequence(EnemyAction("enemy", timelineCost: 2, resolution: 2))));
         }
 
         [Test]
@@ -169,13 +169,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main",
                 "Main",
                 ComboActionCategory.Main,
-                loadCost: 0,
+                timelineCost: 0,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EnemyAction(
                 "enemy",
-                load: 3,
+                timelineCost: 3,
                 resolution: 4));
         }
 
@@ -192,8 +192,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         public void BuildEnemyOnly_CreatesIntentScheduleWithoutPlayerActions()
         {
             EnemyActionSequence enemySequence = EnemySequence(
-                EnemyAction("enemy-first", load: 3, resolution: 2),
-                EnemyAction("enemy-second", load: 2, resolution: 1));
+                EnemyAction("enemy-first", timelineCost: 3, resolution: 2),
+                EnemyAction("enemy-second", timelineCost: 2, resolution: 1));
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.BuildEnemyOnly(
                 enemySequence);
@@ -223,7 +223,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "focus",
                 "Focus",
                 ComboActionCategory.Opening,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -231,14 +231,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             ComboConfiguration combo = new ComboConfiguration(
                 "combo1",
                 opening,
-                PlayerAction("main", ComboActionCategory.Main, load: 2, resolution: 2),
+                PlayerAction("main", ComboActionCategory.Main, timelineCost: 2, resolution: 2),
                 closingAction: null,
                 linkedAction: null,
                 linkedActionPlacement: null);
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 combo,
-                EnemySequence(EnemyAction("enemy", load: 2, resolution: 2)));
+                EnemySequence(EnemyAction("enemy", timelineCost: 2, resolution: 2)));
 
             ScheduledActiveWindow scheduledWindow = schedule.Actions
                 .Single(action => action.ActionId == "focus")
@@ -267,7 +267,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main",
                 "Main",
                 ComboActionCategory.Main,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -278,7 +278,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         public void ApplyPauseAndResume_ShiftsUnresolvedActionAndLaterActions()
         {
             ComboConfiguration combo = MainOnlyCombo(
-                PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2));
+                PlayerAction("player", ComboActionCategory.Main, timelineCost: 4, resolution: 2));
             var pauseResponse = new[]
             {
                 new DisruptionResponseSegmentDefinition(
@@ -292,11 +292,11 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 new EnemyActionDefinition(
                     "heavy",
                     "heavy",
-                    loadCost: 5,
+                    timelineCost: 5,
                     resolutionOffset: 5,
                     damageMultiplier: 0.50d,
                     disruptionResponseSegments: pauseResponse),
-                EnemyAction("follow-up", load: 2, resolution: 2));
+                EnemyAction("follow-up", timelineCost: 2, resolution: 2));
             InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(combo, enemy);
 
             InitialTimelineSchedule delayed = InitialTimelineScheduleBuilder.ApplyPauseAndResume(
@@ -329,7 +329,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         public void ApplyRestartAction_RestartsWholeActionAndShiftsLaterActions()
         {
             ComboConfiguration combo = MainOnlyCombo(
-                PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2));
+                PlayerAction("player", ComboActionCategory.Main, timelineCost: 4, resolution: 2));
             var restartResponse = new[]
             {
                 new DisruptionResponseSegmentDefinition(
@@ -343,11 +343,11 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 new EnemyActionDefinition(
                     "heavy",
                     "heavy",
-                    loadCost: 5,
+                    timelineCost: 5,
                     resolutionOffset: 1,
                     damageMultiplier: 0.50d,
                     disruptionResponseSegments: restartResponse),
-                EnemyAction("follow-up", load: 2, resolution: 2));
+                EnemyAction("follow-up", timelineCost: 2, resolution: 2));
             InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(combo, enemy);
 
             InitialTimelineSchedule restarted = InitialTimelineScheduleBuilder.ApplyRestartAction(
@@ -378,16 +378,16 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         [Test]
         public void ApplyCancelAction_CancelsDependentLinkedAndAdvancesClosing()
         {
-            var main = PlayerAction("main", ComboActionCategory.Main, load: 5, resolution: 5);
+            var main = PlayerAction("main", ComboActionCategory.Main, timelineCost: 5, resolution: 5);
             var linked = PlayerAction(
                 "linked",
                 ComboActionCategory.Linked,
-                load: 2,
+                timelineCost: 2,
                 resolution: 2);
             var closing = PlayerAction(
                 "closing",
                 ComboActionCategory.Closing,
-                load: 2,
+                timelineCost: 2,
                 resolution: 2);
             var combo = new ComboConfiguration(
                 "linked-combo",
@@ -398,7 +398,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 LinkedActionPlacement.AfterMain);
             InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(
                 combo,
-                EnemySequence(EnemyAction("observe", load: 1, resolution: 1)));
+                EnemySequence(EnemyAction("observe", timelineCost: 1, resolution: 1)));
 
             InitialTimelineSchedule canceled = InitialTimelineScheduleBuilder.ApplyCancelAction(
                 original,
@@ -522,7 +522,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.Throws<ArgumentException>(() => new EnemyActionDefinition(
                 "invalid",
                 "Invalid",
-                loadCost: 5,
+                timelineCost: 5,
                 resolutionOffset: 5,
                 damageMultiplier: 0.20d,
                 disruptionResponseSegments: segments));
@@ -534,7 +534,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             var sustained = new EnemyActionDefinition(
                 "sweep",
                 "Sweep",
-                loadCost: 6,
+                timelineCost: 6,
                 resolutionOffset: 1,
                 damageMultiplier: 0.30d,
                 sustainedAttack: new SustainedAttackDefinition(
@@ -546,7 +546,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
                 MainOnlyCombo(
-                    PlayerAction("player", ComboActionCategory.Main, load: 6, resolution: 6)),
+                    PlayerAction("player", ComboActionCategory.Main, timelineCost: 6, resolution: 6)),
                 EnemySequence(sustained));
 
             ScheduledTimelineAction enemy = schedule.Actions.Single(
@@ -566,7 +566,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "sustained",
                 "Sustained",
                 ComboActionCategory.Opening,
-                loadCost: 3,
+                timelineCost: 3,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -577,7 +577,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "guard",
                 "Guard",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -593,7 +593,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                         closingAction: null,
                         linkedAction: null,
                         linkedActionPlacement: null),
-                    EnemySequence(EnemyAction("enemy", load: 4, resolution: 4))));
+                    EnemySequence(EnemyAction("enemy", timelineCost: 4, resolution: 4))));
         }
 
         private static InitialTimelineSchedule ApplyPauseToDefensiveWindow(
@@ -634,12 +634,12 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             };
             return InitialTimelineScheduleBuilder.Build(
                 MainOnlyCombo(
-                    PlayerAction("player", ComboActionCategory.Main, load: 4, resolution: 2)),
+                    PlayerAction("player", ComboActionCategory.Main, timelineCost: 4, resolution: 2)),
                 EnemySequence(
                     new EnemyActionDefinition(
                         "guarding-enemy",
                         "Guarding Enemy",
-                        loadCost: 5,
+                        timelineCost: 5,
                         resolutionOffset: 5,
                         damageMultiplier: 0.50d,
                         activeWindows: new[] { window },
@@ -660,14 +660,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         private static ComboActionDefinition PlayerAction(
             string id,
             ComboActionCategory category,
-            int load,
+            int timelineCost,
             int resolution)
         {
             return new ComboActionDefinition(
                 id,
                 id,
                 category,
-                load,
+                timelineCost,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -677,13 +677,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
         private static EnemyActionDefinition EnemyAction(
             string id,
-            int load,
+            int timelineCost,
             int resolution)
         {
             return new EnemyActionDefinition(
                 id,
                 id,
-                load,
+                timelineCost,
                 resolution,
                 damageMultiplier: 0.10d);
         }

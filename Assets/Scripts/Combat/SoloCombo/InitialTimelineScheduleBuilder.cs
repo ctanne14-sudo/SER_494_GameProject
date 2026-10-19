@@ -151,9 +151,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 throw new ArgumentOutOfRangeException(nameof(chargeLevel));
             }
 
-            int additionalLoad = chargeLevel == 0
+            int additionalTimelineCost = chargeLevel == 0
                 ? 0
-                : selectedAction.ChargeLevels[chargeLevel - 1].AdditionalLoad;
+                : selectedAction.ChargeLevels[chargeLevel - 1].AdditionalTimelineCost;
             double damageScale = chargeLevel == 0
                 ? 1d
                 : selectedAction.ChargeLevels[chargeLevel - 1].DamageMultiplierScale;
@@ -164,7 +164,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             {
                 ScheduledTimelineAction action = schedule.Actions[index];
                 int shift = action.Side == side && action.SequenceIndex > sequenceIndex
-                    ? additionalLoad
+                    ? additionalTimelineCost
                     : 0;
 
                 if (action == selectedAction)
@@ -172,8 +172,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     action = CopyScheduledAction(
                         action,
                         startShift: 0,
-                        endShift: additionalLoad,
-                        resolutionShift: additionalLoad,
+                        endShift: additionalTimelineCost,
+                        resolutionShift: additionalTimelineCost,
                         damageScale,
                         keepChargeLevels: false);
                 }
@@ -516,7 +516,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < definitions.Count; index++)
             {
                 ComboActionDefinition definition = definitions[index];
-                int endTime = checked(currentTime + definition.LoadCost);
+                int endTime = checked(currentTime + definition.TimelineCost);
                 int? requiredCompletedSequenceIndex = ReferenceEquals(
                     definition,
                     combo.LinkedAction)
@@ -569,7 +569,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             for (int index = 0; index < definitions.Count; index++)
             {
                 EnemyActionDefinition definition = definitions[index];
-                int endTime = checked(currentTime + definition.LoadCost);
+                int endTime = checked(currentTime + definition.TimelineCost);
                 destination.Add(new ScheduledTimelineAction(
                     TimelineActorSide.Enemy,
                     index,

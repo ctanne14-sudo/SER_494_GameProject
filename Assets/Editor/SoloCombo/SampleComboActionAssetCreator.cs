@@ -27,7 +27,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.focus-stance",
                     "Focus Stance",
                     ComboActionCategory.Opening,
-                    loadCost: 5,
+                    timelineCost: 5,
                     resolutionOffset: 5,
                     manaCost: 0,
                     staminaCost: 1,
@@ -49,7 +49,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.quick-guard",
                     "Quick Guard",
                     ComboActionCategory.Opening,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 1,
                     manaCost: 0,
                     staminaCost: 2,
@@ -62,7 +62,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.sidestep",
                     "Sidestep",
                     ComboActionCategory.Opening,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 1,
                     manaCost: 0,
                     staminaCost: 2,
@@ -75,7 +75,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.ember-primer",
                     "Ember Primer",
                     ComboActionCategory.Opening,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 2,
                     staminaCost: 0,
@@ -88,7 +88,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.arcane-slash",
                     "Arcane Slash",
                     ComboActionCategory.Main,
-                    loadCost: 5,
+                    timelineCost: 5,
                     resolutionOffset: 4,
                     manaCost: 3,
                     staminaCost: 4,
@@ -99,8 +99,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     damageTags: DamageResolutionTag.Overcommit | DamageResolutionTag.Clash,
                     chargeLevels: new[]
                     {
-                        new SampleChargeLevel(additionalLoad: 3, damageMultiplierScale: 1.35f),
-                        new SampleChargeLevel(additionalLoad: 6, damageMultiplierScale: 1.70f)
+                        new SampleChargeLevel(additionalTimelineCost: 3, damageMultiplierScale: 1.35f),
+                        new SampleChargeLevel(additionalTimelineCost: 6, damageMultiplierScale: 1.70f)
                     },
                     clashDamageReduction: 0.50f,
                     clashSuperArmorLevel: 2),
@@ -109,7 +109,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.guard-breaker",
                     "Guard Breaker",
                     ComboActionCategory.Main,
-                    loadCost: 4,
+                    timelineCost: 4,
                     resolutionOffset: 2,
                     manaCost: 0,
                     staminaCost: 5,
@@ -126,7 +126,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.ice-lance",
                     "Ice Lance",
                     ComboActionCategory.Main,
-                    loadCost: 5,
+                    timelineCost: 5,
                     resolutionOffset: 5,
                     manaCost: 4,
                     staminaCost: 0,
@@ -139,7 +139,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.precise-shot",
                     "Precise Shot",
                     ComboActionCategory.Main,
-                    loadCost: 4,
+                    timelineCost: 4,
                     resolutionOffset: 4,
                     manaCost: 0,
                     staminaCost: 4,
@@ -154,7 +154,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.backstep",
                     "Backstep",
                     ComboActionCategory.Closing,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 1,
                     manaCost: 0,
                     staminaCost: 2,
@@ -167,7 +167,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.guarded-retreat",
                     "Guarded Retreat",
                     ComboActionCategory.Closing,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 1,
                     manaCost: 0,
                     staminaCost: 2,
@@ -180,7 +180,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.parting-slash",
                     "Parting Slash",
                     ComboActionCategory.Closing,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 1,
                     manaCost: 0,
                     staminaCost: 2,
@@ -193,7 +193,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.steady-finish",
                     "Steady Finish",
                     ComboActionCategory.Closing,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 0,
                     staminaCost: 1,
@@ -206,7 +206,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.flame-echo",
                     "Flame Echo",
                     ComboActionCategory.Linked,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 2,
                     staminaCost: 0,
@@ -214,13 +214,13 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     damageMultiplier: 0.30f,
                     damageType: DamageType.Fire,
                     resolutionEffect: ActionResolutionEffect.Damage,
-                    damageTags: DamageResolutionTag.Area),
+                    damageTags: DamageResolutionTag.IgnoresEvade),
                 new SampleAction(
                     "Sample_WardEcho",
                     "sample.ward-echo",
                     "Ward Echo",
                     ComboActionCategory.Linked,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 1,
                     staminaCost: 0,
@@ -233,7 +233,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.vanish-step",
                     "Vanish Step",
                     ComboActionCategory.Linked,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 0,
                     staminaCost: 1,
@@ -246,7 +246,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     "sample.spark-echo",
                     "Spark Echo",
                     ComboActionCategory.Linked,
-                    loadCost: 2,
+                    timelineCost: 2,
                     resolutionOffset: 2,
                     manaCost: 2,
                     staminaCost: 0,
@@ -307,7 +307,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serializedAsset.FindProperty("actionId").stringValue = sample.ActionId;
             serializedAsset.FindProperty("displayName").stringValue = sample.DisplayName;
             serializedAsset.FindProperty("category").enumValueIndex = (int)sample.Category;
-            serializedAsset.FindProperty("loadCost").intValue = sample.LoadCost;
+            serializedAsset.FindProperty("timelineCost").intValue = sample.TimelineCost;
             serializedAsset.FindProperty("resolutionOffset").intValue = sample.ResolutionOffset;
             serializedAsset.FindProperty("useResolutionWindow").boolValue =
                 sample.ResolutionWindowStart.HasValue;
@@ -320,8 +320,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             for (int index = 0; index < sample.ChargeLevels.Length; index++)
             {
                 SerializedProperty level = chargeLevels.GetArrayElementAtIndex(index);
-                level.FindPropertyRelative("additionalLoad").intValue =
-                    sample.ChargeLevels[index].AdditionalLoad;
+                level.FindPropertyRelative("additionalTimelineCost").intValue =
+                    sample.ChargeLevels[index].AdditionalTimelineCost;
                 level.FindPropertyRelative("damageMultiplierScale").floatValue =
                     sample.ChargeLevels[index].DamageMultiplierScale;
             }
@@ -391,7 +391,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 string actionId,
                 string displayName,
                 ComboActionCategory category,
-                int loadCost,
+                int timelineCost,
                 int resolutionOffset,
                 int manaCost,
                 int staminaCost,
@@ -412,7 +412,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ActionId = actionId;
                 DisplayName = displayName;
                 Category = category;
-                LoadCost = loadCost;
+                TimelineCost = timelineCost;
                 ResolutionOffset = resolutionOffset;
                 ManaCost = manaCost;
                 StaminaCost = staminaCost;
@@ -438,7 +438,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             public ComboActionCategory Category { get; }
 
-            public int LoadCost { get; }
+            public int TimelineCost { get; }
 
             public int ResolutionOffset { get; }
 
@@ -522,13 +522,13 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
         private sealed class SampleChargeLevel
         {
-            public SampleChargeLevel(int additionalLoad, float damageMultiplierScale)
+            public SampleChargeLevel(int additionalTimelineCost, float damageMultiplierScale)
             {
-                AdditionalLoad = additionalLoad;
+                AdditionalTimelineCost = additionalTimelineCost;
                 DamageMultiplierScale = damageMultiplierScale;
             }
 
-            public int AdditionalLoad { get; }
+            public int AdditionalTimelineCost { get; }
 
             public float DamageMultiplierScale { get; }
         }

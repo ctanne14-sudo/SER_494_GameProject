@@ -124,7 +124,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         $"{id}-action",
                         id,
-                        loadCost: 1,
+                        timelineCost: 1,
                         resolutionOffset: 1,
                         damageMultiplier: 0d)
                 });

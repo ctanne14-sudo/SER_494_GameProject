@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.focus-stance
   displayName: Focus Stance
   category: 0
-  loadCost: 5
+  timelineCost: 5
   resolutionOffset: 5
   useResolutionWindow: 0
   resolutionWindowStart: 5

@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.vanish-step
   displayName: Vanish Step
   category: 3
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 2
   manaCost: 0
   staminaCost: 1

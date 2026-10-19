@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.ice-lance
   displayName: Ice Lance
   category: 1
-  loadCost: 5
+  timelineCost: 5
   resolutionOffset: 5
   manaCost: 4
   staminaCost: 0

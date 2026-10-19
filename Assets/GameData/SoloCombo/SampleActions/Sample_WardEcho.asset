@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.ward-echo
   displayName: Ward Echo
   category: 3
-  loadCost: 2
+  timelineCost: 2
   resolutionOffset: 2
   manaCost: 1
   staminaCost: 0

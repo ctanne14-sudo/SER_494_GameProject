@@ -1064,7 +1064,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         ? DamageAvoidanceResult.Guarded
                         : DamageAvoidanceResult.None;
                 case ActionResolutionEffect.Evade:
-                    return (damageTags & DamageResolutionTag.Area) == 0
+                    return (damageTags & DamageResolutionTag.IgnoresEvade) == 0
                         ? DamageAvoidanceResult.Evaded
                         : DamageAvoidanceResult.None;
                 default:

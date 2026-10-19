@@ -28,7 +28,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             {
                 new SampleWeapon("Greatsword", "weapon.greatsword", "Greatsword", WeaponType.Greatsword),
                 new SampleWeapon("SwordAndShield", "weapon.sword-and-shield", "Sword and Shield", WeaponType.SwordAndShield),
-                new SampleWeapon("SpearAndShield", "weapon.spear-and-shield", "Spear and Shield", WeaponType.SpearAndShield),
+                new SampleWeapon("GlaiveAndShield", "weapon.glaive-and-shield", "Glaive and Shield", WeaponType.GlaiveAndShield),
                 new SampleWeapon("Bow", "weapon.bow", "Bow", WeaponType.Bow),
                 new SampleWeapon("Bladeguard", "weapon.bladeguard", "Bladeguard", WeaponType.Bladeguard)
             };

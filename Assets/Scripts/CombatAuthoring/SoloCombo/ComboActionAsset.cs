@@ -4,6 +4,7 @@ using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 {
@@ -16,7 +17,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         private sealed class ChargeLevelAuthoringData
         {
             [Min(1)]
-            public int additionalLoad = 3;
+            [FormerlySerializedAs("additionalLoad")]
+            public int additionalTimelineCost = 3;
 
             [Min(0.01f)]
             public float damageMultiplierScale = 1f;
@@ -68,7 +70,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [Header("Costs")]
         [SerializeField]
         [Min(1)]
-        private int loadCost = 1;
+        [FormerlySerializedAs("loadCost")]
+        private int timelineCost = 1;
 
         [SerializeField]
         [Min(0)]
@@ -201,7 +204,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             return NormalizedCompatibleWeaponTypes.Supports(weaponType);
         }
 
-        public int LoadCost => loadCost;
+        public int TimelineCost => timelineCost;
 
         public int ManaCost => manaCost;
 
@@ -254,9 +257,9 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             return GetActiveWindow(index).superArmorLevel;
         }
 
-        public int GetChargeAdditionalLoad(int chargeLevel)
+        public int GetChargeAdditionalTimelineCost(int chargeLevel)
         {
-            return GetChargeLevel(chargeLevel).additionalLoad;
+            return GetChargeLevel(chargeLevel).additionalTimelineCost;
         }
 
         public float GetChargeDamageMultiplierScale(int chargeLevel)
@@ -316,9 +319,9 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (loadCost <= 0)
+            if (timelineCost <= 0)
             {
-                validationError = $"{name} must have a Load Cost greater than zero.";
+                validationError = $"{name} must have a Timeline Cost greater than zero.";
                 return false;
             }
 
@@ -328,19 +331,19 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (resolutionOffset < 0 || resolutionOffset > loadCost)
+            if (resolutionOffset < 0 || resolutionOffset > timelineCost)
             {
-                validationError = $"{name} has a Resolution Offset outside its Action Load.";
+                validationError = $"{name} has a Resolution Offset outside its Action Timeline Cost.";
                 return false;
             }
 
             if (useResolutionWindow
                 && (resolutionWindowStart < 0
-                    || resolutionWindowEnd > loadCost
+                    || resolutionWindowEnd > timelineCost
                     || resolutionWindowStart >= resolutionWindowEnd))
             {
                 validationError = $"{name} must have an ordered Resolution Window with "
-                    + "at least two Time Steps inside its Action Load.";
+                    + "at least two Time Steps inside its Action Timeline Cost.";
                 return false;
             }
 
@@ -363,7 +366,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     || chargeDefinitions.Count > 0
                     || sustainedWindowStartOffset < 1
                     || sustainedWindowEndOffset < sustainedWindowStartOffset
-                    || sustainedWindowEndOffset > loadCost
+                    || sustainedWindowEndOffset > timelineCost
                     || sustainedFirstHitOffset < sustainedWindowStartOffset
                     || sustainedFirstHitOffset > sustainedWindowEndOffset
                     || sustainedHitInterval <= 0
@@ -492,7 +495,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 actionId.Trim(),
                 displayName.Trim(),
                 category,
-                loadCost,
+                timelineCost,
                 manaCost,
                 staminaCost,
                 cooldown,
@@ -550,13 +553,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 compatibleWeaponTypes = CompatibleWeaponTypes.All;
             }
 
-            loadCost = Mathf.Max(1, loadCost);
-            resolutionOffset = Mathf.Clamp(resolutionOffset, 0, loadCost);
-            resolutionWindowStart = Mathf.Clamp(resolutionWindowStart, 0, loadCost);
-            resolutionWindowEnd = Mathf.Clamp(resolutionWindowEnd, 0, loadCost);
-            sustainedWindowStartOffset = Mathf.Clamp(sustainedWindowStartOffset, 1, loadCost);
-            sustainedWindowEndOffset = Mathf.Clamp(sustainedWindowEndOffset, 1, loadCost);
-            sustainedFirstHitOffset = Mathf.Clamp(sustainedFirstHitOffset, 1, loadCost);
+            timelineCost = Mathf.Max(1, timelineCost);
+            resolutionOffset = Mathf.Clamp(resolutionOffset, 0, timelineCost);
+            resolutionWindowStart = Mathf.Clamp(resolutionWindowStart, 0, timelineCost);
+            resolutionWindowEnd = Mathf.Clamp(resolutionWindowEnd, 0, timelineCost);
+            sustainedWindowStartOffset = Mathf.Clamp(sustainedWindowStartOffset, 1, timelineCost);
+            sustainedWindowEndOffset = Mathf.Clamp(sustainedWindowEndOffset, 1, timelineCost);
+            sustainedFirstHitOffset = Mathf.Clamp(sustainedFirstHitOffset, 1, timelineCost);
             sustainedHitInterval = Mathf.Max(1, sustainedHitInterval);
             sustainedMaximumHitCount = Mathf.Max(1, sustainedMaximumHitCount);
             manaCost = Mathf.Max(0, manaCost);
@@ -589,7 +592,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     continue;
                 }
 
-                level.additionalLoad = Mathf.Max(1, level.additionalLoad);
+                level.additionalTimelineCost = Mathf.Max(1, level.additionalTimelineCost);
                 level.damageMultiplierScale = Mathf.Max(0.01f, level.damageMultiplierScale);
             }
 
@@ -606,8 +609,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     continue;
                 }
 
-                window.startOffset = Mathf.Clamp(window.startOffset, 1, loadCost);
-                window.endOffset = Mathf.Clamp(window.endOffset, window.startOffset, loadCost);
+                window.startOffset = Mathf.Clamp(window.startOffset, 1, timelineCost);
+                window.endOffset = Mathf.Clamp(window.endOffset, window.startOffset, timelineCost);
                 window.damageReduction = Mathf.Clamp(window.damageReduction, 0.01f, 0.99f);
                 window.superArmorLevel = window.effect == ActiveWindowEffect.SuperArmor
                     ? Mathf.Clamp(window.superArmorLevel, 1, 5)
@@ -632,24 +635,24 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             }
 
             var created = new ComboActionChargeLevelDefinition[chargeLevels.Length];
-            int previousAdditionalLoad = 0;
+            int previousAdditionalTimelineCost = 0;
             for (int index = 0; index < chargeLevels.Length; index++)
             {
                 ChargeLevelAuthoringData level = chargeLevels[index];
                 if (level == null
-                    || level.additionalLoad <= previousAdditionalLoad
+                    || level.additionalTimelineCost <= previousAdditionalTimelineCost
                     || level.damageMultiplierScale <= 0f)
                 {
                     definitions = null;
                     validationError = $"{name} Charge Levels must be non-null, use a positive "
-                        + "damage scale, and add progressively more Load.";
+                        + "damage scale, and add progressively more Timeline Cost.";
                     return false;
                 }
 
                 created[index] = new ComboActionChargeLevelDefinition(
-                    level.additionalLoad,
+                    level.additionalTimelineCost,
                     level.damageMultiplierScale);
-                previousAdditionalLoad = level.additionalLoad;
+                previousAdditionalTimelineCost = level.additionalTimelineCost;
             }
 
             definitions = Array.AsReadOnly(created);
@@ -690,7 +693,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     || string.IsNullOrWhiteSpace(window.displayName)
                     || window.startOffset < 1
                     || window.endOffset < window.startOffset
-                    || window.endOffset > loadCost
+                    || window.endOffset > timelineCost
                     || (window.effect == ActiveWindowEffect.DefensiveState
                         && (window.damageReduction <= 0f
                             || window.damageReduction >= 1f))

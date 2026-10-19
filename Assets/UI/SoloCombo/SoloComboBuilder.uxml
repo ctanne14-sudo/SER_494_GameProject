@@ -42,7 +42,7 @@
                 <ui:VisualElement class="section-card">
                     <ui:Label text="Combo Summary" class="section-title" />
                     <ui:VisualElement class="cost-row">
-                        <ui:Label name="loadCostLabel" text="Load: 0 / 12" class="cost-label" />
+                        <ui:Label name="timelineCostLabel" text="Timeline Cost: 0 / 12" class="cost-label" />
                         <ui:Label name="manaCostLabel" text="Mana: 0 / 12" class="cost-label" />
                         <ui:Label name="staminaCostLabel" text="Stamina: 0 / 14" class="cost-label" />
                         <ui:Label name="cooldownLabel" text="Cooldown: 0" class="cost-label" />

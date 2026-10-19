@@ -66,7 +66,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main",
                 "Main",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 1,

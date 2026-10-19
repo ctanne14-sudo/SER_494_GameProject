@@ -7,7 +7,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
     public sealed class ComboValidatorTests
     {
         private static readonly ComboValidationLimits GenerousLimits =
-            new ComboValidationLimits(maximumLoad: 20, maximumMana: 20, maximumStamina: 20);
+            new ComboValidationLimits(maximumTimelineCost: 20, maximumMana: 20, maximumStamina: 20);
 
         [Test]
         public void Validate_MainOnlyCombo_IsValid()
@@ -66,7 +66,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     "main",
                     "Main",
                     ComboActionCategory.Main,
-                    loadCost: 11,
+                    timelineCost: 11,
                     manaCost: 13,
                     staminaCost: 17,
                     cooldown: 0),
@@ -78,7 +78,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             ComboValidationResult result = ComboValidator.Validate(combo, limits);
 
             ComboValidationErrorCode[] codes = result.Issues.Select(issue => issue.Code).ToArray();
-            Assert.That(codes, Contains.Item(ComboValidationErrorCode.LoadCostExceeded));
+            Assert.That(codes, Contains.Item(ComboValidationErrorCode.TimelineCostExceeded));
             Assert.That(codes, Contains.Item(ComboValidationErrorCode.ManaCostExceeded));
             Assert.That(codes, Contains.Item(ComboValidationErrorCode.StaminaCostExceeded));
         }
@@ -106,7 +106,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "opening-damage",
                 "Opening Damage",
                 ComboActionCategory.Opening,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -116,7 +116,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "main-guard",
                 "Main Guard",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
@@ -145,7 +145,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "bow-main",
                 "Bow Main",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -166,7 +166,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 "bow-main",
                 "Bow Main",
                 ComboActionCategory.Main,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
@@ -202,7 +202,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 id,
                 id,
                 category,
-                loadCost: 1,
+                timelineCost: 1,
                 manaCost: 1,
                 staminaCost: 1,
                 cooldown: 1);

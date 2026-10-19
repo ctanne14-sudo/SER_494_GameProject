@@ -15,7 +15,7 @@ MonoBehaviour:
   actionId: sample.guard-breaker
   displayName: Guard Breaker
   category: 1
-  loadCost: 4
+  timelineCost: 4
   resolutionOffset: 2
   manaCost: 0
   staminaCost: 5
