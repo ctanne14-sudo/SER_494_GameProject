@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bba8b00bb0f0079478f0b08d7cdc983b, type: 3}
+  m_Name: RunSequence
+  m_EditorClassIdentifier: Assembly-CSharp::Roguelike.RunSequence
+  floors:
+  - floorName: Prison Cells
+    variantScenes:
+    - Floor1_Cell_A
+  - floorName: Lobby
+    variantScenes:
+    - Floor2_Lobby_A
+  - floorName: Throne Room
+    variantScenes:
+    - Floor3_Boss_A
