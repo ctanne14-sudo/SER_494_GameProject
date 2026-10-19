@@ -21,7 +21,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         StaminaCostExceeded,
         MutuallyExclusiveResolutionEffectsOverlap,
         ActionAssignedMoreThanOnce,
-        ActionIncompatibleWithEquippedWeapon
+        ActionIncompatibleWithEquippedWeapon,
+        PreviousActionDoesNotProvideRequiredStatus
     }
 
     public sealed class ComboValidationLimits
@@ -114,7 +115,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ValidateCosts(combo, limits, result);
             ValidateResolutionPointExclusivity(combo, result);
             ValidateWeaponCompatibility(combo, equippedWeaponType, result);
+            ValidatePreviousActionStatusRequirements(combo, result);
             return result;
+        }
+
+        private static void ValidatePreviousActionStatusRequirements(
+            ComboConfiguration combo,
+            ComboValidationResult result)
+        {
+            IReadOnlyList<ComboActionDefinition> executionOrder = combo.BuildExecutionOrder();
+            for (int index = 0; index < executionOrder.Count; index++)
+            {
+                ComboActionDefinition action = executionOrder[index];
+                PreviousActionStatusRequirementDefinition requirement =
+                    action.PreviousActionStatusRequirement;
+                if (requirement == null)
+                {
+                    continue;
+                }
+
+                bool previousActionProvidesStatus = index > 0
+                    && AppliesSelfStatus(
+                        executionOrder[index - 1],
+                        requirement.StatusId);
+                if (!previousActionProvidesStatus)
+                {
+                    result.Add(
+                        ComboValidationErrorCode.PreviousActionDoesNotProvideRequiredStatus,
+                        combo.Name,
+                        action.ActionId);
+                }
+            }
+        }
+
+        private static bool AppliesSelfStatus(
+            ComboActionDefinition action,
+            string statusId)
+        {
+            for (int index = 0; index < action.ResolutionEvents.Count; index++)
+            {
+                ActionResolutionDefinition resolution = action.ResolutionEvents[index];
+                if ((resolution.Effect == ActionResolutionEffect.ApplyBuff
+                        || resolution.Effect == ActionResolutionEffect.ApplyDebuff)
+                    && resolution.StatusTarget == ActionStatusTarget.Self
+                    && string.Equals(
+                        resolution.StatusEffect?.StatusId,
+                        statusId,
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ValidateWeaponCompatibility(

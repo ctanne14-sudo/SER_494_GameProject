@@ -701,7 +701,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void MultiEventAuthoring_CreatesHealingItemAndStatusRequirementData()
+        public void MultiEventAuthoring_CreatesPercentageHealingItemAndSequenceRequirementData()
         {
             ConfigureAsset(
                 "healing-action",
@@ -726,15 +726,17 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 effect: ActionResolutionEffect.Heal,
                 damageMultiplier: 0f,
                 damageType: DamageType.Slashing);
-            authored.FindPropertyRelative("healingAmount").intValue = 70;
+            authored.FindPropertyRelative("healingType").enumValueIndex =
+                (int)ActionHealingType.MaximumHealthPercentage;
+            authored.FindPropertyRelative("maximumHealthHealingPercentage").floatValue = 0.70f;
             authored.FindPropertyRelative("consumedItemId").stringValue = "healing-potion";
             authored.FindPropertyRelative("consumedItemDisplayName").stringValue =
                 "Healing Potion";
             authored.FindPropertyRelative("consumedItemAmount").intValue = 1;
-            authored.FindPropertyRelative("requiredStatusId").stringValue = "airborne-setup";
-            authored.FindPropertyRelative("requiredStatusDisplayName").stringValue =
+            serializedAsset.FindProperty("requiredPreviousActionStatusId").stringValue =
+                "airborne-setup";
+            serializedAsset.FindProperty("requiredPreviousActionStatusDisplayName").stringValue =
                 "Airborne Setup";
-            authored.FindPropertyRelative("consumeRequiredStatus").boolValue = true;
             serializedAsset.ApplyModifiedPropertiesWithoutUndo();
 
             bool succeeded = _asset.TryCreateDefinition(
@@ -743,13 +745,15 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             Assert.That(succeeded, Is.True, validationError);
             ActionResolutionDefinition resolution = definition.ResolutionEvents[0];
-            Assert.That(resolution.HealingAmount, Is.EqualTo(70));
+            Assert.That(
+                resolution.Healing.Type,
+                Is.EqualTo(ActionHealingType.MaximumHealthPercentage));
+            Assert.That(resolution.Healing.Value, Is.EqualTo(0.70d).Within(0.001d));
             Assert.That(resolution.ItemCost.ItemId, Is.EqualTo("healing-potion"));
             Assert.That(resolution.ItemCost.Amount, Is.EqualTo(1));
             Assert.That(
-                resolution.StatusRequirement.StatusId,
+                definition.PreviousActionStatusRequirement.StatusId,
                 Is.EqualTo("airborne-setup"));
-            Assert.That(resolution.StatusRequirement.ConsumeOnResolution, Is.True);
         }
 
         private void ConfigureAsset(

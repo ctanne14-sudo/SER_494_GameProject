@@ -20,7 +20,6 @@ namespace SER494.Gameplay.Combat.SoloCombo
     public enum SoloComboResolutionFailure
     {
         None,
-        MissingRequiredStatus,
         MissingItem
     }
 
@@ -753,17 +752,6 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
-                if (action.StatusRequirement != null
-                    && !actor.HasStatus(action.StatusRequirement.StatusId))
-                {
-                    resolutions.Add(CreateFailedResolution(
-                        action,
-                        step.TimeStep,
-                        SoloComboResolutionFailure.MissingRequiredStatus,
-                        action.StatusRequirement.DisplayName));
-                    continue;
-                }
-
                 if (action.ItemCost != null
                     && GetItemCount(action.ItemCost.ItemId) < action.ItemCost.Amount)
                 {
@@ -773,11 +761,6 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         SoloComboResolutionFailure.MissingItem,
                         action.ItemCost.DisplayName));
                     continue;
-                }
-
-                if (action.StatusRequirement?.ConsumeOnResolution == true)
-                {
-                    actor.ConsumeStatus(action.StatusRequirement.StatusId);
                 }
 
                 if (action.ItemCost != null)
@@ -916,7 +899,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ? Player
                     : Enemy;
                 int healthBefore = recipient.CurrentHealth;
-                recipient.RestoreHealth(action.HealingAmount);
+                recipient.RestoreHealth(
+                    action.Healing.CalculateAmount(recipient.Stats.MaxHealth));
                 int healingDone = recipient.CurrentHealth - healthBefore;
                 resolutions.Add(new SoloComboActionResolution(
                     action.Side,

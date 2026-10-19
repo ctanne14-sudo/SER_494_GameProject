@@ -856,6 +856,13 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                             .ToString("0"))
                         .Append("% Damage Taken)");
                 }
+
+                if (!string.IsNullOrWhiteSpace(
+                        action.RequiredPreviousActionStatusDisplayName))
+                {
+                    builder.Append(" | Requires previous Action to provide: ")
+                        .Append(action.RequiredPreviousActionStatusDisplayName);
+                }
             }
 
             _actionLibraryLabel.text = builder.Length == 0
@@ -1036,6 +1043,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     return "The same Action is assigned more than once.";
                 case ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon:
                     return "An Action is incompatible with the equipped Weapon.";
+                case ComboValidationErrorCode.PreviousActionDoesNotProvideRequiredStatus:
+                    return "The previous Action does not provide the required setup Status.";
                 case ComboValidationErrorCode.EmptyLoadout:
                     return "The loadout has no Combos.";
                 case ComboValidationErrorCode.NullCombo:

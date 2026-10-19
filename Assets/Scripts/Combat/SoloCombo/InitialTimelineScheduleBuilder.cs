@@ -894,9 +894,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.OnGuardedDisruption,
                     definition.Clash,
                     definition.OnEvadedDisruption,
-                    definition.HealingAmount,
-                    definition.ItemCost,
-                    definition.StatusRequirement);
+                    healingAmount: 0,
+                    itemCost: definition.ItemCost,
+                    healing: definition.Healing);
             }
 
             return Array.AsReadOnly(scheduled);
@@ -935,9 +935,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     resolution.OnGuardedDisruption,
                     resolution.Clash,
                     resolution.OnEvadedDisruption,
-                    resolution.HealingAmount,
-                    resolution.ItemCost,
-                    resolution.StatusRequirement);
+                    healingAmount: 0,
+                    itemCost: resolution.ItemCost,
+                    healing: resolution.Healing);
             }
 
             return Array.AsReadOnly(transformed);

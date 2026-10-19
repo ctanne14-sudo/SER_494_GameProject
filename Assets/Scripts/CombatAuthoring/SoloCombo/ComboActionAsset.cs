@@ -68,16 +68,18 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
             public DamageResolutionTag damageTags = DamageResolutionTag.None;
 
+            public ActionHealingType healingType = ActionHealingType.FlatAmount;
+
             [Min(0)]
             public int healingAmount = 0;
+
+            [Range(0f, 1f)]
+            [Tooltip("Fraction of Maximum Health restored. For example, 0.25 restores 25%.")]
+            public float maximumHealthHealingPercentage = 0f;
 
             public string consumedItemId = string.Empty;
             public string consumedItemDisplayName = string.Empty;
             [Min(0)] public int consumedItemAmount = 0;
-
-            public string requiredStatusId = string.Empty;
-            public string requiredStatusDisplayName = string.Empty;
-            public bool consumeRequiredStatus = false;
 
             public string statusId = string.Empty;
             public string statusDisplayName = string.Empty;
@@ -141,6 +143,14 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [SerializeField]
         [Tooltip("Weapon Types that can use this Action. Existing Actions default to all five Weapon Types.")]
         private CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All;
+
+        [Header("Combo Sequence Requirement")]
+        [SerializeField]
+        [Tooltip("Optional Status ID that the immediately previous Action must apply to Self.")]
+        private string requiredPreviousActionStatusId = string.Empty;
+
+        [SerializeField]
+        private string requiredPreviousActionStatusDisplayName = string.Empty;
 
         [Header("Costs")]
         [SerializeField]
@@ -285,6 +295,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public CompatibleWeaponTypes CompatibleWeaponTypes => NormalizedCompatibleWeaponTypes;
 
+        public string RequiredPreviousActionStatusId => requiredPreviousActionStatusId;
+
+        public string RequiredPreviousActionStatusDisplayName =>
+            requiredPreviousActionStatusDisplayName;
+
         public bool IsCompatibleWith(WeaponType weaponType)
         {
             return NormalizedCompatibleWeaponTypes.Supports(weaponType);
@@ -422,6 +437,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             bool usesResolutionEvents = resolutionEvents != null
                 && resolutionEvents.Length > 0;
 
+            if (!TryCreatePreviousActionStatusRequirement(
+                    out PreviousActionStatusRequirementDefinition previousActionStatusRequirement,
+                    out validationError))
+            {
+                return false;
+            }
+
             if (!usesResolutionEvents
                 && (resolutionOffset < 0 || resolutionOffset > timelineCost))
             {
@@ -526,7 +548,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         chargeDefinitions,
                         activeWindowDefinitions,
                         responseDefinitions,
-                        compatibleWeaponTypes: NormalizedCompatibleWeaponTypes);
+                        compatibleWeaponTypes: NormalizedCompatibleWeaponTypes,
+                        previousActionStatusRequirement: previousActionStatusRequirement);
                 }
                 catch (ArgumentException exception)
                 {
@@ -689,7 +712,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         sustainedHitInterval,
                         sustainedMaximumHitCount)
                     : null,
-                compatibleWeaponTypes: NormalizedCompatibleWeaponTypes);
+                compatibleWeaponTypes: NormalizedCompatibleWeaponTypes,
+                previousActionStatusRequirement: previousActionStatusRequirement);
 
             validationError = null;
             return true;
@@ -782,6 +806,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 resolution.offset = Mathf.Clamp(resolution.offset, 0, timelineCost);
                 resolution.damageMultiplier = Mathf.Max(0f, resolution.damageMultiplier);
                 resolution.healingAmount = Mathf.Max(0, resolution.healingAmount);
+                resolution.maximumHealthHealingPercentage = Mathf.Clamp01(
+                    resolution.maximumHealthHealingPercentage);
                 resolution.consumedItemAmount = Mathf.Max(
                     0,
                     resolution.consumedItemAmount);
@@ -965,10 +991,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         && authored.damageMultiplier > 0f)
                     || (authored.effect != ActionResolutionEffect.Damage
                         && authored.damageTags != DamageResolutionTag.None)
-                    || (authored.effect == ActionResolutionEffect.Heal
-                        && authored.healingAmount <= 0)
-                    || (authored.effect != ActionResolutionEffect.Heal
-                        && authored.healingAmount > 0))
+                    || !HasValidHealingAuthoring(authored))
                 {
                     definitions = null;
                     validationError = $"{name} contains an invalid Resolution Event at index {index}.";
@@ -999,8 +1022,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 {
                     CombatStatusDefinition status = CreateStatusDefinition(authored);
                     ActionItemCostDefinition itemCost = CreateItemCost(authored);
-                    ActionStatusRequirementDefinition statusRequirement =
-                        CreateStatusRequirement(authored);
+                    ActionHealingDefinition healing = CreateHealing(authored);
                     created[index] = new ActionResolutionDefinition(
                         authored.offset,
                         authored.effect,
@@ -1032,9 +1054,9 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                                 authored.onEvadedDisruptionType,
                                 authored.onEvadedDisruptionDuration)
                             : null,
-                        healingAmount: authored.healingAmount,
+                        healing: healing,
                         itemCost: itemCost,
-                        statusRequirement: statusRequirement);
+                        healingAmount: 0);
                 }
                 catch (ArgumentException exception)
                 {
@@ -1130,28 +1152,67 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 authored.consumedItemAmount);
         }
 
-        private static ActionStatusRequirementDefinition CreateStatusRequirement(
+        private bool TryCreatePreviousActionStatusRequirement(
+            out PreviousActionStatusRequirementDefinition requirement,
+            out string validationError)
+        {
+            bool hasAnyRequirementData =
+                !string.IsNullOrWhiteSpace(requiredPreviousActionStatusId)
+                || !string.IsNullOrWhiteSpace(requiredPreviousActionStatusDisplayName);
+            if (!hasAnyRequirementData)
+            {
+                requirement = null;
+                validationError = null;
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(requiredPreviousActionStatusId)
+                || string.IsNullOrWhiteSpace(requiredPreviousActionStatusDisplayName))
+            {
+                requirement = null;
+                validationError = $"{name} requires both a previous-Action Status ID "
+                    + "and display name.";
+                return false;
+            }
+
+            requirement = new PreviousActionStatusRequirementDefinition(
+                requiredPreviousActionStatusId.Trim(),
+                requiredPreviousActionStatusDisplayName.Trim());
+            validationError = null;
+            return true;
+        }
+
+        private static bool HasValidHealingAuthoring(ResolutionEventAuthoringData authored)
+        {
+            if (!Enum.IsDefined(typeof(ActionHealingType), authored.healingType))
+            {
+                return false;
+            }
+
+            bool hasFlatHealing = authored.healingAmount > 0;
+            bool hasPercentageHealing = authored.maximumHealthHealingPercentage > 0f;
+            if (authored.effect != ActionResolutionEffect.Heal)
+            {
+                return !hasFlatHealing && !hasPercentageHealing;
+            }
+
+            return authored.healingType == ActionHealingType.FlatAmount
+                ? hasFlatHealing && !hasPercentageHealing
+                : hasPercentageHealing && !hasFlatHealing;
+        }
+
+        private static ActionHealingDefinition CreateHealing(
             ResolutionEventAuthoringData authored)
         {
-            bool hasAnyRequirementData = !string.IsNullOrWhiteSpace(authored.requiredStatusId)
-                || !string.IsNullOrWhiteSpace(authored.requiredStatusDisplayName)
-                || authored.consumeRequiredStatus;
-            if (!hasAnyRequirementData)
+            if (authored.effect != ActionResolutionEffect.Heal)
             {
                 return null;
             }
 
-            if (string.IsNullOrWhiteSpace(authored.requiredStatusId)
-                || string.IsNullOrWhiteSpace(authored.requiredStatusDisplayName))
-            {
-                throw new ArgumentException(
-                    "A Status Requirement requires an ID and display name.");
-            }
-
-            return new ActionStatusRequirementDefinition(
-                authored.requiredStatusId.Trim(),
-                authored.requiredStatusDisplayName.Trim(),
-                authored.consumeRequiredStatus);
+            return authored.healingType == ActionHealingType.FlatAmount
+                ? ActionHealingDefinition.Flat(authored.healingAmount)
+                : ActionHealingDefinition.MaximumHealthPercentage(
+                    authored.maximumHealthHealingPercentage);
         }
 
         private bool TryCreateDisruptionResponseSegments(

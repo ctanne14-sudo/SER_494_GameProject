@@ -61,12 +61,74 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int Amount { get; }
     }
 
-    public sealed class ActionStatusRequirementDefinition
+    public enum ActionHealingType
     {
-        public ActionStatusRequirementDefinition(
+        FlatAmount,
+        MaximumHealthPercentage
+    }
+
+    public sealed class ActionHealingDefinition
+    {
+        private ActionHealingDefinition(ActionHealingType type, double value)
+        {
+            if (!Enum.IsDefined(typeof(ActionHealingType), type))
+            {
+                throw new ArgumentOutOfRangeException(nameof(type));
+            }
+
+            if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0d)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+
+            if (type == ActionHealingType.MaximumHealthPercentage && value > 1d)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "Maximum Health Percentage healing cannot exceed 100%.");
+            }
+
+            Type = type;
+            Value = value;
+        }
+
+        public ActionHealingType Type { get; }
+
+        public double Value { get; }
+
+        public static ActionHealingDefinition Flat(int amount)
+        {
+            return new ActionHealingDefinition(ActionHealingType.FlatAmount, amount);
+        }
+
+        public static ActionHealingDefinition MaximumHealthPercentage(double percentage)
+        {
+            return new ActionHealingDefinition(
+                ActionHealingType.MaximumHealthPercentage,
+                percentage);
+        }
+
+        public int CalculateAmount(int maximumHealth)
+        {
+            if (maximumHealth <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumHealth));
+            }
+
+            return Type == ActionHealingType.FlatAmount
+                ? checked((int)Value)
+                : checked((int)Math.Round(
+                    maximumHealth * Value,
+                    MidpointRounding.AwayFromZero));
+        }
+    }
+
+    public sealed class PreviousActionStatusRequirementDefinition
+    {
+        public PreviousActionStatusRequirementDefinition(
             string statusId,
-            string displayName,
-            bool consumeOnResolution)
+            string displayName)
         {
             if (string.IsNullOrWhiteSpace(statusId))
             {
@@ -84,14 +146,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             StatusId = statusId;
             DisplayName = displayName;
-            ConsumeOnResolution = consumeOnResolution;
         }
 
         public string StatusId { get; }
 
         public string DisplayName { get; }
-
-        public bool ConsumeOnResolution { get; }
     }
 
     public enum ActiveWindowEffect
@@ -527,7 +586,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onEvadedDisruption = null,
             int healingAmount = 0,
             ActionItemCostDefinition itemCost = null,
-            ActionStatusRequirementDefinition statusRequirement = null)
+            ActionHealingDefinition healing = null)
         {
             if (offset < 0)
             {
@@ -558,9 +617,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 DamageTags,
                 onEvadedDisruption);
-            HealingAmount = ValidateHealing(effect, healingAmount);
+            Healing = ValidateHealing(effect, healingAmount, healing);
             ItemCost = itemCost;
-            StatusRequirement = statusRequirement;
         }
 
         public int Offset { get; }
@@ -585,11 +643,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
-        public int HealingAmount { get; }
+        public ActionHealingDefinition Healing { get; }
+
+        public int HealingAmount => Healing?.Type == ActionHealingType.FlatAmount
+            ? checked((int)Healing.Value)
+            : 0;
 
         public ActionItemCostDefinition ItemCost { get; }
-
-        public ActionStatusRequirementDefinition StatusRequirement { get; }
 
         internal void ValidateForActionTimelineCost(int timelineCost)
         {
@@ -725,23 +785,34 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return disruption;
         }
 
-        private static int ValidateHealing(
+        private static ActionHealingDefinition ValidateHealing(
             ActionResolutionEffect effect,
-            int healingAmount)
+            int healingAmount,
+            ActionHealingDefinition healing)
         {
             if (healingAmount < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(healingAmount));
             }
 
-            if ((effect == ActionResolutionEffect.Heal) != (healingAmount > 0))
+            if (healingAmount > 0 && healing != null)
             {
                 throw new ArgumentException(
-                    "A Heal Resolution Event requires a positive Healing Amount, and other effects cannot heal.",
-                    nameof(healingAmount));
+                    "Specify either a legacy Healing Amount or a Healing Definition, not both.",
+                    nameof(healing));
             }
 
-            return healingAmount;
+            ActionHealingDefinition resolvedHealing = healingAmount > 0
+                ? ActionHealingDefinition.Flat(healingAmount)
+                : healing;
+            if ((effect == ActionResolutionEffect.Heal) != (resolvedHealing != null))
+            {
+                throw new ArgumentException(
+                    "A Heal Resolution Event requires Healing, and other effects cannot heal.",
+                    nameof(healing));
+            }
+
+            return resolvedHealing;
         }
     }
 
@@ -759,7 +830,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ComboActionChargeLevelDefinition> chargeLevels = null,
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
-            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All,
+            PreviousActionStatusRequirementDefinition previousActionStatusRequirement = null)
             : this(
                 actionId,
                 displayName,
@@ -783,9 +855,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 GetPrimaryResolution(resolutionEvents).OnGuardedDisruption,
                 GetPrimaryResolution(resolutionEvents).Clash,
                 GetPrimaryResolution(resolutionEvents).OnEvadedDisruption,
-                GetPrimaryResolution(resolutionEvents).HealingAmount,
+                GetPrimaryResolution(resolutionEvents).Healing,
                 null,
-                compatibleWeaponTypes)
+                compatibleWeaponTypes,
+                previousActionStatusRequirement)
         {
             ResolutionEvents = CopyAndValidateResolutionEvents(
                 resolutionEvents,
@@ -818,7 +891,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
             SustainedAttackDefinition sustainedAttack = null,
-            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All,
+            PreviousActionStatusRequirementDefinition previousActionStatusRequirement = null)
             : this(
                 actionId,
                 displayName,
@@ -842,9 +916,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
-                0,
+                null,
                 sustainedAttack,
-                compatibleWeaponTypes)
+                compatibleWeaponTypes,
+                previousActionStatusRequirement)
         {
         }
 
@@ -871,7 +946,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
             SustainedAttackDefinition sustainedAttack = null,
-            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All)
+            CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All,
+            PreviousActionStatusRequirementDefinition previousActionStatusRequirement = null)
             : this(
                 actionId,
                 displayName,
@@ -897,9 +973,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
-                0,
+                null,
                 sustainedAttack,
-                compatibleWeaponTypes)
+                compatibleWeaponTypes,
+                previousActionStatusRequirement)
         {
         }
 
@@ -926,9 +1003,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
             ActionDisruptionDefinition onEvadedDisruption,
-            int healingAmount,
+            ActionHealingDefinition healing,
             SustainedAttackDefinition sustainedAttack,
-            CompatibleWeaponTypes compatibleWeaponTypes)
+            CompatibleWeaponTypes compatibleWeaponTypes,
+            PreviousActionStatusRequirementDefinition previousActionStatusRequirement)
         {
             if (string.IsNullOrWhiteSpace(actionId))
             {
@@ -977,7 +1055,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 DamageTags,
                 onEvadedDisruption);
-            HealingAmount = healingAmount;
+            Healing = healing;
+            PreviousActionStatusRequirement = previousActionStatusRequirement;
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 TimelineCost);
@@ -1002,7 +1081,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     OnGuardedDisruption,
                     Clash,
                     OnEvadedDisruption,
-                    HealingAmount)
+                    healing: Healing)
             });
             if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
             {
@@ -1066,7 +1145,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
-        public int HealingAmount { get; }
+        public ActionHealingDefinition Healing { get; }
+
+        public int HealingAmount => Healing?.Type == ActionHealingType.FlatAmount
+            ? checked((int)Healing.Value)
+            : 0;
+
+        public PreviousActionStatusRequirementDefinition PreviousActionStatusRequirement { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 

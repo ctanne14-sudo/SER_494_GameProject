@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
@@ -183,6 +184,63 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Contains.Item(ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon));
         }
 
+        [Test]
+        public void Validate_LinkedAfterStatusSetupAction_IsValid()
+        {
+            ComboActionDefinition closing = StatusSetupAction(
+                "jump-closing",
+                ComboActionCategory.Closing,
+                "airborne-setup");
+            ComboActionDefinition linked = new ComboActionDefinition(
+                "airborne-linked",
+                "Airborne Linked",
+                ComboActionCategory.Linked,
+                timelineCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                previousActionStatusRequirement: new PreviousActionStatusRequirementDefinition(
+                    "airborne-setup",
+                    "Airborne Setup"));
+            var combo = new ComboConfiguration(
+                "airborne-combo",
+                openingAction: null,
+                mainAction: Action("main", ComboActionCategory.Main),
+                closingAction: closing,
+                linkedAction: linked,
+                linkedActionPlacement: LinkedActionPlacement.AfterClosing);
+
+            ComboValidationResult result = ComboValidator.Validate(combo, GenerousLimits);
+
+            Assert.That(result.IsValid, Is.True);
+        }
+
+        [Test]
+        public void Validate_RequiredStatusIsNotProvidedByImmediatelyPreviousAction_IsInvalid()
+        {
+            ComboActionDefinition main = new ComboActionDefinition(
+                "airborne-main",
+                "Airborne Main",
+                ComboActionCategory.Main,
+                timelineCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                previousActionStatusRequirement: new PreviousActionStatusRequirementDefinition(
+                    "airborne-setup",
+                    "Airborne Setup"));
+
+            ComboValidationResult result = ComboValidator.Validate(
+                MainOnlyCombo("invalid-airborne-combo", main),
+                GenerousLimits);
+
+            Assert.That(result.IsValid, Is.False);
+            Assert.That(
+                result.Issues.Select(issue => issue.Code),
+                Contains.Item(
+                    ComboValidationErrorCode.PreviousActionDoesNotProvideRequiredStatus));
+        }
+
         private static ComboConfiguration MainOnlyCombo(
             string comboName,
             ComboActionDefinition mainAction)
@@ -206,6 +264,36 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 manaCost: 1,
                 staminaCost: 1,
                 cooldown: 1);
+        }
+
+        private static ComboActionDefinition StatusSetupAction(
+            string id,
+            ComboActionCategory category,
+            string statusId)
+        {
+            var status = new CombatStatusDefinition(
+                statusId,
+                "Airborne Setup",
+                CombatStatusDurationType.Rounds,
+                duration: 1,
+                CombatStatusModifierDirection.DamageDealt,
+                DamageModifier.All(0d));
+            return new ComboActionDefinition(
+                id,
+                id,
+                category,
+                timelineCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        offset: 1,
+                        effect: ActionResolutionEffect.ApplyBuff,
+                        statusEffect: status,
+                        statusTarget: ActionStatusTarget.Self)
+                });
         }
     }
 }

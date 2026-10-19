@@ -1898,69 +1898,34 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void RequiredStatus_CanBeGrantedByEarlierActionAndConsumedByLinkedAction()
+        public void PercentageHealing_UsesMaximumHealthAndRoundsAwayFromZero()
         {
-            var airborne = new CombatStatusDefinition(
-                "airborne-setup",
-                "Airborne Setup",
-                CombatStatusDurationType.Rounds,
-                duration: 1,
-                CombatStatusModifierDirection.DamageDealt,
-                DamageModifier.All(0d));
-            var setup = new ComboActionDefinition(
-                "backstep-jump-closing",
-                "Backstep Jump / C",
-                ComboActionCategory.Closing,
-                timelineCost: 4,
+            var heal = new ComboActionDefinition(
+                "percentage-heal",
+                "Percentage Heal",
+                ComboActionCategory.Main,
+                timelineCost: 1,
                 manaCost: 0,
-                staminaCost: 1,
+                staminaCost: 0,
                 cooldown: 0,
                 resolutionEvents: new[]
                 {
                     new ActionResolutionDefinition(
-                        offset: 4,
-                        effect: ActionResolutionEffect.ApplyBuff,
-                        statusEffect: airborne,
-                        statusTarget: ActionStatusTarget.Self)
-                });
-            var shieldBash = new ComboActionDefinition(
-                "falling-shield-bash-linked",
-                "Falling Shield Bash / L",
-                ComboActionCategory.Linked,
-                timelineCost: 5,
-                manaCost: 0,
-                staminaCost: 2,
-                cooldown: 0,
-                resolutionEvents: new[]
-                {
-                    new ActionResolutionDefinition(
-                        offset: 2,
-                        effect: ActionResolutionEffect.Damage,
-                        damageEffect: DamageEffectDefinition.Single(
-                            DamageType.Blunt,
-                            0.60d),
-                        statusRequirement: new ActionStatusRequirementDefinition(
-                            "airborne-setup",
-                            "Airborne Setup",
-                            consumeOnResolution: true))
+                        offset: 1,
+                        effect: ActionResolutionEffect.Heal,
+                        healing: ActionHealingDefinition.MaximumHealthPercentage(0.25d))
                 });
             var combo = new ComboConfiguration(
-                "airborne-combo",
+                "healing-combo",
                 openingAction: null,
-                mainAction: Action(
-                    "setup-main",
-                    ComboActionCategory.Main,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0d),
-                closingAction: setup,
-                linkedAction: shieldBash,
-                linkedActionPlacement: LinkedActionPlacement.AfterClosing);
+                mainAction: heal,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
             var player = new CombatantState(
                 "Player",
-                new CombatantStats(100, 30, 30, 50, 50));
+                new CombatantStats(102, 30, 30, 50, 50));
+            player.ReceiveDamage(50);
             var battle = new SoloComboBattleState(
                 player,
                 new CombatantState("Enemy", new CombatantStats(100, 0, 0, 50, 50)),
@@ -1970,65 +1935,72 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 staminaRecoveryPerTurn: 0);
 
             SoloComboTurnResult result = battle.ExecuteCombo(0);
-            SoloComboActionResolution bash = result.ActionResolutions.Single(item =>
-                item.ActionId == "falling-shield-bash-linked");
+            SoloComboActionResolution resolution = result.ActionResolutions.Single(item =>
+                item.ResolutionEffect == ActionResolutionEffect.Heal);
 
-            Assert.That(bash.Succeeded, Is.True);
-            Assert.That(bash.DamageDealt, Is.GreaterThan(0));
-            Assert.That(player.HasStatus("airborne-setup"), Is.False);
+            Assert.That(resolution.HealingDone, Is.EqualTo(26));
+            Assert.That(player.CurrentHealth, Is.EqualTo(78));
         }
 
         [Test]
-        public void RequiredStatus_MissingSkipsOnlyThatResolutionEvent()
+        public void MultiStepHealing_ConsumesPotionOnlyAtFirstHeal()
         {
-            var conditionalStrike = new ComboActionDefinition(
-                "conditional-strike",
-                "Conditional Strike",
+            var potion = new ActionItemCostDefinition(
+                "healing-potion",
+                "Healing Potion",
+                amount: 1);
+            var drinkPotion = new ComboActionDefinition(
+                "multi-step-potion",
+                "Multi-step Potion",
                 ComboActionCategory.Main,
-                timelineCost: 2,
+                timelineCost: 6,
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
                 resolutionEvents: new[]
                 {
                     new ActionResolutionDefinition(
-                        offset: 1,
-                        effect: ActionResolutionEffect.Damage,
-                        damageEffect: DamageEffectDefinition.Single(
-                            DamageType.Blunt,
-                            0.60d),
-                        statusRequirement: new ActionStatusRequirementDefinition(
-                            "airborne-setup",
-                            "Airborne Setup",
-                            consumeOnResolution: true))
+                        offset: 3,
+                        effect: ActionResolutionEffect.Heal,
+                        healing: ActionHealingDefinition.MaximumHealthPercentage(0.25d),
+                        itemCost: potion),
+                    new ActionResolutionDefinition(
+                        offset: 6,
+                        effect: ActionResolutionEffect.Heal,
+                        healing: ActionHealingDefinition.MaximumHealthPercentage(0.10d))
                 });
             var combo = new ComboConfiguration(
-                "conditional-combo",
+                "potion-combo",
                 openingAction: null,
-                mainAction: conditionalStrike,
+                mainAction: drinkPotion,
                 closingAction: null,
                 linkedAction: null,
                 linkedActionPlacement: null);
-            var enemy = new CombatantState(
-                "Enemy",
-                new CombatantStats(100, 0, 0, 50, 50));
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 30, 30, 50, 50));
+            player.ReceiveDamage(80);
             var battle = new SoloComboBattleState(
-                new CombatantState("Player", new CombatantStats(100, 30, 30, 50, 50)),
-                enemy,
+                player,
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 50, 50)),
                 new[] { combo },
                 PassiveEnemySequence(),
                 manaRecoveryPerTurn: 0,
-                staminaRecoveryPerTurn: 0);
+                staminaRecoveryPerTurn: 0,
+                startingItems: new Dictionary<string, int>
+                {
+                    { "healing-potion", 1 }
+                });
 
             SoloComboTurnResult result = battle.ExecuteCombo(0);
-            SoloComboActionResolution strike = result.ActionResolutions.Single(item =>
-                item.ActionId == "conditional-strike");
 
-            Assert.That(strike.Succeeded, Is.False);
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(player.CurrentHealth, Is.EqualTo(55));
+            Assert.That(battle.GetItemCount("healing-potion"), Is.Zero);
             Assert.That(
-                strike.ResolutionFailure,
-                Is.EqualTo(SoloComboResolutionFailure.MissingRequiredStatus));
-            Assert.That(enemy.CurrentHealth, Is.EqualTo(enemy.Stats.MaxHealth));
+                result.ActionResolutions.Count(item =>
+                    item.ResolutionEffect == ActionResolutionEffect.Heal),
+                Is.EqualTo(2));
         }
 
         private static EnemyActionSequence PassiveEnemySequence()

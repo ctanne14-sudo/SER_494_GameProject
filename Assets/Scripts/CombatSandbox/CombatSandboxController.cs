@@ -1677,10 +1677,8 @@ namespace SER494.Gameplay.CombatSandbox
                 : "Training Enemy";
             if (!resolution.Succeeded)
             {
-                string reason = resolution.ResolutionFailure
-                    == SoloComboResolutionFailure.MissingItem
-                        ? $"required item {resolution.FailedRequirementDisplayName} was unavailable"
-                        : $"required status {resolution.FailedRequirementDisplayName} was unavailable";
+                    string reason =
+                        $"required item {resolution.FailedRequirementDisplayName} was unavailable";
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} failed; "
                     + $"{reason}.",
