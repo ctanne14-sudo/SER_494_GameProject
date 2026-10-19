@@ -3,16 +3,11 @@ using System.Collections;
 
 public class ChestAction : Action {
 
-	[SerializeField]
-	private Transform top, open, close;	// Lid, Lid  rotation, Lid close rotation
-	[SerializeField]
-	private Transform spawnPoint;
-    [SerializeField]
-    private GameObject[] items;
-	[SerializeField]
-	private float speed = 5F;
-    [SerializeField]
-	private bool canClose;
+	[SerializeField] private Transform top, open, close;
+	[SerializeField] private Transform spawnPoint;
+    [SerializeField] private GameObject[] items;
+	[SerializeField] private float speed = 5F;
+    [SerializeField] private bool canClose;
 	private GameObject itemSpawned;
 	private bool spawned;
 	private bool isOpen;

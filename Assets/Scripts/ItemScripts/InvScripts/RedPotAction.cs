@@ -9,7 +9,7 @@ public class RedPotAction : Action
 
     public override string setUiPrompt()
     {
-        return "";
+        return "Red Potion";
     }
 
 }

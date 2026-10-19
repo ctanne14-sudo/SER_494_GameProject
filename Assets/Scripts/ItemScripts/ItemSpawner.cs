@@ -4,14 +4,10 @@ using System.Collections.Generic;
 
 public class ItemSpawner : MonoBehaviour
 {
-    [SerializeField]
-    private Transform player;
-    [SerializeField]
-    private Transform[] spwanPoints;
-    [SerializeField]
-    private GameObject hazard;
-    [SerializeField]
-    private GameObject heal;
+    [SerializeField] private Transform player;
+    [SerializeField] private Transform[] spwanPoints;
+    [SerializeField] private GameObject hazard;
+    [SerializeField] private GameObject heal;
     private GameObject[] spawned;
     private float timer;
     private bool isWaiting = false;

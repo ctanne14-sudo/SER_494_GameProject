@@ -5,12 +5,11 @@ public class MoneyAction : Action
     
     public override void action(PlayerInteractor interactor)
     {
-        interactor.hc.healPlayer(50);
+        interactor.inventory.gold += 50;
     }
 
     public override string setUiPrompt()
     {
-        return "";
+        return "50 Gold";
     }
-
 }

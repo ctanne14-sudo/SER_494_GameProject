@@ -9,7 +9,7 @@ public class BluePotAction : Action
 
     public override string setUiPrompt()
     {
-        return "";
+        return "Blue Potion";
     }
 
 }

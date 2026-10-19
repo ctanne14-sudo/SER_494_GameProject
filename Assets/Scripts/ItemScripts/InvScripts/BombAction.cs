@@ -10,7 +10,7 @@ public class BombAction : Action
 
     public override string setUiPrompt()
     {
-        return "";
+        return "Bomb";
     }
 
 }

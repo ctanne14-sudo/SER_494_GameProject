@@ -12,6 +12,8 @@ public class Inventory : MonoBehaviour
     private List<GameObject> inInventory = new List<GameObject>();
     private List<Texture> textures = new List<Texture>();
 
+    [HideInInspector] public int gold;
+
     private int selected;
 
     private readonly KeyCode[] numKeys = {KeyCode.Alpha1, KeyCode.Alpha2, 
@@ -27,7 +29,6 @@ public class Inventory : MonoBehaviour
 
         if (inInventory.Count > 0)
         {
-            Debug.Log(inInventory.Count);
             for (int i = 0; i < slots.Length && i < inInventory.Count; i++)
                 if (slots[i].getItem() == null)
                     SetItem(i, inInventory[i], textures[i]);

@@ -10,7 +10,7 @@ public class HeartAction : Action
 
     public override string setUiPrompt()
     {
-        return "";
+        return "Heart";
     }
 
 }

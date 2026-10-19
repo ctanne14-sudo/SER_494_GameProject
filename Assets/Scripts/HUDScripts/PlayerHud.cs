@@ -21,7 +21,11 @@ public class PlayerHud : MonoBehaviour {
     //[SerializeField] private HealthController hc;
     [SerializeField] private TextMeshProUGUI manaText;
     [SerializeField] private Slider manaSlider;
-    private float displayMana;
+
+    [Header("Gold")]
+    [SerializeField] private Inventory inventory;
+    [SerializeField] private TextMeshProUGUI goldText;
+    private float displayGold;
 
 
     void Start()
@@ -33,6 +37,9 @@ public class PlayerHud : MonoBehaviour {
         displayStamina = ps.stamina;
         staminaText.text = displayStamina + " / " + ps.maxStamina;
         staminaSlider.value = displayStamina;
+
+        displayGold = inventory.gold;
+        goldText.text = displayGold.ToString("0");
     }
 
 
@@ -54,7 +61,12 @@ public class PlayerHud : MonoBehaviour {
             staminaSlider.value = displayStamina;
         }
 
-
+        int currentGold = inventory.gold;
+        if (displayGold != currentGold)
+        {
+            displayGold = Mathf.MoveTowards(displayGold, currentGold, 100f * Time.deltaTime);
+            goldText.text = displayGold.ToString("0");
+        }
 
 
     }

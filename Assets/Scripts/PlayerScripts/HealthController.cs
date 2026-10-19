@@ -4,12 +4,9 @@ using UnityEngine.SceneManagement;
 using TMPro;
 
 public class HealthController : MonoBehaviour {
-    [SerializeField]
-    private PlayerMovement playerMovement;
-    [SerializeField]
-    private CameraMovement cameraMovement;
-    [SerializeField]
-    private GameObject deathPanel;
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private CameraMovement cameraMovement;
+    [SerializeField] private GameObject deathPanel;
     public int maxHP = 200;
     public int playerHP;
 

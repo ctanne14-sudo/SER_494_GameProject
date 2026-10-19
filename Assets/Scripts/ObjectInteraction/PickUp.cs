@@ -19,6 +19,9 @@ public class PickUp : Action
 
     public override string setUiPrompt()
     {
-        return "[E] Pick Up";
+        Action itemAction = itemPrefab.GetComponent<Action>();
+        string itemPrompt = itemAction.setUiPrompt();
+
+        return "[E] Pick Up " + itemPrompt;
     }
 }
