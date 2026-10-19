@@ -204,7 +204,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption,
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
-            ActionDisruptionDefinition onEvadedDisruption)
+            ActionDisruptionDefinition onEvadedDisruption,
+            int healingAmount = 0,
+            ActionItemCostDefinition itemCost = null,
+            ActionStatusRequirementDefinition statusRequirement = null)
         {
             Time = time;
             DamageEffect = damageEffect;
@@ -216,6 +219,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             OnGuardedDisruption = onGuardedDisruption;
             Clash = clash;
             OnEvadedDisruption = onEvadedDisruption;
+            HealingAmount = healingAmount;
+            ItemCost = itemCost;
+            StatusRequirement = statusRequirement;
         }
 
         public int Time { get; }
@@ -229,6 +235,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnGuardedDisruption { get; }
         public DamageClashDefinition Clash { get; }
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
+        public int HealingAmount { get; }
+        public ActionItemCostDefinition ItemCost { get; }
+        public ActionStatusRequirementDefinition StatusRequirement { get; }
     }
 
     public sealed class ScheduledTimelineAction
@@ -261,7 +270,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageClashDefinition clash = null,
             ActionDisruptionDefinition onEvadedDisruption = null,
             IReadOnlyList<int> resolutionTimes = null,
-            IReadOnlyList<ScheduledResolutionEvent> resolutionEvents = null)
+            IReadOnlyList<ScheduledResolutionEvent> resolutionEvents = null,
+            int healingAmount = 0,
+            ActionItemCostDefinition itemCost = null,
+            ActionStatusRequirementDefinition statusRequirement = null)
         {
             Side = side;
             SequenceIndex = sequenceIndex;
@@ -279,7 +291,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onHitDisruption,
                 onGuardedDisruption,
                 clash,
-                onEvadedDisruption);
+                onEvadedDisruption,
+                healingAmount,
+                itemCost,
+                statusRequirement);
             if (ResolutionEvents.Count == 0)
             {
                 throw new ArgumentException("A scheduled Action needs a Resolution Event.");
@@ -310,6 +325,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             OnGuardedDisruption = primary.OnGuardedDisruption;
             Clash = primary.Clash;
             OnEvadedDisruption = primary.OnEvadedDisruption;
+            HealingAmount = primary.HealingAmount;
+            ItemCost = primary.ItemCost;
+            StatusRequirement = primary.StatusRequirement;
         }
 
         public TimelineActorSide Side { get; }
@@ -361,6 +379,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public DamageClashDefinition Clash { get; }
 
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
+
+        public int HealingAmount { get; }
+
+        public ActionItemCostDefinition ItemCost { get; }
+
+        public ActionStatusRequirementDefinition StatusRequirement { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -441,7 +465,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 resolutionEvent.OnGuardedDisruption,
                 resolutionEvent.Clash,
                 resolutionEvent.OnEvadedDisruption,
-                resolutionEvents: new[] { resolutionEvent });
+                resolutionEvents: new[] { resolutionEvent },
+                healingAmount: resolutionEvent.HealingAmount,
+                itemCost: resolutionEvent.ItemCost,
+                statusRequirement: resolutionEvent.StatusRequirement);
         }
 
         internal bool UsesPrimaryResolutionData(ScheduledResolutionEvent resolutionEvent)
@@ -455,7 +482,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 && ReferenceEquals(resolutionEvent.OnHitDisruption, OnHitDisruption)
                 && ReferenceEquals(resolutionEvent.OnGuardedDisruption, OnGuardedDisruption)
                 && ReferenceEquals(resolutionEvent.Clash, Clash)
-                && ReferenceEquals(resolutionEvent.OnEvadedDisruption, OnEvadedDisruption);
+                && ReferenceEquals(resolutionEvent.OnEvadedDisruption, OnEvadedDisruption)
+                && resolutionEvent.HealingAmount == HealingAmount
+                && ReferenceEquals(resolutionEvent.ItemCost, ItemCost)
+                && ReferenceEquals(resolutionEvent.StatusRequirement, StatusRequirement);
         }
 
         private static IReadOnlyList<ScheduledResolutionEvent> CreateLegacyResolutionEvents(
@@ -468,7 +498,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption,
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
-            ActionDisruptionDefinition onEvadedDisruption)
+            ActionDisruptionDefinition onEvadedDisruption,
+            int healingAmount,
+            ActionItemCostDefinition itemCost,
+            ActionStatusRequirementDefinition statusRequirement)
         {
             var events = new ScheduledResolutionEvent[times.Count];
             for (int index = 0; index < times.Count; index++)
@@ -483,7 +516,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     onHitDisruption,
                     onGuardedDisruption,
                     clash,
-                    onEvadedDisruption);
+                    onEvadedDisruption,
+                    healingAmount,
+                    itemCost,
+                    statusRequirement);
             }
 
             return Array.AsReadOnly(events);

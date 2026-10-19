@@ -12,8 +12,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
         ComboOnCooldown,
         InsufficientMana,
         InsufficientStamina,
+        InsufficientItems,
         WaitNotAvailable,
         TimelineResolving
+    }
+
+    public enum SoloComboResolutionFailure
+    {
+        None,
+        MissingRequiredStatus,
+        MissingItem
     }
 
     public enum DamageAvoidanceResult
@@ -53,7 +61,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition attemptedDisruption = null,
             int superArmorLevel = 0,
             ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None,
-            double clashDamageReduction = 0d)
+            double clashDamageReduction = 0d,
+            int healingDone = 0,
+            SoloComboResolutionFailure resolutionFailure = SoloComboResolutionFailure.None,
+            string failedRequirementDisplayName = null,
+            string consumedItemDisplayName = null,
+            int consumedItemAmount = 0)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -79,6 +92,19 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 disruptionTrigger)
                     ? disruptionTrigger
                     : throw new ArgumentOutOfRangeException(nameof(disruptionTrigger));
+            HealingDone = healingDone >= 0
+                ? healingDone
+                : throw new ArgumentOutOfRangeException(nameof(healingDone));
+            ResolutionFailure = Enum.IsDefined(
+                typeof(SoloComboResolutionFailure),
+                resolutionFailure)
+                    ? resolutionFailure
+                    : throw new ArgumentOutOfRangeException(nameof(resolutionFailure));
+            FailedRequirementDisplayName = failedRequirementDisplayName;
+            ConsumedItemDisplayName = consumedItemDisplayName;
+            ConsumedItemAmount = consumedItemAmount >= 0
+                ? consumedItemAmount
+                : throw new ArgumentOutOfRangeException(nameof(consumedItemAmount));
         }
 
         public TimelineActorSide Side { get; }
@@ -120,6 +146,18 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public double ClashDamageReduction { get; }
 
         public ActionDisruptionTrigger DisruptionTrigger { get; }
+
+        public int HealingDone { get; }
+
+        public SoloComboResolutionFailure ResolutionFailure { get; }
+
+        public bool Succeeded => ResolutionFailure == SoloComboResolutionFailure.None;
+
+        public string FailedRequirementDisplayName { get; }
+
+        public string ConsumedItemDisplayName { get; }
+
+        public int ConsumedItemAmount { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -311,6 +349,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private readonly BattleDamageConfiguration _damageConfiguration;
         private readonly int _manaRecoveryPerTurn;
         private readonly int _staminaRecoveryPerTurn;
+        private readonly Dictionary<string, int> _itemCounts;
         private readonly List<SoloComboActionResolution> _activeResolutions =
             new List<SoloComboActionResolution>();
 
@@ -329,7 +368,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             EnemyActionSequence enemySequence,
             int manaRecoveryPerTurn,
             int staminaRecoveryPerTurn,
-            BattleDamageConfiguration damageConfiguration = null)
+            BattleDamageConfiguration damageConfiguration = null,
+            IReadOnlyDictionary<string, int> startingItems = null)
             : this(
                 player,
                 enemy,
@@ -338,7 +378,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 manaRecoveryPerTurn,
                 staminaRecoveryPerTurn,
                 damageConfiguration,
-                enemyRandom: null)
+                enemyRandom: null,
+                startingItems: startingItems)
         {
         }
 
@@ -350,7 +391,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int manaRecoveryPerTurn,
             int staminaRecoveryPerTurn,
             BattleDamageConfiguration damageConfiguration = null,
-            Random enemyRandom = null)
+            Random enemyRandom = null,
+            IReadOnlyDictionary<string, int> startingItems = null)
         {
             Player = player ?? throw new ArgumentNullException(nameof(player));
             Enemy = enemy ?? throw new ArgumentNullException(nameof(enemy));
@@ -367,6 +409,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 nameof(staminaRecoveryPerTurn));
             _combos = CopyAndValidateCombos(combos);
             _cooldowns = new int[_combos.Length];
+            _itemCounts = CopyAndValidateItems(startingItems);
             Outcome = EvaluateOutcome();
             if (Outcome == BattleOutcome.Ongoing)
             {
@@ -421,6 +464,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return _cooldowns[comboIndex];
         }
 
+        public int GetItemCount(string itemId)
+        {
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                throw new ArgumentException("An item ID is required.", nameof(itemId));
+            }
+
+            return _itemCounts.TryGetValue(itemId, out int count) ? count : 0;
+        }
+
         public SoloComboExecutionFailure GetExecutionFailure(int comboIndex)
         {
             if (comboIndex < 0 || comboIndex >= _combos.Length)
@@ -447,6 +500,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             if (Player.CurrentMana < combo.TotalManaCost)
             {
                 return SoloComboExecutionFailure.InsufficientMana;
+            }
+
+            if (!HasRequiredItems(combo))
+            {
+                return SoloComboExecutionFailure.InsufficientItems;
             }
 
             return Player.CurrentStamina < combo.TotalStaminaCost
@@ -670,6 +728,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int pendingPlayerDamage = 0;
             int pendingEnemyDamage = 0;
             var pendingStatuses = new List<ScheduledTimelineAction>();
+            var pendingHeals = new List<ScheduledTimelineAction>();
             ActionResolutionEffect playerDefense = FindDefensiveResolution(
                 step,
                 TimelineActorSide.Player);
@@ -694,9 +753,47 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
+                if (action.StatusRequirement != null
+                    && !actor.HasStatus(action.StatusRequirement.StatusId))
+                {
+                    resolutions.Add(CreateFailedResolution(
+                        action,
+                        step.TimeStep,
+                        SoloComboResolutionFailure.MissingRequiredStatus,
+                        action.StatusRequirement.DisplayName));
+                    continue;
+                }
+
+                if (action.ItemCost != null
+                    && GetItemCount(action.ItemCost.ItemId) < action.ItemCost.Amount)
+                {
+                    resolutions.Add(CreateFailedResolution(
+                        action,
+                        step.TimeStep,
+                        SoloComboResolutionFailure.MissingItem,
+                        action.ItemCost.DisplayName));
+                    continue;
+                }
+
+                if (action.StatusRequirement?.ConsumeOnResolution == true)
+                {
+                    actor.ConsumeStatus(action.StatusRequirement.StatusId);
+                }
+
+                if (action.ItemCost != null)
+                {
+                    _itemCounts[action.ItemCost.ItemId] -= action.ItemCost.Amount;
+                }
+
                 if (action.StatusEffect != null)
                 {
                     pendingStatuses.Add(action);
+                    continue;
+                }
+
+                if (action.ResolutionEffect == ActionResolutionEffect.Heal)
+                {
+                    pendingHeals.Add(action);
                     continue;
                 }
 
@@ -795,7 +892,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     attemptedDisruption: attemptedDisruption,
                     superArmorLevel: superArmorLevel,
                     disruptionTrigger: disruptionTrigger,
-                    clashDamageReduction: clashDamageReduction));
+                    clashDamageReduction: clashDamageReduction,
+                    consumedItemDisplayName: action.ItemCost?.DisplayName,
+                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -809,6 +908,32 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             Enemy.ReceiveDamage(pendingEnemyDamage);
             Player.ReceiveDamage(pendingPlayerDamage);
+
+            for (int healIndex = 0; healIndex < pendingHeals.Count; healIndex++)
+            {
+                ScheduledTimelineAction action = pendingHeals[healIndex];
+                CombatantState recipient = action.Side == TimelineActorSide.Player
+                    ? Player
+                    : Enemy;
+                int healthBefore = recipient.CurrentHealth;
+                recipient.RestoreHealth(action.HealingAmount);
+                int healingDone = recipient.CurrentHealth - healthBefore;
+                resolutions.Add(new SoloComboActionResolution(
+                    action.Side,
+                    action.ActionId,
+                    action.DisplayName,
+                    step.TimeStep,
+                    damageDealt: 0,
+                    ActionResolutionEffect.Heal,
+                    DamageAvoidanceResult.None,
+                    DamageResolutionTag.None,
+                    statusDisplayName: null,
+                    statusTarget: ActionStatusTarget.Self,
+                    statusApplied: false,
+                    healingDone: healingDone,
+                    consumedItemDisplayName: action.ItemCost?.DisplayName,
+                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
+            }
 
             for (int statusIndex = 0; statusIndex < pendingStatuses.Count; statusIndex++)
             {
@@ -839,7 +964,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     DamageResolutionTag.None,
                     action.StatusEffect.DisplayName,
                     action.StatusTarget,
-                    applied));
+                    applied,
+                    consumedItemDisplayName: action.ItemCost?.DisplayName,
+                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
             }
 
             for (int resolutionIndex = 0; resolutionIndex < resolutions.Count; resolutionIndex++)
@@ -1195,6 +1322,38 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
         }
 
+        private bool HasRequiredItems(ComboConfiguration combo)
+        {
+            var requiredCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            IReadOnlyList<ComboActionDefinition> actions = combo.GetAssignedActions();
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+            {
+                IReadOnlyList<ActionResolutionDefinition> events =
+                    actions[actionIndex].ResolutionEvents;
+                for (int eventIndex = 0; eventIndex < events.Count; eventIndex++)
+                {
+                    ActionItemCostDefinition itemCost = events[eventIndex].ItemCost;
+                    if (itemCost == null)
+                    {
+                        continue;
+                    }
+
+                    requiredCounts.TryGetValue(itemCost.ItemId, out int required);
+                    requiredCounts[itemCost.ItemId] = checked(required + itemCost.Amount);
+                }
+            }
+
+            foreach (KeyValuePair<string, int> requirement in requiredCounts)
+            {
+                if (GetItemCount(requirement.Key) < requirement.Value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void RecoverAfterRound(out int manaRecovered, out int staminaRecovered)
         {
             manaRecovered = 0;
@@ -1260,6 +1419,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return copy;
+        }
+
+        private static Dictionary<string, int> CopyAndValidateItems(
+            IReadOnlyDictionary<string, int> startingItems)
+        {
+            var copy = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (startingItems == null)
+            {
+                return copy;
+            }
+
+            foreach (KeyValuePair<string, int> item in startingItems)
+            {
+                if (string.IsNullOrWhiteSpace(item.Key))
+                {
+                    throw new ArgumentException(
+                        "Starting item IDs cannot be empty.",
+                        nameof(startingItems));
+                }
+
+                if (item.Value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(startingItems),
+                        "Starting item counts cannot be negative.");
+                }
+
+                copy.Add(item.Key, item.Value);
+            }
+
+            return copy;
+        }
+
+        private static SoloComboActionResolution CreateFailedResolution(
+            ScheduledTimelineAction action,
+            int timeStep,
+            SoloComboResolutionFailure failure,
+            string failedRequirementDisplayName)
+        {
+            return new SoloComboActionResolution(
+                action.Side,
+                action.ActionId,
+                action.DisplayName,
+                timeStep,
+                damageDealt: 0,
+                action.ResolutionEffect,
+                DamageAvoidanceResult.None,
+                action.DamageTags,
+                statusDisplayName: null,
+                statusTarget: action.StatusTarget,
+                statusApplied: false,
+                resolutionFailure: failure,
+                failedRequirementDisplayName: failedRequirementDisplayName);
         }
 
         private static int RequireNonNegative(int value, string parameterName)

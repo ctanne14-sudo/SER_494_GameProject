@@ -20,13 +20,78 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Guard,
         Evade,
         ApplyBuff,
-        ApplyDebuff
+        ApplyDebuff,
+        Heal
     }
 
     public enum ActionStatusTarget
     {
         Self,
         Opponent
+    }
+
+    public sealed class ActionItemCostDefinition
+    {
+        public ActionItemCostDefinition(string itemId, string displayName, int amount)
+        {
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                throw new ArgumentException("An item cost must have a stable ID.", nameof(itemId));
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                throw new ArgumentException("An item cost must have a display name.", nameof(displayName));
+            }
+
+            if (amount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            }
+
+            ItemId = itemId;
+            DisplayName = displayName;
+            Amount = amount;
+        }
+
+        public string ItemId { get; }
+
+        public string DisplayName { get; }
+
+        public int Amount { get; }
+    }
+
+    public sealed class ActionStatusRequirementDefinition
+    {
+        public ActionStatusRequirementDefinition(
+            string statusId,
+            string displayName,
+            bool consumeOnResolution)
+        {
+            if (string.IsNullOrWhiteSpace(statusId))
+            {
+                throw new ArgumentException(
+                    "A status requirement must have a stable ID.",
+                    nameof(statusId));
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                throw new ArgumentException(
+                    "A status requirement must have a display name.",
+                    nameof(displayName));
+            }
+
+            StatusId = statusId;
+            DisplayName = displayName;
+            ConsumeOnResolution = consumeOnResolution;
+        }
+
+        public string StatusId { get; }
+
+        public string DisplayName { get; }
+
+        public bool ConsumeOnResolution { get; }
     }
 
     public enum ActiveWindowEffect
@@ -459,7 +524,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onHitDisruption = null,
             ActionDisruptionDefinition onGuardedDisruption = null,
             DamageClashDefinition clash = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            int healingAmount = 0,
+            ActionItemCostDefinition itemCost = null,
+            ActionStatusRequirementDefinition statusRequirement = null)
         {
             if (offset < 0)
             {
@@ -490,6 +558,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 DamageTags,
                 onEvadedDisruption);
+            HealingAmount = ValidateHealing(effect, healingAmount);
+            ItemCost = itemCost;
+            StatusRequirement = statusRequirement;
         }
 
         public int Offset { get; }
@@ -513,6 +584,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public DamageClashDefinition Clash { get; }
 
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
+
+        public int HealingAmount { get; }
+
+        public ActionItemCostDefinition ItemCost { get; }
+
+        public ActionStatusRequirementDefinition StatusRequirement { get; }
 
         internal void ValidateForActionTimelineCost(int timelineCost)
         {
@@ -647,6 +724,25 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             return disruption;
         }
+
+        private static int ValidateHealing(
+            ActionResolutionEffect effect,
+            int healingAmount)
+        {
+            if (healingAmount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(healingAmount));
+            }
+
+            if ((effect == ActionResolutionEffect.Heal) != (healingAmount > 0))
+            {
+                throw new ArgumentException(
+                    "A Heal Resolution Event requires a positive Healing Amount, and other effects cannot heal.",
+                    nameof(healingAmount));
+            }
+
+            return healingAmount;
+        }
     }
 
     public sealed class ComboActionDefinition
@@ -687,6 +783,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 GetPrimaryResolution(resolutionEvents).OnGuardedDisruption,
                 GetPrimaryResolution(resolutionEvents).Clash,
                 GetPrimaryResolution(resolutionEvents).OnEvadedDisruption,
+                GetPrimaryResolution(resolutionEvents).HealingAmount,
                 null,
                 compatibleWeaponTypes)
         {
@@ -745,6 +842,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
+                0,
                 sustainedAttack,
                 compatibleWeaponTypes)
         {
@@ -799,6 +897,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 onGuardedDisruption,
                 clash,
                 onEvadedDisruption,
+                0,
                 sustainedAttack,
                 compatibleWeaponTypes)
         {
@@ -827,6 +926,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onGuardedDisruption,
             DamageClashDefinition clash,
             ActionDisruptionDefinition onEvadedDisruption,
+            int healingAmount,
             SustainedAttackDefinition sustainedAttack,
             CompatibleWeaponTypes compatibleWeaponTypes)
         {
@@ -877,6 +977,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageEffect,
                 DamageTags,
                 onEvadedDisruption);
+            HealingAmount = healingAmount;
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
                 TimelineCost);
@@ -900,7 +1001,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     OnHitDisruption,
                     OnGuardedDisruption,
                     Clash,
-                    OnEvadedDisruption)
+                    OnEvadedDisruption,
+                    HealingAmount)
             });
             if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
             {
@@ -963,6 +1065,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public DamageClashDefinition Clash { get; }
 
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
+
+        public int HealingAmount { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 

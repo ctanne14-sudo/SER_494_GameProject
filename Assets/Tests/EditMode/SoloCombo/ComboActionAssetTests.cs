@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.Weapons;
@@ -697,6 +698,58 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(succeeded, Is.True);
             Assert.That(validationError, Is.Null);
             Assert.That(definition.CompatibleWeaponTypes, Is.EqualTo(CompatibleWeaponTypes.All));
+        }
+
+        [Test]
+        public void MultiEventAuthoring_CreatesHealingItemAndStatusRequirementData()
+        {
+            ConfigureAsset(
+                "healing-action",
+                "Healing Action / M",
+                ComboActionCategory.Main,
+                timelineCost: 6,
+                resolutionOffset: 6,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty events = serializedAsset.FindProperty("resolutionEvents");
+            events.arraySize = 1;
+            SerializedProperty authored = events.GetArrayElementAtIndex(0);
+            ConfigureResolutionEvent(
+                authored,
+                offset: 5,
+                effect: ActionResolutionEffect.Heal,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing);
+            authored.FindPropertyRelative("healingAmount").intValue = 70;
+            authored.FindPropertyRelative("consumedItemId").stringValue = "healing-potion";
+            authored.FindPropertyRelative("consumedItemDisplayName").stringValue =
+                "Healing Potion";
+            authored.FindPropertyRelative("consumedItemAmount").intValue = 1;
+            authored.FindPropertyRelative("requiredStatusId").stringValue = "airborne-setup";
+            authored.FindPropertyRelative("requiredStatusDisplayName").stringValue =
+                "Airborne Setup";
+            authored.FindPropertyRelative("consumeRequiredStatus").boolValue = true;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            ActionResolutionDefinition resolution = definition.ResolutionEvents[0];
+            Assert.That(resolution.HealingAmount, Is.EqualTo(70));
+            Assert.That(resolution.ItemCost.ItemId, Is.EqualTo("healing-potion"));
+            Assert.That(resolution.ItemCost.Amount, Is.EqualTo(1));
+            Assert.That(
+                resolution.StatusRequirement.StatusId,
+                Is.EqualTo("airborne-setup"));
+            Assert.That(resolution.StatusRequirement.ConsumeOnResolution, Is.True);
         }
 
         private void ConfigureAsset(

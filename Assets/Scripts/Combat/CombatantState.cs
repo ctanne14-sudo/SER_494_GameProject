@@ -91,22 +91,71 @@ namespace SER494.Gameplay.Combat
                 throw new ArgumentNullException(nameof(definition));
             }
 
-            for (int index = 0; index < _activeStatuses.Count; index++)
+            if (definition.StackingPolicy == CombatStatusStackingPolicy.RefreshDuration)
             {
-                CombatStatusInstance status = _activeStatuses[index];
-                if (string.Equals(
-                        status.Definition.StatusId,
-                        definition.StatusId,
-                        StringComparison.Ordinal))
+                for (int index = 0; index < _activeStatuses.Count; index++)
                 {
-                    status.Refresh(definition);
-                    RebuildDamageModifiers();
-                    return;
+                    CombatStatusInstance status = _activeStatuses[index];
+                    if (string.Equals(
+                            status.Definition.StatusId,
+                            definition.StatusId,
+                            StringComparison.Ordinal))
+                    {
+                        status.Refresh(definition);
+                        RebuildDamageModifiers();
+                        return;
+                    }
                 }
             }
 
             _activeStatuses.Add(new CombatStatusInstance(definition));
             RebuildDamageModifiers();
+        }
+
+        public bool HasStatus(string statusId)
+        {
+            if (string.IsNullOrWhiteSpace(statusId))
+            {
+                throw new ArgumentException("A status ID is required.", nameof(statusId));
+            }
+
+            for (int index = 0; index < _activeStatuses.Count; index++)
+            {
+                if (string.Equals(
+                        _activeStatuses[index].Definition.StatusId,
+                        statusId,
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool ConsumeStatus(string statusId)
+        {
+            if (string.IsNullOrWhiteSpace(statusId))
+            {
+                throw new ArgumentException("A status ID is required.", nameof(statusId));
+            }
+
+            for (int index = 0; index < _activeStatuses.Count; index++)
+            {
+                if (!string.Equals(
+                        _activeStatuses[index].Definition.StatusId,
+                        statusId,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                _activeStatuses.RemoveAt(index);
+                RebuildDamageModifiers();
+                return true;
+            }
+
+            return false;
         }
 
         public void AdvanceRoundStatuses()

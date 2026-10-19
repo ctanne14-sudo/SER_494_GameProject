@@ -15,6 +15,12 @@ namespace SER494.Gameplay.Combat
         DamageTaken
     }
 
+    public enum CombatStatusStackingPolicy
+    {
+        RefreshDuration,
+        IndependentInstances
+    }
+
     public sealed class CombatStatusDefinition
     {
         public CombatStatusDefinition(
@@ -23,7 +29,9 @@ namespace SER494.Gameplay.Combat
             CombatStatusDurationType durationType,
             int duration,
             CombatStatusModifierDirection modifierDirection,
-            DamageModifier modifier)
+            DamageModifier modifier,
+            CombatStatusStackingPolicy stackingPolicy =
+                CombatStatusStackingPolicy.RefreshDuration)
         {
             if (string.IsNullOrWhiteSpace(statusId))
             {
@@ -53,12 +61,18 @@ namespace SER494.Gameplay.Combat
                     "Status duration must be greater than zero.");
             }
 
+            if (!Enum.IsDefined(typeof(CombatStatusStackingPolicy), stackingPolicy))
+            {
+                throw new ArgumentOutOfRangeException(nameof(stackingPolicy));
+            }
+
             StatusId = statusId;
             DisplayName = displayName;
             DurationType = durationType;
             Duration = duration;
             ModifierDirection = modifierDirection;
             Modifier = modifier;
+            StackingPolicy = stackingPolicy;
         }
 
         public string StatusId { get; }
@@ -72,6 +86,8 @@ namespace SER494.Gameplay.Combat
         public CombatStatusModifierDirection ModifierDirection { get; }
 
         public DamageModifier Modifier { get; }
+
+        public CombatStatusStackingPolicy StackingPolicy { get; }
     }
 
     public sealed class CombatStatusInstance

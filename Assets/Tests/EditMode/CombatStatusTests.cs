@@ -43,6 +43,31 @@ namespace SER494.Gameplay.Combat.Tests
         }
 
         [Test]
+        public void ApplyStatus_IndependentInstancesStackAndCanBeConsumedOneAtATime()
+        {
+            CombatantState combatant = CreateCombatant();
+            var status = new CombatStatusDefinition(
+                "power-sheathe",
+                "Power Sheathe",
+                CombatStatusDurationType.TimeSteps,
+                duration: 30,
+                CombatStatusModifierDirection.DamageDealt,
+                DamageModifier.ForType(DamageType.Slashing, 0.10d),
+                CombatStatusStackingPolicy.IndependentInstances);
+
+            combatant.ApplyStatus(status);
+            combatant.ApplyStatus(status);
+
+            Assert.That(combatant.ActiveStatuses, Has.Count.EqualTo(2));
+            Assert.That(combatant.DamageDealtModifiers, Has.Count.EqualTo(2));
+            Assert.That(combatant.HasStatus("power-sheathe"), Is.True);
+            Assert.That(combatant.ConsumeStatus("power-sheathe"), Is.True);
+            Assert.That(combatant.ActiveStatuses, Has.Count.EqualTo(1));
+            Assert.That(combatant.ConsumeStatus("power-sheathe"), Is.True);
+            Assert.That(combatant.HasStatus("power-sheathe"), Is.False);
+        }
+
+        [Test]
         public void AdvanceRoundStatuses_RemovesStatusAtZero()
         {
             CombatantState combatant = CreateCombatant();

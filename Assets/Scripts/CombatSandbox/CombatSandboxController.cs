@@ -978,6 +978,7 @@ namespace SER494.Gameplay.CombatSandbox
                 case ActionResolutionEffect.Evade:
                     return new Color(0.25f, 0.65f, 0.95f, 0.9f);
                 case ActionResolutionEffect.ApplyBuff:
+                case ActionResolutionEffect.Heal:
                     return new Color(0.25f, 0.80f, 0.35f, 0.9f);
                 case ActionResolutionEffect.ApplyDebuff:
                     return new Color(0.70f, 0.30f, 0.85f, 0.9f);
@@ -1674,6 +1675,19 @@ namespace SER494.Gameplay.CombatSandbox
             string actor = resolution.Side == TimelineActorSide.Player
                 ? "Player"
                 : "Training Enemy";
+            if (!resolution.Succeeded)
+            {
+                string reason = resolution.ResolutionFailure
+                    == SoloComboResolutionFailure.MissingItem
+                        ? $"required item {resolution.FailedRequirementDisplayName} was unavailable"
+                        : $"required status {resolution.FailedRequirementDisplayName} was unavailable";
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} failed; "
+                    + $"{reason}.",
+                    CombatLogTone.Error);
+                return;
+            }
+
             if (resolution.DamageAvoidance == DamageAvoidanceResult.Guarded)
             {
                 AppendLog(
@@ -1702,6 +1716,19 @@ namespace SER494.Gameplay.CombatSandbox
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} dealt "
                     + $"{resolution.DamageDealt} damage{tags}{defense}{clash}.",
+                    resolution.Side == TimelineActorSide.Player
+                        ? CombatLogTone.Player
+                        : CombatLogTone.Enemy);
+            }
+            else if (resolution.ResolutionEffect == ActionResolutionEffect.Heal)
+            {
+                string itemConsumption = resolution.ConsumedItemAmount > 0
+                    ? $" Consumed {resolution.ConsumedItemAmount} "
+                        + $"{resolution.ConsumedItemDisplayName}."
+                    : string.Empty;
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} restored "
+                    + $"{resolution.HealingDone} HP.{itemConsumption}",
                     resolution.Side == TimelineActorSide.Player
                         ? CombatLogTone.Player
                         : CombatLogTone.Enemy);
@@ -1970,6 +1997,8 @@ namespace SER494.Gameplay.CombatSandbox
                     return "not enough Mana";
                 case SoloComboExecutionFailure.InsufficientStamina:
                     return "not enough Stamina";
+                case SoloComboExecutionFailure.InsufficientItems:
+                    return "required item unavailable";
                 case SoloComboExecutionFailure.WaitNotAvailable:
                     return "at least one Combo is available";
                 case SoloComboExecutionFailure.TimelineResolving:

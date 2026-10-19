@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.Weapons;
@@ -66,6 +67,32 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             public DamageType damageType = DamageType.Slashing;
 
             public DamageResolutionTag damageTags = DamageResolutionTag.None;
+
+            [Min(0)]
+            public int healingAmount = 0;
+
+            public string consumedItemId = string.Empty;
+            public string consumedItemDisplayName = string.Empty;
+            [Min(0)] public int consumedItemAmount = 0;
+
+            public string requiredStatusId = string.Empty;
+            public string requiredStatusDisplayName = string.Empty;
+            public bool consumeRequiredStatus = false;
+
+            public string statusId = string.Empty;
+            public string statusDisplayName = string.Empty;
+            public ActionStatusTarget statusTarget = ActionStatusTarget.Self;
+            public CombatStatusDurationType statusDurationType =
+                CombatStatusDurationType.TimeSteps;
+            [Min(1)] public int statusDuration = 1;
+            public CombatStatusModifierDirection statusModifierDirection =
+                CombatStatusModifierDirection.DamageDealt;
+            public DamageModifierScope statusModifierScope = DamageModifierScope.All;
+            public DamageFamily statusModifierFamily = DamageFamily.Physical;
+            public DamageType statusModifierType = DamageType.Slashing;
+            public float statusModifierAmount = 0f;
+            public CombatStatusStackingPolicy statusStackingPolicy =
+                CombatStatusStackingPolicy.RefreshDuration;
 
             [Range(0f, 1f)]
             public float clashDamageReduction = 0f;
@@ -754,6 +781,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
                 resolution.offset = Mathf.Clamp(resolution.offset, 0, timelineCost);
                 resolution.damageMultiplier = Mathf.Max(0f, resolution.damageMultiplier);
+                resolution.healingAmount = Mathf.Max(0, resolution.healingAmount);
+                resolution.consumedItemAmount = Mathf.Max(
+                    0,
+                    resolution.consumedItemAmount);
+                resolution.statusDuration = Mathf.Max(1, resolution.statusDuration);
                 resolution.clashDamageReduction = Mathf.Clamp01(resolution.clashDamageReduction);
                 resolution.clashSuperArmorLevel = Mathf.Clamp(
                     resolution.clashSuperArmorLevel,
@@ -933,8 +965,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         && authored.damageMultiplier > 0f)
                     || (authored.effect != ActionResolutionEffect.Damage
                         && authored.damageTags != DamageResolutionTag.None)
-                    || authored.effect == ActionResolutionEffect.ApplyBuff
-                    || authored.effect == ActionResolutionEffect.ApplyDebuff)
+                    || (authored.effect == ActionResolutionEffect.Heal
+                        && authored.healingAmount <= 0)
+                    || (authored.effect != ActionResolutionEffect.Heal
+                        && authored.healingAmount > 0))
                 {
                     definitions = null;
                     validationError = $"{name} contains an invalid Resolution Event at index {index}.";
@@ -963,6 +997,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
                 try
                 {
+                    CombatStatusDefinition status = CreateStatusDefinition(authored);
+                    ActionItemCostDefinition itemCost = CreateItemCost(authored);
+                    ActionStatusRequirementDefinition statusRequirement =
+                        CreateStatusRequirement(authored);
                     created[index] = new ActionResolutionDefinition(
                         authored.offset,
                         authored.effect,
@@ -972,6 +1010,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                                 authored.damageMultiplier)
                             : null,
                         authored.damageTags,
+                        status,
+                        authored.statusTarget,
                         onHitDisruption: authored.appliesOnHitDisruption
                             ? new ActionDisruptionDefinition(
                                 authored.onHitDisruptionType,
@@ -991,7 +1031,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                             ? new ActionDisruptionDefinition(
                                 authored.onEvadedDisruptionType,
                                 authored.onEvadedDisruptionDuration)
-                            : null);
+                            : null,
+                        healingAmount: authored.healingAmount,
+                        itemCost: itemCost,
+                        statusRequirement: statusRequirement);
                 }
                 catch (ArgumentException exception)
                 {
@@ -1004,6 +1047,111 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             definitions = Array.AsReadOnly(created);
             validationError = null;
             return true;
+        }
+
+        private static CombatStatusDefinition CreateStatusDefinition(
+            ResolutionEventAuthoringData authored)
+        {
+            bool appliesStatus = authored.effect == ActionResolutionEffect.ApplyBuff
+                || authored.effect == ActionResolutionEffect.ApplyDebuff;
+            if (!appliesStatus)
+            {
+                if (!string.IsNullOrWhiteSpace(authored.statusId)
+                    || !string.IsNullOrWhiteSpace(authored.statusDisplayName))
+                {
+                    throw new ArgumentException(
+                        "Only Apply Buff and Apply Debuff events may author a Status.");
+                }
+
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(authored.statusId)
+                || string.IsNullOrWhiteSpace(authored.statusDisplayName)
+                || authored.statusDuration <= 0)
+            {
+                throw new ArgumentException(
+                    "Apply Buff and Apply Debuff events require complete Status authoring.");
+            }
+
+            DamageModifier modifier;
+            switch (authored.statusModifierScope)
+            {
+                case DamageModifierScope.All:
+                    modifier = DamageModifier.All(authored.statusModifierAmount);
+                    break;
+                case DamageModifierScope.Family:
+                    modifier = DamageModifier.ForFamily(
+                        authored.statusModifierFamily,
+                        authored.statusModifierAmount);
+                    break;
+                case DamageModifierScope.Type:
+                    modifier = DamageModifier.ForType(
+                        authored.statusModifierType,
+                        authored.statusModifierAmount);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(authored.statusModifierScope));
+            }
+
+            return new CombatStatusDefinition(
+                authored.statusId.Trim(),
+                authored.statusDisplayName.Trim(),
+                authored.statusDurationType,
+                authored.statusDuration,
+                authored.statusModifierDirection,
+                modifier,
+                authored.statusStackingPolicy);
+        }
+
+        private static ActionItemCostDefinition CreateItemCost(
+            ResolutionEventAuthoringData authored)
+        {
+            bool hasAnyItemData = !string.IsNullOrWhiteSpace(authored.consumedItemId)
+                || !string.IsNullOrWhiteSpace(authored.consumedItemDisplayName)
+                || authored.consumedItemAmount > 0;
+            if (!hasAnyItemData)
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(authored.consumedItemId)
+                || string.IsNullOrWhiteSpace(authored.consumedItemDisplayName)
+                || authored.consumedItemAmount <= 0)
+            {
+                throw new ArgumentException(
+                    "A consumed Item requires an ID, display name, and positive amount.");
+            }
+
+            return new ActionItemCostDefinition(
+                authored.consumedItemId.Trim(),
+                authored.consumedItemDisplayName.Trim(),
+                authored.consumedItemAmount);
+        }
+
+        private static ActionStatusRequirementDefinition CreateStatusRequirement(
+            ResolutionEventAuthoringData authored)
+        {
+            bool hasAnyRequirementData = !string.IsNullOrWhiteSpace(authored.requiredStatusId)
+                || !string.IsNullOrWhiteSpace(authored.requiredStatusDisplayName)
+                || authored.consumeRequiredStatus;
+            if (!hasAnyRequirementData)
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(authored.requiredStatusId)
+                || string.IsNullOrWhiteSpace(authored.requiredStatusDisplayName))
+            {
+                throw new ArgumentException(
+                    "A Status Requirement requires an ID and display name.");
+            }
+
+            return new ActionStatusRequirementDefinition(
+                authored.requiredStatusId.Trim(),
+                authored.requiredStatusDisplayName.Trim(),
+                authored.consumeRequiredStatus);
         }
 
         private bool TryCreateDisruptionResponseSegments(
