@@ -661,6 +661,62 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ApplyChargeLevel_ExtendsResponseAtChargeStartAndShiftsLaterSegments()
+        {
+            var charged = new ComboActionDefinition(
+                "charged",
+                "Charged",
+                ComboActionCategory.Main,
+                timelineCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 3,
+                chargeLevels: new[]
+                {
+                    new ComboActionChargeLevelDefinition(2, 1.25d)
+                },
+                disruptionResponseSegments: new[]
+                {
+                    new DisruptionResponseSegmentDefinition(
+                        1,
+                        2,
+                        ActionDisruptionResponse.CancelAction,
+                        ActionDisruptionResponse.CancelAction,
+                        ActionDisruptionResponse.CancelAction),
+                    new DisruptionResponseSegmentDefinition(
+                        3,
+                        4,
+                        ActionDisruptionResponse.PauseAndResume,
+                        ActionDisruptionResponse.PauseAndResume,
+                        ActionDisruptionResponse.PauseAndResume)
+                });
+            InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(charged),
+                EnemySequence(EnemyAction("enemy", timelineCost: 1, resolution: 1)));
+
+            InitialTimelineSchedule extended = InitialTimelineScheduleBuilder.ApplyChargeLevel(
+                original,
+                TimelineActorSide.Player,
+                sequenceIndex: 0,
+                chargeLevel: 1);
+
+            ScheduledTimelineAction action = extended.Actions.Single(item =>
+                item.Side == TimelineActorSide.Player);
+            Assert.That(action.EndTime, Is.EqualTo(6));
+            Assert.That(
+                action.GetDisruptionResponse(ActionDisruptionType.Stagger, timeStep: 4),
+                Is.EqualTo(ActionDisruptionResponse.CancelAction));
+            Assert.That(
+                action.GetDisruptionResponse(ActionDisruptionType.Stagger, timeStep: 5),
+                Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
+            Assert.That(
+                action.GetDisruptionResponse(ActionDisruptionType.Stagger, timeStep: 6),
+                Is.EqualTo(ActionDisruptionResponse.PauseAndResume));
+        }
+
+        [Test]
         public void Build_SustainedAttackOverlappingOwnGuard_IsRejected()
         {
             var sustained = new ComboActionDefinition(

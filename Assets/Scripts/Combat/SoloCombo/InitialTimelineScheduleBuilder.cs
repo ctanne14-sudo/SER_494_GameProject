@@ -647,7 +647,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     : Array.Empty<ComboActionChargeLevelDefinition>(),
                 ShiftActiveWindows(action.ActiveWindows, resolutionShift),
                 action.OnHitDisruption,
-                action.DisruptionResponseSegments,
+                ExtendDisruptionResponseSegmentsForCharge(
+                    action.DisruptionResponseSegments,
+                    checked(endShift - startShift)),
                 action.AccumulatedPauseDuration,
                 ShiftDisruptionPauses(action.DisruptionPauses, startShift),
                 ShiftActionRestarts(action.Restarts, startShift),
@@ -661,6 +663,37 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     action.ResolutionEvents,
                     time => checked(time + resolutionShift),
                     damageScale));
+        }
+
+        private static IReadOnlyList<DisruptionResponseSegmentDefinition>
+            ExtendDisruptionResponseSegmentsForCharge(
+                IReadOnlyList<DisruptionResponseSegmentDefinition> source,
+                int additionalTimelineCost)
+        {
+            if (additionalTimelineCost <= 0 || source.Count == 0)
+            {
+                return source;
+            }
+
+            // Charge time is inserted before the authored Action timeline. It inherits
+            // the response at local T1, while every later response boundary moves back.
+            var extended = new DisruptionResponseSegmentDefinition[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                DisruptionResponseSegmentDefinition segment = source[index];
+                int startOffset = index == 0
+                    ? segment.StartOffset
+                    : checked(segment.StartOffset + additionalTimelineCost);
+                int endOffset = checked(segment.EndOffset + additionalTimelineCost);
+                extended[index] = new DisruptionResponseSegmentDefinition(
+                    startOffset,
+                    endOffset,
+                    segment.FlinchResponse,
+                    segment.StaggerResponse,
+                    segment.KnockdownResponse);
+            }
+
+            return Array.AsReadOnly(extended);
         }
 
         private static ScheduledTimelineAction PauseScheduledAction(
