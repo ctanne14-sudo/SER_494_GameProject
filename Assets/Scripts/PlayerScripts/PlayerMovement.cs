@@ -76,6 +76,18 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void ResetMotion()
+    {
+        verticalVelocity = 0f;
+        inAir = false;
+        homePosition = transform.position;
+        animator.ResetTrigger("isJump");
+        animator.ResetTrigger("isLand");
+        animator.SetBool("isWalking", false);
+        animator.SetBool("isRunning", false);
+        animator.Play("Idle", 0, 0f);
+    }
+
     public void stop()
     {
         animator.SetBool("isWalking", false);

@@ -2,20 +2,20 @@ using UnityEngine;
 
 public class ObjectUI : MonoBehaviour
 {
-    private Transform _mainCameraTransform;
+    private Transform mainCamera;
 
     private void Start()
     {
         if (Camera.main != null)
         {
-            _mainCameraTransform = Camera.main.transform;
+            mainCamera = Camera.main.transform;
         }
     }
 
     private void LateUpdate()
     {
-        if (_mainCameraTransform == null) return;
+        if (mainCamera == null) return;
 
-        transform.LookAt(transform.position + _mainCameraTransform.forward);
+        transform.LookAt(transform.position + mainCamera.forward);
     }
 }

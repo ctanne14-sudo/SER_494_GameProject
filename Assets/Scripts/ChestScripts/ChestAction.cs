@@ -4,14 +4,18 @@ using System.Collections;
 public class ChestAction : Action {
 
 	[SerializeField] private Transform top, open, close;
-	[SerializeField] private Transform spawnPoint;
+	[SerializeField] private Transform[] spawnPoints;
     [SerializeField] private GameObject[] items;
 	[SerializeField] private float speed = 5F;
     [SerializeField] private bool canClose;
-	private GameObject itemSpawned;
+	private GameObject[] itemSpawned;
 	private bool spawned;
 	private bool isOpen;
 	
+	void Start()
+	{
+		itemSpawned = new GameObject[spawnPoints.Length + 1];
+	}
 
 	void Update ()
 	{
@@ -27,7 +31,8 @@ public class ChestAction : Action {
 		isOpen = canClose ? !isOpen : true;
 		if (!spawned && isOpen) spawnItem();
 		if (spawned && !isOpen) {
-			Destroy(itemSpawned);
+			for (int i = 0; i < itemSpawned.Length; i++)
+				Destroy(itemSpawned[i]);
 			spawned = false;
 		}
 		if (!canClose && isOpen) gameObject.layer = 0;
@@ -41,8 +46,13 @@ public class ChestAction : Action {
 
 	void spawnItem()
 	{
-        GameObject item = items[Random.Range(0, items.Length)];
-        itemSpawned = Instantiate(item, spawnPoint.position, Quaternion.identity, spawnPoint);
-		spawned = true;
+		if (spawnPoints.Length > 0 && items.Length > 0) {
+			int numSpawn = Random.Range(1, spawnPoints.Length + 1);
+			for (int i = 0; i < numSpawn; i++) {
+				GameObject item = items[Random.Range(0, items.Length)];
+				itemSpawned[i] = Instantiate(item, spawnPoints[i].position, Quaternion.identity, spawnPoints[i]);
+				spawned = true;
+			}
+		}
 	}
 }
