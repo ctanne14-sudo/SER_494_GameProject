@@ -1203,7 +1203,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             var copy = new ActionResolutionDefinition[resolutionEvents.Count];
-            var exclusiveOffsets = new HashSet<int>();
+            var exclusiveEffectsByOffset =
+                new Dictionary<int, ActionResolutionEffect>();
             for (int index = 0; index < resolutionEvents.Count; index++)
             {
                 ActionResolutionDefinition resolution = resolutionEvents[index]
@@ -1214,11 +1215,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 if ((resolution.Effect == ActionResolutionEffect.Damage
                         || resolution.Effect == ActionResolutionEffect.Guard
                         || resolution.Effect == ActionResolutionEffect.Evade)
-                    && !exclusiveOffsets.Add(resolution.Offset))
+                    && exclusiveEffectsByOffset.TryGetValue(
+                        resolution.Offset,
+                        out ActionResolutionEffect existingEffect)
+                    && (existingEffect != ActionResolutionEffect.Damage
+                        || resolution.Effect != ActionResolutionEffect.Damage))
                 {
                     throw new ArgumentException(
-                        "Damage, Guard, and Evade Resolution Events cannot share an offset in one Action.",
+                        "Damage cannot overlap Guard or Evade, and defensive Resolution "
+                        + "Events cannot overlap in one Action.",
                         nameof(resolutionEvents));
+                }
+
+                if (resolution.Effect == ActionResolutionEffect.Damage
+                    || resolution.Effect == ActionResolutionEffect.Guard
+                    || resolution.Effect == ActionResolutionEffect.Evade)
+                {
+                    exclusiveEffectsByOffset[resolution.Offset] = resolution.Effect;
                 }
 
                 copy[index] = resolution;

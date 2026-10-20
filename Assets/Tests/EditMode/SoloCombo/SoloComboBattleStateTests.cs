@@ -87,6 +87,51 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ExecuteCombo_MultiHitAtSameTime_ResolvesEveryDamageEvent()
+        {
+            var main = new ComboActionDefinition(
+                "multi-hit-main",
+                "Multi-Hit Main [M]",
+                ComboActionCategory.Main,
+                timelineCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.60d)),
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.80d))
+                });
+            var combo = new ComboConfiguration(
+                "combo1",
+                openingAction: null,
+                mainAction: main,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+            SoloComboBattleState battle = CreateBattle(new[] { combo });
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            SoloComboActionResolution[] hits = result.ActionResolutions
+                .Where(resolution => resolution.Side == TimelineActorSide.Player)
+                .ToArray();
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(hits, Has.Length.EqualTo(2));
+            Assert.That(hits.Select(hit => hit.TimeStep), Is.All.EqualTo(2));
+            Assert.That(hits.Select(hit => hit.DamageDealt), Is.All.GreaterThan(0));
+            Assert.That(
+                result.TotalDamageDealt,
+                Is.EqualTo(hits.Sum(hit => hit.DamageDealt)));
+        }
+
+        [Test]
         public void FailedTurn_HasNoLastResolvedTimeStep()
         {
             SoloComboBattleState battle = CreateBattle(

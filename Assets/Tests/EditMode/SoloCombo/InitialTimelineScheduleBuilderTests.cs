@@ -113,6 +113,46 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void Build_MultiHitAction_AllowsDamageEventsAtTheSameTime()
+        {
+            var main = new ComboActionDefinition(
+                "multi-hit-main",
+                "Multi-Hit Main [M]",
+                ComboActionCategory.Main,
+                timelineCost: 4,
+                manaCost: 0,
+                staminaCost: 2,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.60d)),
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Blunt, 0.80d))
+                });
+
+            InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(main),
+                EnemySequence(EnemyAction("enemy", timelineCost: 4, resolution: 4)));
+
+            ScheduledTimelineAction[] simultaneousHits = schedule.ResolutionSteps
+                .Single(step => step.TimeStep == 2)
+                .Actions
+                .Where(action => action.Side == TimelineActorSide.Player)
+                .ToArray();
+
+            Assert.That(simultaneousHits, Has.Length.EqualTo(2));
+            Assert.That(
+                simultaneousHits.Select(
+                    action => action.DamageEffect.Components[0].ActionMultiplier),
+                Is.EqualTo(new[] { 0.60d, 0.80d }));
+        }
+
+        [Test]
         public void ApplyPauseAndResume_MultiEventAction_ShiftsOnlyUnresolvedEvents()
         {
             var main = new ComboActionDefinition(

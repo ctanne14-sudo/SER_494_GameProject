@@ -481,8 +481,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private static void ValidateMutuallyExclusiveResolutionEffects(
             IReadOnlyList<ScheduledTimelineAction> actions)
         {
-            var playerTimes = new HashSet<int>();
-            var enemyTimes = new HashSet<int>();
+            var playerOccupancy =
+                new Dictionary<int, (ActionResolutionEffect Effect, int SequenceIndex)>();
+            var enemyOccupancy =
+                new Dictionary<int, (ActionResolutionEffect Effect, int SequenceIndex)>();
 
             for (int index = 0; index < actions.Count; index++)
             {
@@ -492,9 +494,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     continue;
                 }
 
-                ISet<int> occupiedTimes = action.Side == TimelineActorSide.Player
-                    ? playerTimes
-                    : enemyTimes;
+                IDictionary<int, (ActionResolutionEffect Effect, int SequenceIndex)> occupancy =
+                    action.Side == TimelineActorSide.Player
+                        ? playerOccupancy
+                        : enemyOccupancy;
                 for (int resolutionIndex = 0;
                     resolutionIndex < action.ResolutionEvents.Count;
                     resolutionIndex++)
@@ -508,11 +511,21 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         continue;
                     }
 
-                    if (!occupiedTimes.Add(resolution.Time))
+                    if (occupancy.TryGetValue(
+                            resolution.Time,
+                            out (ActionResolutionEffect Effect, int SequenceIndex) existing)
+                        && (existing.Effect != ActionResolutionEffect.Damage
+                            || resolution.Effect != ActionResolutionEffect.Damage
+                            || existing.SequenceIndex != action.SequenceIndex))
                     {
                         throw new InvalidOperationException(
-                            "Damage, Guard, and Evade Resolution Points cannot overlap for the same character.");
+                            "Damage cannot overlap Guard or Evade, defensive Resolution Points "
+                            + "cannot overlap, and separate Actions cannot share a Resolution "
+                            + "Time for the same character.");
                     }
+
+                    occupancy[resolution.Time] =
+                        (resolution.Effect, action.SequenceIndex);
                 }
             }
         }

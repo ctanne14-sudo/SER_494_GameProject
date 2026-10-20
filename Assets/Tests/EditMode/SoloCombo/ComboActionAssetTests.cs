@@ -162,7 +162,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             Assert.That(succeeded, Is.False);
             Assert.That(definition, Is.Null);
-            Assert.That(validationError, Does.Contain("cannot share an offset"));
+            Assert.That(validationError, Does.Contain("cannot overlap"));
         }
 
         [Test]
