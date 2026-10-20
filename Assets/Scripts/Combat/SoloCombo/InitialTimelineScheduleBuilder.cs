@@ -645,7 +645,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 keepChargeLevels
                     ? action.ChargeLevels
                     : Array.Empty<ComboActionChargeLevelDefinition>(),
-                ShiftActiveWindows(action.ActiveWindows, resolutionShift),
+                TransformActiveWindowsForCharge(
+                    action.ActiveWindows,
+                    resolutionShift,
+                    checked(endShift - startShift)),
                 action.OnHitDisruption,
                 ExtendDisruptionResponseSegmentsForCharge(
                     action.DisruptionResponseSegments,
@@ -1051,7 +1054,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     actionStartTime,
                     definition.StartOffset,
                     definition.EndOffset,
-                    superArmorLevel: definition.SuperArmorLevel);
+                    superArmorLevel: definition.SuperArmorLevel,
+                    extendsThroughCharge: definition.ExtendsThroughCharge);
             }
 
             return Array.AsReadOnly(windows);
@@ -1085,10 +1089,53 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         ? (int?)checked(window.BreakTime.Value + shift)
                         : null,
                     ShiftSuppressions(window.Suppressions, shift),
-                    window.SuperArmorLevel);
+                    window.SuperArmorLevel,
+                    window.ExtendsThroughCharge);
             }
 
             return Array.AsReadOnly(shifted);
+        }
+
+        private static IReadOnlyList<ScheduledActiveWindow> TransformActiveWindowsForCharge(
+            IReadOnlyList<ScheduledActiveWindow> windows,
+            int resolutionShift,
+            int additionalTimelineCost)
+        {
+            if (additionalTimelineCost <= 0)
+            {
+                return ShiftActiveWindows(windows, resolutionShift);
+            }
+
+            var transformed = new ScheduledActiveWindow[windows.Count];
+            for (int index = 0; index < windows.Count; index++)
+            {
+                ScheduledActiveWindow window = windows[index];
+                if (!window.ExtendsThroughCharge)
+                {
+                    transformed[index] = ShiftActiveWindows(
+                        new[] { window },
+                        resolutionShift)[0];
+                    continue;
+                }
+
+                transformed[index] = new ScheduledActiveWindow(
+                    window.WindowId,
+                    window.DisplayName,
+                    window.StartTime,
+                    checked(window.EndTime + additionalTimelineCost),
+                    window.Effect,
+                    window.DamageReduction,
+                    window.DisruptionPolicy,
+                    window.SourceActionStartTime,
+                    window.LocalStartOffset,
+                    checked(window.LocalEndOffset + additionalTimelineCost),
+                    window.BreakTime,
+                    window.Suppressions,
+                    window.SuperArmorLevel,
+                    extendsThroughCharge: true);
+            }
+
+            return Array.AsReadOnly(transformed);
         }
 
         private static IReadOnlyList<ScheduledActiveWindow> ApplyActiveWindowInterruption(
@@ -1159,7 +1206,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         replayAtTime.Value,
                         template.LocalStartOffset,
                         template.LocalEndOffset,
-                        superArmorLevel: template.SuperArmorLevel));
+                        superArmorLevel: template.SuperArmorLevel,
+                        extendsThroughCharge: template.ExtendsThroughCharge));
                 }
             }
 
@@ -1211,7 +1259,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             ? (int?)Math.Min(window.BreakTime.Value, disruptionTime)
                             : disruptionTime,
                         window.Suppressions,
-                        window.SuperArmorLevel);
+                        window.SuperArmorLevel,
+                        window.ExtendsThroughCharge);
                 case ActiveWindowDisruptionPolicy.SuppressDuringDisruption:
                     var suppressions = new ScheduledActiveWindowSuppression[
                         window.Suppressions.Count + 1];
@@ -1237,7 +1286,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         window.LocalEndOffset,
                         window.BreakTime,
                         Array.AsReadOnly(suppressions),
-                        window.SuperArmorLevel);
+                        window.SuperArmorLevel,
+                        window.ExtendsThroughCharge);
                 default:
                     return window;
             }
@@ -1269,7 +1319,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ? (int?)checked(window.BreakTime.Value + shift)
                     : null,
                 ShiftSuppressions(window.Suppressions, shift),
-                window.SuperArmorLevel);
+                window.SuperArmorLevel,
+                window.ExtendsThroughCharge);
         }
 
         private static IReadOnlyList<ScheduledActiveWindowSuppression> ShiftSuppressions(

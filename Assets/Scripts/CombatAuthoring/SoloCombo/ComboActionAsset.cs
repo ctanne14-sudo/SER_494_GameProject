@@ -50,6 +50,9 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
             public ActiveWindowDisruptionPolicy disruptionPolicy =
                 ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+
+            [Tooltip("Keep this window active while Charge inserts Time Steps before the authored Action timeline. The window must begin at local T1.")]
+            public bool extendsThroughCharge = false;
         }
 
         [Serializable]
@@ -94,7 +97,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             public DamageType statusModifierType = DamageType.Slashing;
             public float statusModifierAmount = 0f;
             public CombatStatusStackingPolicy statusStackingPolicy =
-                CombatStatusStackingPolicy.RefreshDuration;
+                CombatStatusStackingPolicy.IndependentInstances;
 
             [Range(0f, 1f)]
             public float clashDamageReduction = 0f;
@@ -358,6 +361,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             return GetActiveWindow(index).superArmorLevel;
         }
 
+        public bool GetActiveWindowExtendsThroughCharge(int index)
+        {
+            return GetActiveWindow(index).extendsThroughCharge;
+        }
+
         public int GetChargeAdditionalTimelineCost(int chargeLevel)
         {
             return GetChargeLevel(chargeLevel).additionalTimelineCost;
@@ -502,13 +510,6 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     out IReadOnlyList<DisruptionResponseSegmentDefinition> responseDefinitions,
                     out validationError))
             {
-                return false;
-            }
-
-            if (chargeDefinitions.Count > 0 && activeWindowDefinitions.Count > 0)
-            {
-                validationError = $"{name} cannot use both Charge Levels and Active Windows "
-                    + "until charge timing for Active Windows is defined.";
                 return false;
             }
 
@@ -927,6 +928,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     || window.startOffset < 1
                     || window.endOffset < window.startOffset
                     || window.endOffset > timelineCost
+                    || (window.extendsThroughCharge && window.startOffset != 1)
                     || (window.effect == ActiveWindowEffect.DefensiveState
                         && (window.damageReduction <= 0f
                             || window.damageReduction >= 1f))
@@ -955,7 +957,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     window.effect,
                     window.damageReduction,
                     window.disruptionPolicy,
-                    window.superArmorLevel);
+                    window.superArmorLevel,
+                    window.extendsThroughCharge);
             }
 
             definitions = Array.AsReadOnly(created);

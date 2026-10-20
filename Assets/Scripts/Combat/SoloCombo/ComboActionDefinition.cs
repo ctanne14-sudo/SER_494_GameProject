@@ -327,7 +327,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActiveWindowEffect effect,
             double damageReduction,
             ActiveWindowDisruptionPolicy disruptionPolicy,
-            int superArmorLevel = 0)
+            int superArmorLevel = 0,
+            bool extendsThroughCharge = false)
         {
             if (string.IsNullOrWhiteSpace(windowId))
             {
@@ -378,6 +379,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 throw new ArgumentOutOfRangeException(nameof(disruptionPolicy));
             }
 
+            if (extendsThroughCharge && startOffset != 1)
+            {
+                throw new ArgumentException(
+                    "An Active Window that extends through Charge must begin at Action Local Time 1.",
+                    nameof(startOffset));
+            }
+
             WindowId = windowId;
             DisplayName = displayName;
             StartOffset = startOffset;
@@ -390,6 +398,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ? superArmorLevel
                 : 0;
             DisruptionPolicy = disruptionPolicy;
+            ExtendsThroughCharge = extendsThroughCharge;
         }
 
         public string WindowId { get; }
@@ -407,6 +416,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int SuperArmorLevel { get; }
 
         public ActiveWindowDisruptionPolicy DisruptionPolicy { get; }
+
+        public bool ExtendsThroughCharge { get; }
 
         internal void ValidateForActionTimelineCost(int timelineCost)
         {
@@ -1083,11 +1094,6 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     OnEvadedDisruption,
                     healing: Healing)
             });
-            if (ChargeLevels.Count > 0 && ActiveWindows.Count > 0)
-            {
-                throw new ArgumentException(
-                    "The MVP does not yet combine Charge Levels and Active Windows on one Action.");
-            }
         }
 
         public string ActionId { get; }

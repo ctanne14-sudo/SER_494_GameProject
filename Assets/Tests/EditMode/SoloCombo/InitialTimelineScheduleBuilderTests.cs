@@ -717,6 +717,65 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ApplyChargeLevel_ExtendsMarkedWindowAndShiftsAuthoredWindow()
+        {
+            var chargeArmor = new ActionActiveWindowDefinition(
+                "charged.armor",
+                "Charge Armor",
+                startOffset: 1,
+                endOffset: 3,
+                ActiveWindowEffect.SuperArmor,
+                damageReduction: 0d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption,
+                superArmorLevel: 3,
+                extendsThroughCharge: true);
+            var recoveryDefense = new ActionActiveWindowDefinition(
+                "charged.recovery-defense",
+                "Recovery Defense",
+                startOffset: 4,
+                endOffset: 4,
+                ActiveWindowEffect.DefensiveState,
+                damageReduction: 0.20d,
+                ActiveWindowDisruptionPolicy.PersistThroughDisruption);
+            var charged = new ComboActionDefinition(
+                "charged",
+                "Charged",
+                ComboActionCategory.Main,
+                timelineCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0.50d,
+                resolutionOffset: 3,
+                chargeLevels: new[]
+                {
+                    new ComboActionChargeLevelDefinition(2, 1.25d)
+                },
+                activeWindows: new[] { chargeArmor, recoveryDefense });
+            InitialTimelineSchedule original = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(charged),
+                EnemySequence(EnemyAction("enemy", timelineCost: 1, resolution: 1)));
+
+            InitialTimelineSchedule extended = InitialTimelineScheduleBuilder.ApplyChargeLevel(
+                original,
+                TimelineActorSide.Player,
+                sequenceIndex: 0,
+                chargeLevel: 1);
+
+            ScheduledTimelineAction action = extended.Actions.Single(item =>
+                item.Side == TimelineActorSide.Player);
+            ScheduledActiveWindow armor = action.ActiveWindows.Single(window =>
+                window.WindowId == "charged.armor");
+            ScheduledActiveWindow defense = action.ActiveWindows.Single(window =>
+                window.WindowId == "charged.recovery-defense");
+            Assert.That(armor.StartTime, Is.EqualTo(1));
+            Assert.That(armor.EndTime, Is.EqualTo(5));
+            Assert.That(armor.ExtendsThroughCharge, Is.True);
+            Assert.That(defense.StartTime, Is.EqualTo(6));
+            Assert.That(defense.EndTime, Is.EqualTo(6));
+        }
+
+        [Test]
         public void Build_SustainedAttackOverlappingOwnGuard_IsRejected()
         {
             var sustained = new ComboActionDefinition(

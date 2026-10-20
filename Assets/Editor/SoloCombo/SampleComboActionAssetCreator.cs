@@ -341,6 +341,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     sampleWindow.DamageReduction;
                 window.FindPropertyRelative("disruptionPolicy").enumValueIndex =
                     (int)sampleWindow.DisruptionPolicy;
+                window.FindPropertyRelative("extendsThroughCharge").boolValue = false;
             }
             serializedAsset.FindProperty("manaCost").intValue = sample.ManaCost;
             serializedAsset.FindProperty("staminaCost").intValue = sample.StaminaCost;

@@ -50,7 +50,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int localEndOffset,
             int? breakTime = null,
             IReadOnlyList<ScheduledActiveWindowSuppression> suppressions = null,
-            int superArmorLevel = 0)
+            int superArmorLevel = 0,
+            bool extendsThroughCharge = false)
         {
             WindowId = windowId;
             DisplayName = displayName;
@@ -66,6 +67,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             BreakTime = breakTime;
             Suppressions = suppressions
                 ?? Array.Empty<ScheduledActiveWindowSuppression>();
+            ExtendsThroughCharge = extendsThroughCharge;
         }
 
         public string WindowId { get; }
@@ -93,6 +95,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int? BreakTime { get; }
 
         public IReadOnlyList<ScheduledActiveWindowSuppression> Suppressions { get; }
+
+        public bool ExtendsThroughCharge { get; }
 
         public int EffectiveEndTime => BreakTime.HasValue
             ? Math.Min(EndTime, BreakTime.Value)

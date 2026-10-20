@@ -396,6 +396,53 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void TryCreateDefinition_ChargeWindow_CopiesChargeExtensionRule()
+        {
+            ConfigureAsset(
+                actionId: "strong-charged-slash",
+                displayName: "Strong Charged Slash [M]",
+                category: ComboActionCategory.Main,
+                timelineCost: 12,
+                resolutionOffset: 6,
+                manaCost: 0,
+                staminaCost: 12,
+                cooldown: 0,
+                damageMultiplier: 1.60f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.Unguardable);
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty chargeLevels = serializedAsset.FindProperty("chargeLevels");
+            chargeLevels.arraySize = 1;
+            SerializedProperty level = chargeLevels.GetArrayElementAtIndex(0);
+            level.FindPropertyRelative("additionalTimelineCost").intValue = 2;
+            level.FindPropertyRelative("damageMultiplierScale").floatValue = 1.25f;
+            SerializedProperty activeWindows = serializedAsset.FindProperty("activeWindows");
+            activeWindows.arraySize = 1;
+            SerializedProperty window = activeWindows.GetArrayElementAtIndex(0);
+            window.FindPropertyRelative("windowId").stringValue = "strong-charge.armor";
+            window.FindPropertyRelative("displayName").stringValue = "Strong Charge Armor";
+            window.FindPropertyRelative("startOffset").intValue = 1;
+            window.FindPropertyRelative("endOffset").intValue = 5;
+            window.FindPropertyRelative("effect").enumValueIndex =
+                (int)ActiveWindowEffect.SuperArmor;
+            window.FindPropertyRelative("superArmorLevel").intValue = 3;
+            window.FindPropertyRelative("disruptionPolicy").enumValueIndex =
+                (int)ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+            window.FindPropertyRelative("extendsThroughCharge").boolValue = true;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(definition.ChargeLevels, Has.Count.EqualTo(1));
+            Assert.That(definition.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(definition.ActiveWindows[0].ExtendsThroughCharge, Is.True);
+        }
+
+        [Test]
         public void TryCreateDefinition_SuperArmorWindow_CopiesSerializedLevel()
         {
             ConfigureAsset(
