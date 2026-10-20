@@ -107,7 +107,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         onEvadedDisruption: action.OnEvadedDisruption,
                         resolutionEvents: TransformResolutionEvents(
                             action.ResolutionEvents,
-                            time => selectedTime,
+                            (time, resolutionIndex) => resolutionIndex == 0
+                                ? selectedTime
+                                : time,
                             damageScale: 1d));
                     replaced = true;
                 }
@@ -969,12 +971,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Func<int, int> transformTime,
             double damageScale)
         {
+            return TransformResolutionEvents(
+                source,
+                (time, _) => transformTime(time),
+                damageScale);
+        }
+
+        private static IReadOnlyList<ScheduledResolutionEvent> TransformResolutionEvents(
+            IReadOnlyList<ScheduledResolutionEvent> source,
+            Func<int, int, int> transformTime,
+            double damageScale)
+        {
             var transformed = new ScheduledResolutionEvent[source.Count];
             for (int index = 0; index < source.Count; index++)
             {
                 ScheduledResolutionEvent resolution = source[index];
                 transformed[index] = new ScheduledResolutionEvent(
-                    transformTime(resolution.Time),
+                    transformTime(resolution.Time, index),
                     ScaleDamageEffect(resolution.DamageEffect, damageScale),
                     resolution.Effect,
                     resolution.DamageTags,

@@ -842,7 +842,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
             IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null,
             CompatibleWeaponTypes compatibleWeaponTypes = CompatibleWeaponTypes.All,
-            PreviousActionStatusRequirementDefinition previousActionStatusRequirement = null)
+            PreviousActionStatusRequirementDefinition previousActionStatusRequirement = null,
+            int? resolutionWindowStart = null,
+            int? resolutionWindowEnd = null)
             : this(
                 actionId,
                 displayName,
@@ -857,8 +859,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 GetPrimaryResolution(resolutionEvents).DamageTags,
                 GetPrimaryResolution(resolutionEvents).StatusEffect,
                 GetPrimaryResolution(resolutionEvents).StatusTarget,
-                null,
-                null,
+                resolutionWindowStart,
+                resolutionWindowEnd,
                 chargeLevels,
                 activeWindows,
                 GetPrimaryResolution(resolutionEvents).OnHitDisruption,

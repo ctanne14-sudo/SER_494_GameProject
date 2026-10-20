@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 174921bd35b696a4785fee160c193375, type: 3}
+  m_Name: GlaiveAndShield_FlyingRoundSlash_M
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.ComboActionAsset
+  actionId: glaive-and-shield.main.flying-round-slash
+  displayName: 'Flying Round Slash [M]'
+  category: 1
+  compatibleWeaponTypes: 4
+  requiredPreviousActionStatusId: 
+  requiredPreviousActionStatusDisplayName: 
+  timelineCost: 8
+  resolutionOffset: 5
+  useResolutionWindow: 0
+  resolutionWindowStart: 5
+  resolutionWindowEnd: 5
+  chargeLevels: []
+  activeWindows:
+  - windowId: glaive-and-shield.flying-round-slash-main.armor
+    displayName: Flying Round Slash Armor
+    startOffset: 6
+    endOffset: 6
+    effect: 1
+    damageReduction: 0.01
+    superArmorLevel: 5
+    disruptionPolicy: 0
+    extendsThroughCharge: 0
+  useSustainedAttack: 0
+  sustainedWindowStartOffset: 1
+  sustainedWindowEndOffset: 1
+  sustainedFirstHitOffset: 1
+  sustainedHitInterval: 1
+  sustainedMaximumHitCount: 1
+  manaCost: 0
+  staminaCost: 7
+  cooldown: 0
+  resolutionEvents:
+  - offset: 5
+    effect: 1
+    damageMultiplier: 0.2
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 7
+    effect: 1
+    damageMultiplier: 1.1
+    damageType: 0
+    damageTags: 8
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0.7
+    clashSuperArmorLevel: 5
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  disruptionResponseSegments:
+  - startOffset: 1
+    endOffset: 8
+    flinchResponse: 1
+    staggerResponse: 1
+    knockdownResponse: 1
+  damageMultiplier: 0
+  damageType: 0
+  resolutionEffect: 0
+  damageTags: 0
+  clashDamageReduction: 0
+  clashSuperArmorLevel: 0
+  appliesOnHitDisruption: 0
+  onHitDisruptionType: 1
+  onHitDisruptionDuration: 1
+  appliesOnGuardedDisruption: 0
+  onGuardedDisruptionType: 1
+  onGuardedDisruptionDuration: 1
+  appliesOnEvadedDisruption: 0
+  onEvadedDisruptionType: 2
+  onEvadedDisruptionDuration: 1

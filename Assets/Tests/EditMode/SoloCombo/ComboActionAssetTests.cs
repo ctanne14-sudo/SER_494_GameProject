@@ -803,6 +803,53 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo("airborne-setup"));
         }
 
+        [Test]
+        public void MultiEventAuthoring_AllowsPrimaryResolutionWindowWithFixedSecondaryEvent()
+        {
+            ConfigureAsset(
+                "counter-thrust",
+                "Counter Thrust [L]",
+                ComboActionCategory.Linked,
+                timelineCost: 7,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Piercing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("useResolutionWindow").boolValue = true;
+            serializedAsset.FindProperty("resolutionWindowStart").intValue = 2;
+            serializedAsset.FindProperty("resolutionWindowEnd").intValue = 4;
+            SerializedProperty events = serializedAsset.FindProperty("resolutionEvents");
+            events.arraySize = 2;
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(0),
+                offset: 2,
+                effect: ActionResolutionEffect.Guard,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing);
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(1),
+                offset: 6,
+                effect: ActionResolutionEffect.Damage,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Piercing);
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(definition.ResolutionWindowStart, Is.EqualTo(2));
+            Assert.That(definition.ResolutionWindowEnd, Is.EqualTo(4));
+            Assert.That(definition.ResolutionEvents, Has.Count.EqualTo(2));
+            Assert.That(definition.ResolutionEvents[1].Offset, Is.EqualTo(6));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

@@ -17,6 +17,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
         private const string WeaponActionsFolder = SoloComboFolder + "/WeaponActions";
         private const string GreatswordFolder = WeaponActionsFolder + "/Greatsword";
         private const string SwordAndShieldFolder = WeaponActionsFolder + "/SwordAndShield";
+        private const string GlaiveAndShieldFolder = WeaponActionsFolder + "/GlaiveAndShield";
         private const string AirborneSetupStatusId = "sequence.airborne-setup";
         private const string AirborneSetupDisplayName = "Airborne Setup";
 
@@ -33,6 +34,15 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 SwordAndShieldFolder,
                 "Sword and Shield",
                 SwordAndShieldSpecifications());
+        }
+
+        [MenuItem("Tools/SER494/Create Physical Weapon Actions/Glaive and Shield")]
+        public static void CreateGlaiveAndShieldActions()
+        {
+            CreateActions(
+                GlaiveAndShieldFolder,
+                "Glaive and Shield",
+                GlaiveAndShieldSpecifications());
         }
 
         private static void CreateActions(
@@ -622,6 +632,281 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             };
         }
 
+        private static ActionSpec[] GlaiveAndShieldSpecifications()
+        {
+            const CompatibleWeaponTypes weapon = CompatibleWeaponTypes.GlaiveAndShield;
+            return new[]
+            {
+                new ActionSpec(
+                    "GlaiveAndShield_RestrainingSlash_O",
+                    "glaive-and-shield.opening.restraining-slash",
+                    "Restraining Slash [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 6,
+                    staminaCost: 2,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing),
+                        ResolutionSpec.Simple(4, ActionResolutionEffect.Guard)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_LeapingSlash_O",
+                    "glaive-and-shield.opening.leaping-slash",
+                    "Leaping Slash [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 5,
+                    staminaCost: 1,
+                    weapon,
+                    resolutions: DamageOnly(4, 0.50f, DamageType.Slashing),
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.SuperArmor(
+                            "glaive-and-shield.leaping-slash.armor",
+                            "Leaping Slash Armor",
+                            startOffset: 3,
+                            endOffset: 4,
+                            level: 3)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_Bash_O",
+                    "glaive-and-shield.opening.bash",
+                    "Bash [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 5,
+                    staminaCost: 0,
+                    weapon,
+                    resolutions: DamageOnly(3, 0.50f, DamageType.Blunt)),
+                new ActionSpec(
+                    "GlaiveAndShield_GuardedThrust_O",
+                    "glaive-and-shield.opening.guarded-thrust",
+                    "Guarded Thrust [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 4,
+                    staminaCost: 2,
+                    weapon,
+                    resolutions: DamageOnly(4, 0.40f, DamageType.Piercing),
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.Defense(
+                            "glaive-and-shield.guarded-thrust.defense",
+                            "Guarded Thrust Defense",
+                            startOffset: 1,
+                            endOffset: 4,
+                            damageReduction: 0.40f),
+                        ActiveWindowSpec.SuperArmor(
+                            "glaive-and-shield.guarded-thrust.armor",
+                            "Guarded Thrust Armor",
+                            startOffset: 1,
+                            endOffset: 4,
+                            level: 3)
+                    }),
+
+                new ActionSpec(
+                    "GlaiveAndShield_DiagonalSlash_M",
+                    "glaive-and-shield.main.diagonal-slash",
+                    "Diagonal Slash [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 5,
+                    staminaCost: 3,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.50f, DamageType.Slashing),
+                        ResolutionSpec.Damage(4, 0.50f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_FlyingRoundSlash_M",
+                    "glaive-and-shield.main.flying-round-slash",
+                    "Flying Round Slash [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 8,
+                    staminaCost: 7,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(5, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Damage(
+                            7,
+                            1.10f,
+                            DamageType.Slashing,
+                            damageTags: DamageResolutionTag.Clash,
+                            clashDamageReduction: 0.70f,
+                            clashSuperArmorLevel: 5)
+                    },
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.SuperArmor(
+                            "glaive-and-shield.flying-round-slash-main.armor",
+                            "Flying Round Slash Armor",
+                            startOffset: 6,
+                            endOffset: 6,
+                            level: 5)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_GuardedChainSlash_M",
+                    "glaive-and-shield.main.guarded-chain-slash",
+                    "Guarded Chain Slash [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 9,
+                    staminaCost: 7,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(3, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Damage(4, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Damage(7, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(8, 0.30f, DamageType.Slashing)
+                    },
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.Defense(
+                            "glaive-and-shield.guarded-chain-slash.defense",
+                            "Guarded Chain Slash Defense",
+                            startOffset: 1,
+                            endOffset: 9,
+                            damageReduction: 0.50f)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_RisingSlashChain_M",
+                    "glaive-and-shield.main.rising-slash-chain",
+                    "Rising Slash Chain [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 6,
+                    staminaCost: 6,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing),
+                        ResolutionSpec.Simple(3, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(4, 0.40f, DamageType.Slashing)
+                    }),
+
+                new ActionSpec(
+                    "GlaiveAndShield_FlyingRoundSlash_C",
+                    "glaive-and-shield.closing.flying-round-slash",
+                    "Flying Round Slash [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 8,
+                    staminaCost: 5,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(5, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Damage(7, 1.00f, DamageType.Slashing)
+                    },
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.SuperArmor(
+                            "glaive-and-shield.flying-round-slash-closing.armor",
+                            "Flying Round Slash Armor",
+                            startOffset: 7,
+                            endOffset: 7,
+                            level: 5)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_TurningBackThrust_C",
+                    "glaive-and-shield.closing.turning-back-thrust",
+                    "Turning Back Thrust [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 6,
+                    staminaCost: 4,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Simple(2, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(4, 0.70f, DamageType.Piercing)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_EmpoweredDoubleSlash_C",
+                    "glaive-and-shield.closing.empowered-double-slash",
+                    "Empowered Double Slash [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 6,
+                    staminaCost: 7,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Buff(
+                            2,
+                            "glaive-and-shield.empowered-double-slash.physical-damage",
+                            "Empowered Double Slash",
+                            duration: 30,
+                            modifierDirection: CombatStatusModifierDirection.DamageDealt,
+                            modifierScope: DamageModifierScope.Family,
+                            modifierType: DamageType.Slashing,
+                            modifierAmount: 0.10f),
+                        ResolutionSpec.Damage(4, 0.40f, DamageType.Slashing),
+                        ResolutionSpec.Damage(5, 0.60f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_RisingSlashChain_C",
+                    "glaive-and-shield.closing.rising-slash-chain",
+                    "Rising Slash Chain [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 6,
+                    staminaCost: 5,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Simple(3, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(4, 0.40f, DamageType.Slashing)
+                    }),
+
+                new ActionSpec(
+                    "GlaiveAndShield_DoubleSlash_L",
+                    "glaive-and-shield.linked.double-slash",
+                    "Double Slash [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 3,
+                    staminaCost: 5,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(1, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(2, 0.50f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "GlaiveAndShield_Bash_L",
+                    "glaive-and-shield.linked.bash",
+                    "Bash [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 5,
+                    staminaCost: 0,
+                    weapon,
+                    resolutions: DamageOnly(3, 0.40f, DamageType.Blunt)),
+                new ActionSpec(
+                    "GlaiveAndShield_CounterThrust_L",
+                    "glaive-and-shield.linked.counter-thrust",
+                    "Counter Thrust [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 7,
+                    staminaCost: 4,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Simple(2, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(6, 0.30f, DamageType.Piercing)
+                    },
+                    resolutionWindowStart: 2,
+                    resolutionWindowEnd: 4),
+                new ActionSpec(
+                    "GlaiveAndShield_RestrainingSlash_L",
+                    "glaive-and-shield.linked.restraining-slash",
+                    "Restraining Slash [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 6,
+                    staminaCost: 3,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing),
+                        ResolutionSpec.Simple(4, ActionResolutionEffect.Guard)
+                    })
+            };
+        }
+
         private static ResolutionSpec[] DamageOnly(
             int offset,
             float multiplier,
@@ -707,11 +992,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             serialized.FindProperty("timelineCost").intValue = specification.TimelineCost;
             serialized.FindProperty("resolutionOffset").intValue =
                 specification.Resolutions[0].Offset;
-            serialized.FindProperty("useResolutionWindow").boolValue = false;
+            serialized.FindProperty("useResolutionWindow").boolValue =
+                specification.ResolutionWindowStart.HasValue;
             serialized.FindProperty("resolutionWindowStart").intValue =
-                specification.Resolutions[0].Offset;
+                specification.ResolutionWindowStart ?? specification.Resolutions[0].Offset;
             serialized.FindProperty("resolutionWindowEnd").intValue =
-                specification.Resolutions[0].Offset;
+                specification.ResolutionWindowEnd ?? specification.Resolutions[0].Offset;
             serialized.FindProperty("manaCost").intValue = 0;
             serialized.FindProperty("staminaCost").intValue = specification.StaminaCost;
             serialized.FindProperty("cooldown").intValue = 0;
@@ -924,7 +1210,9 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ActiveWindowSpec[] activeWindows = null,
                 DisruptionResponseSpec[] disruptionResponses = null,
                 string requiredPreviousActionStatusId = null,
-                string requiredPreviousActionStatusDisplayName = null)
+                string requiredPreviousActionStatusDisplayName = null,
+                int? resolutionWindowStart = null,
+                int? resolutionWindowEnd = null)
             {
                 FileName = fileName;
                 ActionId = actionId;
@@ -939,6 +1227,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 RequiredPreviousActionStatusId = requiredPreviousActionStatusId ?? string.Empty;
                 RequiredPreviousActionStatusDisplayName =
                     requiredPreviousActionStatusDisplayName ?? string.Empty;
+                ResolutionWindowStart = resolutionWindowStart;
+                ResolutionWindowEnd = resolutionWindowEnd;
                 DisruptionResponses = disruptionResponses ??
                     new[]
                     {
@@ -962,6 +1252,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public DisruptionResponseSpec[] DisruptionResponses { get; }
             public string RequiredPreviousActionStatusId { get; }
             public string RequiredPreviousActionStatusDisplayName { get; }
+            public int? ResolutionWindowStart { get; }
+            public int? ResolutionWindowEnd { get; }
         }
 
         private sealed class ResolutionSpec

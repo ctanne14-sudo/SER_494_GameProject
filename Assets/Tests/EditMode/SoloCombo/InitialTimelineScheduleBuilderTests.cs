@@ -153,6 +153,64 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void SelectResolutionTime_MultiEventAction_MovesOnlyPrimaryWindowEvent()
+        {
+            var counterThrust = new ComboActionDefinition(
+                "glaive-and-shield.linked.counter-thrust",
+                "Counter Thrust [L]",
+                ComboActionCategory.Linked,
+                timelineCost: 7,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(2, ActionResolutionEffect.Guard),
+                    new ActionResolutionDefinition(
+                        6,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Piercing, 0.30d))
+                },
+                resolutionWindowStart: 2,
+                resolutionWindowEnd: 4);
+            var main = PlayerAction(
+                "main",
+                ComboActionCategory.Main,
+                timelineCost: 1,
+                resolution: 1);
+            ComboConfiguration combo = new ComboConfiguration(
+                "combo1",
+                openingAction: null,
+                mainAction: main,
+                closingAction: null,
+                linkedAction: counterThrust,
+                linkedActionPlacement: LinkedActionPlacement.AfterMain);
+            InitialTimelineSchedule initial = InitialTimelineScheduleBuilder.Build(
+                combo,
+                EnemySequence(EnemyAction("enemy", timelineCost: 8, resolution: 8)));
+
+            InitialTimelineSchedule selected =
+                InitialTimelineScheduleBuilder.SelectResolutionTime(
+                    initial,
+                    TimelineActorSide.Player,
+                    sequenceIndex: 1,
+                    selectedTime: 5);
+
+            ScheduledTimelineAction action = selected.Actions.Single(
+                candidate => candidate.Side == TimelineActorSide.Player
+                    && candidate.SequenceIndex == 1);
+            Assert.That(action.HasResolutionWindow, Is.False);
+            Assert.That(action.ResolutionEvents.Select(step => step.Time),
+                Is.EqualTo(new[] { 5, 7 }));
+            Assert.That(action.ResolutionEvents.Select(step => step.Effect),
+                Is.EqualTo(new[]
+                {
+                    ActionResolutionEffect.Guard,
+                    ActionResolutionEffect.Damage
+                }));
+        }
+
+        [Test]
         public void ApplyPauseAndResume_MultiEventAction_ShiftsOnlyUnresolvedEvents()
         {
             var main = new ComboActionDefinition(

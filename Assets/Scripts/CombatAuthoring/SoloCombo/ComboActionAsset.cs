@@ -459,8 +459,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if (!usesResolutionEvents
-                && useResolutionWindow
+            if (useResolutionWindow
                 && (resolutionWindowStart < 0
                     || resolutionWindowEnd > timelineCost
                     || resolutionWindowStart >= resolutionWindowEnd))
@@ -521,10 +520,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
             if (usesResolutionEvents)
             {
-                if (useResolutionWindow || useSustainedAttack)
+                if (useSustainedAttack)
                 {
                     validationError = $"{name} cannot combine multi-event authoring with a "
-                        + "Resolution Window or Sustained Attack yet.";
+                        + "Sustained Attack yet.";
                     return false;
                 }
 
@@ -550,7 +549,13 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         activeWindowDefinitions,
                         responseDefinitions,
                         compatibleWeaponTypes: NormalizedCompatibleWeaponTypes,
-                        previousActionStatusRequirement: previousActionStatusRequirement);
+                        previousActionStatusRequirement: previousActionStatusRequirement,
+                        resolutionWindowStart: useResolutionWindow
+                            ? (int?)resolutionWindowStart
+                            : null,
+                        resolutionWindowEnd: useResolutionWindow
+                            ? (int?)resolutionWindowEnd
+                            : null);
                 }
                 catch (ArgumentException exception)
                 {
