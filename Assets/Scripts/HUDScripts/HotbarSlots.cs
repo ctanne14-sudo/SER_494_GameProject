@@ -1,40 +1,59 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class HotbarSlot : MonoBehaviour
 {
     [SerializeField] private RawImage icon;
-    [SerializeField] private GameObject highlight;
-    [SerializeField] private GameObject item;
+    [SerializeField] private Image highlight;
+    [SerializeField] private Item item;
+    [SerializeField] private TextMeshProUGUI slotNum;
+    [SerializeField] private TextMeshProUGUI itemName;
     private GameObject spawnPoint;
     private GameObject spawned;
     private int invIndex = -1;
     private bool isSelected;
 
+    void Start()
+    {
+        setName();
+    }
 
-
-    public void SetItem(GameObject item, Texture itemImage, int index, GameObject spawnPoint)
+    public void setItem(Item item, int index, GameObject spawnPoint)
     {
         this.spawnPoint = spawnPoint;
         this.item = item;
-        icon.texture = itemImage;
-        icon.enabled = itemImage != null;
+        icon.texture = item.texture;
+        icon.enabled = item.texture != null;
         invIndex = index;
         spawnItem();
+        setName();
     }
 
-    public void SetSelected(bool selected)
+    public void setSelected(bool selected)
     {
         isSelected = selected;
-        highlight.SetActive(isSelected);
+        highlight.gameObject.SetActive(isSelected);
         spawnItem();
     }
 
     private void spawnItem()
     {
         if (isSelected && item != null && spawned == null) {
-            spawned = Instantiate(item, spawnPoint.transform.position, Quaternion.identity, spawnPoint.transform);
-        }
+            Transform sp = spawnPoint.transform;
+            spawned = Instantiate(item.prefab, sp.position, sp.rotation, sp);
+
+            Action action = spawned.GetComponent<Action>();
+            if (action != null && action.Offset != null)
+            {
+                Transform o = action.Offset;
+
+                Quaternion rel = Quaternion.Inverse(spawned.transform.rotation) * o.rotation;
+                spawned.transform.rotation = sp.rotation * Quaternion.Inverse(rel);
+
+                spawned.transform.position += sp.position - o.position;
+            }
+                }
         if (spawned != null && !isSelected)
         {
             Destroy(spawned);
@@ -56,18 +75,23 @@ public class HotbarSlot : MonoBehaviour
         icon.texture = null;
         icon.enabled = false;
         invIndex = -1;
+        setName();
         if (spawned != null) Destroy(spawned);
         return index;
     }
         
+    public Item getItem() => item;
+    public int getInvIndex() => invIndex;
 
-    public GameObject getItem()
-    {
-        return item;
-    }
+    public void setNum(int num) => slotNum.text = num.ToString();
 
-    public int getInvIndex()
+    public void setName()
     {
-        return invIndex;
+        if (item == null)
+        {
+            itemName.text = "";
+            return;
+        }
+        itemName.text = item.prefab.GetComponent<Action>().setUiPrompt();
     }
 }

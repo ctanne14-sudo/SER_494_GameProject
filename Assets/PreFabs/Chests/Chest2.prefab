@@ -1125,7 +1125,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5503806848590782700}
   - component: {fileID: 1286824603458373699}
-  - component: {fileID: 8566213075333286296}
   - component: {fileID: 5574026396029910529}
   m_Layer: 6
   m_Name: Chest2
@@ -1174,22 +1173,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.2, y: 2, z: 2}
   m_Center: {x: 0, y: 0, z: 1}
---- !u!114 &8566213075333286296
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5889405122238164807}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d79db5848d551543a45d5506a81d32a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ObjectInteraction
-  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
-  uiOffset: {x: 0, y: 1.5, z: 0}
-  uiScale: 0.01
-  objectAction: {fileID: 5574026396029910529}
 --- !u!114 &5574026396029910529
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1207,8 +1190,13 @@ MonoBehaviour:
   close: {fileID: 8917090621954684143}
   spawnPoints: []
   items: []
+  unlockItem: {fileID: 0}
   speed: 5
-  canClose: 1
+  canClose: 0
+  unlock: 0
+  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
+  uiOffset: {x: 0, y: 1.5, z: 0}
+  uiScale: 0.01
 --- !u!1 &7034003469124395759
 GameObject:
   m_ObjectHideFlags: 0

@@ -7,9 +7,11 @@ public class BluePotAction : Action
     {
     }
 
+
     public override string setUiPrompt()
     {
         return "Blue Potion";
     }
 
+    public override void showUI(bool show) {}
 }

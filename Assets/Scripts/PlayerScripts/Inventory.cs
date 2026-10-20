@@ -9,24 +9,53 @@ public class Inventory : MonoBehaviour
     [SerializeField] private PlayerSpeed ps;
     [SerializeField] private GameObject spawnPoint;
 
-    private List<GameObject> inInventory = new List<GameObject>();
-    private List<Texture> textures = new List<Texture>();
+    private List<Item> inInventory = new List<Item>();
 
     [HideInInspector] public int gold;
 
-    private int selected;
+    private int selected = -1;
 
     private readonly KeyCode[] numKeys = {KeyCode.Alpha1, KeyCode.Alpha2, 
         KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5};
 
+    private readonly KeyCode[] inputKeys = {KeyCode.E, KeyCode.Mouse0};
+    
+    void Start()
+    {
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i].setNum(i + 1);
+        }
+    }
     void Update()
     {
         for (int i = 0; i < numKeys.Length; i++)
         {
-            if (Input.GetKeyDown(numKeys[i])) Select(i);
+            if (Input.GetKeyDown(numKeys[i])) select(i);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha0)) Select(-1);
+        if (Input.GetKeyDown(KeyCode.Alpha0)) select(-1);
 
+        fillSlots();
+
+        if (selected >= 0 && selected < slots.Length)
+            foreach(KeyCode i in inputKeys)
+                if (Input.GetKeyUp(i)) useItem(i);
+    }
+
+    void useItem(KeyCode button)
+    {
+        Item item = slots[selected].getItem();
+        if (item != null) {
+            if (button == KeyCode.Mouse0) {
+                item.prefab.GetComponent<Action>().action(interactor);
+                item.usesLeft--;
+            }
+            if (item.usesLeft <= 0) removeItem(slots[selected].clear());            
+        }
+    }
+
+    void fillSlots()
+    {
         if (inInventory.Count > 0)
         {
             for (int s = 0; s < slots.Length; s++) {
@@ -36,25 +65,9 @@ public class Inventory : MonoBehaviour
                 while (i < inInventory.Count && isInSlot(i)) i++;
                 if (i >= inInventory.Count) break;
 
-                setItem(s, i, inInventory[i], textures[i]);
+                setItem(s, i, inInventory[i]);
             }
         }
-
-        if (Input.GetMouseButtonUp(0) && selected >= 0 && selected < slots.Length) 
-        {
-            GameObject item = slots[selected].getItem();
-            if (item != null) {
-                item.GetComponent<ObjectInteraction>().action(interactor, 0);
-                int index = slots[selected].clear();
-                if (index >= 0 && index < inInventory.Count) removeItem(index);
-
-                for (int i = 0; i < slots.Length; i++)
-                {
-                    slots[i].updateIndex(index);
-                }
-            }
-        }
-
     }
 
     bool isInSlot(int invIndex)
@@ -64,29 +77,46 @@ public class Inventory : MonoBehaviour
         return false;
     }
 
-    public void Select(int index)
+    public void select(int index)
     {
         if (selected == index) index = -1;
         selected = index;
         bool select = selected >= 0 && selected < slots.Length;
         for (int i = 0; i < slots.Length; i++)
-            slots[i].SetSelected(select && i == selected);
+            slots[i].setSelected(select && i == selected);
         ps.changeMultiplier(select ? .8f : 1f); 
     }
 
-    public void addItem(GameObject item, Texture itemImage)
+    public void addItem(Item item)
     {
         inInventory.Add(item);
-        textures.Add(itemImage);
     }
 
     private void removeItem(int index)
     {
         inInventory.RemoveAt(index);
-        textures.RemoveAt(index);
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i].updateIndex(index);
+        }
     }
 
-    public void setItem(int index, int invIndex, GameObject item, Texture itemImage) 
-        => slots[index].SetItem(item, itemImage, invIndex, spawnPoint);
+    public void setItem(int index, int invIndex, Item item) 
+        => slots[index].setItem(item, invIndex, spawnPoint);
 
+}
+
+public class Item
+{
+    public GameObject prefab;
+    public Texture texture;
+    //public string displayName;
+    public int usesLeft;
+
+    public Item(GameObject prefab, Texture texture, int uses)
+    {
+        this.prefab = prefab;
+        this.texture = texture;
+        usesLeft = uses;
+    }
 }

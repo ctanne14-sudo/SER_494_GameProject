@@ -22,11 +22,12 @@ public class PlayerPersistance : MonoBehaviour
     {
         var cc = target.GetComponent<CharacterController>();
 
-        if (cc != null) cc.enabled = false;   // CharacterController overrides transform changes otherwise
+        if (cc != null) cc.enabled = false;
         target.transform.SetPositionAndRotation(transform.position, transform.rotation);
+        if (target.CompareTag("Player"))
+            target.GetComponent<PlayerMovement>().updateCheckPoint(transform.position);
         if (cc != null) cc.enabled = true;
 
-        target.SendMessage("ResetMotion", SendMessageOptions.DontRequireReceiver);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

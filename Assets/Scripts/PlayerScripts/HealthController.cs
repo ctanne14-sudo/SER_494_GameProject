@@ -24,6 +24,11 @@ public class HealthController : MonoBehaviour {
         playerHP = Mathf.Min(playerHP + heal, maxHP);
     }
 
+    public void increaseMaxHp(int increase)
+    {
+        maxHP += increase;
+    }
+
     public void die()
     {
         playerMovement.stop();

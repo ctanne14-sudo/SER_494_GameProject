@@ -47,6 +47,7 @@ public class PlayerHud : MonoBehaviour {
     {
         int currentHP = hc.playerHP;
         hpText.text = currentHP + " / " + hc.maxHP;
+        hpSlider.maxValue = hc.maxHP;
         if (displayHP != currentHP)
         {
             displayHP = Mathf.MoveTowards(displayHP, currentHP, 25f * Time.deltaTime);
@@ -55,6 +56,7 @@ public class PlayerHud : MonoBehaviour {
 
         float currentStamina = ps.stamina;
         staminaText.text = currentStamina.ToString("0") + " / " + ps.maxStamina;
+        staminaSlider.maxValue = ps.maxStamina;
         if (displayStamina != currentStamina)
         {
             displayStamina = Mathf.MoveTowards(displayStamina, currentStamina, 25f * Time.deltaTime);

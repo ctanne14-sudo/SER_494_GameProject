@@ -12,4 +12,6 @@ public class MoneyAction : Action
     {
         return "50 Gold";
     }
+
+    public override void showUI(bool show) {}
 }

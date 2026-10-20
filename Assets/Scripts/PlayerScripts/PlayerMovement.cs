@@ -6,7 +6,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private CharacterController controller;
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerSpeed playerSpeed;
-    private Vector3 homePosition;
+    private Vector3 checkPoint;
     private float gravity = -9.81f;
     public float jumpHeight = 1.5f;
     private float verticalVelocity;
@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Start() {
         animator = GetComponent<Animator>();
-        homePosition = transform.position;
+        checkPoint = transform.position;
     }
 
     void Update() {
@@ -52,7 +52,7 @@ public class PlayerMovement : MonoBehaviour
             verticalVelocity = -2f;
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded && playerSpeed.stamina > 10)
         {
             playerSpeed.stamina -= 10;
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -72,20 +72,13 @@ public class PlayerMovement : MonoBehaviour
         controller.Move(finalMove * Time.deltaTime);
 
         if (transform.position.y < -10f) {
-            transform.position = homePosition;
+            transform.position = checkPoint;
         }
     }
 
-    public void ResetMotion()
+    public void updateCheckPoint(Vector3 point)
     {
-        verticalVelocity = 0f;
-        inAir = false;
-        homePosition = transform.position;
-        animator.ResetTrigger("isJump");
-        animator.ResetTrigger("isLand");
-        animator.SetBool("isWalking", false);
-        animator.SetBool("isRunning", false);
-        animator.Play("Idle", 0, 0f);
+        checkPoint = point;
     }
 
     public void stop()

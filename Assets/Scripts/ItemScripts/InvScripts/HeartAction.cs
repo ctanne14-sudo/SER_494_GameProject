@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class HeartAction : Action
 {
-    
+
     public override void action(PlayerInteractor interactor)
     {
         interactor.hc.healPlayer(50);
@@ -13,4 +13,5 @@ public class HeartAction : Action
         return "Heart";
     }
 
+    public override void showUI(bool show) {}
 }

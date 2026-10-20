@@ -89,13 +89,10 @@ PrefabInstance:
       addedObject: {fileID: 1818444637050029851}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b69ab7dc4a09f094885bf950a65c44c3, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2164201628900928689}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b69ab7dc4a09f094885bf950a65c44c3, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 7091113786698602696}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b69ab7dc4a09f094885bf950a65c44c3, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -1803202314482062243}
+      addedObject: {fileID: 6274974124629331881}
   m_SourcePrefab: {fileID: 100100000, guid: b69ab7dc4a09f094885bf950a65c44c3, type: 3}
 --- !u!1 &9021979860543945138 stripped
 GameObject:
@@ -116,22 +113,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RotateAndBounce
   rotSpeed: 75
   speed: 0.25
---- !u!114 &2164201628900928689
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9021979860543945138}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d79db5848d551543a45d5506a81d32a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ObjectInteraction
-  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
-  uiOffset: {x: 0, y: 0.5, z: 0}
-  uiScale: 0.025
-  objectAction: {fileID: 7091113786698602696}
 --- !u!114 &7091113786698602696
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,10 +125,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdea255426b684946a168cd98a63120e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickUp
+  offset: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
   itemPrefab: {fileID: 9021979860543945138, guid: 7e64fc962bb3d944083fe829cafc107b, type: 3}
   itemImage: {fileID: 2800000, guid: 75eb8d9bfd9da84498858ca8710fbd42, type: 3}
---- !u!135 &-1803202314482062243
-SphereCollider:
+  uses: 3
+  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
+  uiOffset: {x: 0, y: 0.5, z: 0}
+  uiScale: 0.025
+--- !u!64 &6274974124629331881
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -164,6 +150,7 @@ SphereCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 1.2219129
-  m_Center: {x: 0, y: 0.24871472, z: -0.006569177}
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -849867405023671905, guid: b69ab7dc4a09f094885bf950a65c44c3, type: 3}
