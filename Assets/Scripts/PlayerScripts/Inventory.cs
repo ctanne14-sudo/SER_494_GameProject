@@ -29,9 +29,15 @@ public class Inventory : MonoBehaviour
 
         if (inInventory.Count > 0)
         {
-            for (int i = 0; i < slots.Length && i < inInventory.Count; i++)
-                if (slots[i].getItem() == null)
-                    SetItem(i, inInventory[i], textures[i]);
+            for (int s = 0; s < slots.Length; s++) {
+                if (slots[s].getItem() != null) continue;
+
+                int i = 0;
+                while (i < inInventory.Count && isInSlot(i)) i++;
+                if (i >= inInventory.Count) break;
+
+                setItem(s, i, inInventory[i], textures[i]);
+            }
         }
 
         if (Input.GetMouseButtonUp(0) && selected >= 0 && selected < slots.Length) 
@@ -39,12 +45,23 @@ public class Inventory : MonoBehaviour
             GameObject item = slots[selected].getItem();
             if (item != null) {
                 item.GetComponent<ObjectInteraction>().action(interactor, 0);
-                int index = inInventory.IndexOf(item);
-                if (index >= 0) removeItem(index);
-                slots[selected].clear();
+                int index = slots[selected].clear();
+                if (index >= 0 && index < inInventory.Count) removeItem(index);
+
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    slots[i].updateIndex(index);
+                }
             }
         }
 
+    }
+
+    bool isInSlot(int invIndex)
+    {
+        for (int i = 0; i < slots.Length; i++) 
+            if (invIndex == slots[i].getInvIndex()) return true;
+        return false;
     }
 
     public void Select(int index)
@@ -69,6 +86,7 @@ public class Inventory : MonoBehaviour
         textures.RemoveAt(index);
     }
 
-    public void SetItem(int index, GameObject item, Texture itemImage) => slots[index].SetItem(item, itemImage, spawnPoint);
+    public void setItem(int index, int invIndex, GameObject item, Texture itemImage) 
+        => slots[index].SetItem(item, itemImage, invIndex, spawnPoint);
 
 }

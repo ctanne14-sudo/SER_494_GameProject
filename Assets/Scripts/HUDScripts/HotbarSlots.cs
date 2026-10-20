@@ -8,16 +8,18 @@ public class HotbarSlot : MonoBehaviour
     [SerializeField] private GameObject item;
     private GameObject spawnPoint;
     private GameObject spawned;
+    private int invIndex = -1;
     private bool isSelected;
 
 
 
-    public void SetItem(GameObject item, Texture itemImage, GameObject spawnPoint)
+    public void SetItem(GameObject item, Texture itemImage, int index, GameObject spawnPoint)
     {
         this.spawnPoint = spawnPoint;
         this.item = item;
         icon.texture = itemImage;
         icon.enabled = itemImage != null;
+        invIndex = index;
         spawnItem();
     }
 
@@ -39,17 +41,33 @@ public class HotbarSlot : MonoBehaviour
         }
     }
 
-    public void clear()
+    public void updateIndex(int index)
     {
+        if (invIndex > index)
+        {
+            invIndex -= 1;
+        }
+    }
+
+    public int clear()
+    {
+        int index = invIndex;
         item = null;
         icon.texture = null;
         icon.enabled = false;
+        invIndex = -1;
         if (spawned != null) Destroy(spawned);
+        return index;
     }
         
 
     public GameObject getItem()
     {
         return item;
+    }
+
+    public int getInvIndex()
+    {
+        return invIndex;
     }
 }
