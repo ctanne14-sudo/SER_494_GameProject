@@ -109,6 +109,37 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Throws.TypeOf<ArgumentException>());
         }
 
+        [Test]
+        public void Scripted_SelectSequence_UsesConfiguredOrderAndLoops()
+        {
+            EnemyActionSequence first = Sequence("first");
+            EnemyActionSequence second = Sequence("second");
+            EnemyBehaviorTable table = EnemyBehaviorTable.Scripted(
+                new[] { first, second });
+            CombatantState player = Combatant("Player");
+            CombatantState enemy = Combatant("Enemy");
+
+            Assert.That(
+                table.SelectSequence(player, enemy, null, normalizedRoll: 0.9d),
+                Is.SameAs(first));
+            Assert.That(
+                table.SelectSequence(player, enemy, first.SequenceId, normalizedRoll: 0.1d),
+                Is.SameAs(second));
+            Assert.That(
+                table.SelectSequence(player, enemy, second.SequenceId, normalizedRoll: 0.5d),
+                Is.SameAs(first));
+        }
+
+        [Test]
+        public void Scripted_RejectsDuplicateSequenceIds()
+        {
+            EnemyActionSequence sequence = Sequence("duplicate");
+
+            Assert.That(
+                () => EnemyBehaviorTable.Scripted(new[] { sequence, sequence }),
+                Throws.TypeOf<ArgumentException>());
+        }
+
         private static EnemyBehaviorTable Table(params EnemyBehaviorEntry[] entries)
         {
             return new EnemyBehaviorTable(entries, Sequence("fallback"));

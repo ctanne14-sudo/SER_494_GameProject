@@ -114,6 +114,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
     public sealed class EnemyBehaviorTable
     {
         private readonly IReadOnlyList<EnemyBehaviorEntry> _entries;
+        private readonly IReadOnlyList<EnemyActionSequence> _scriptedSequences;
+        private int _nextScriptedSequenceIndex;
 
         public EnemyBehaviorTable(
             IReadOnlyList<EnemyBehaviorEntry> entries,
@@ -149,6 +151,48 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             _entries = Array.AsReadOnly(copy);
+            _scriptedSequences = Array.Empty<EnemyActionSequence>();
+        }
+
+        private EnemyBehaviorTable(IReadOnlyList<EnemyActionSequence> scriptedSequences)
+        {
+            if (scriptedSequences == null)
+            {
+                throw new ArgumentNullException(nameof(scriptedSequences));
+            }
+
+            if (scriptedSequences.Count == 0)
+            {
+                throw new ArgumentException(
+                    "A scripted Enemy Behavior Table requires at least one Sequence.",
+                    nameof(scriptedSequences));
+            }
+
+            var copy = new EnemyActionSequence[scriptedSequences.Count];
+            var sequenceIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < scriptedSequences.Count; index++)
+            {
+                EnemyActionSequence sequence = scriptedSequences[index];
+                if (sequence == null)
+                {
+                    throw new ArgumentException(
+                        "A scripted Enemy Behavior Table cannot contain a null Sequence.",
+                        nameof(scriptedSequences));
+                }
+
+                if (!sequenceIds.Add(sequence.SequenceId))
+                {
+                    throw new ArgumentException(
+                        $"Enemy Sequence ID '{sequence.SequenceId}' is duplicated.",
+                        nameof(scriptedSequences));
+                }
+
+                copy[index] = sequence;
+            }
+
+            _entries = Array.Empty<EnemyBehaviorEntry>();
+            _scriptedSequences = Array.AsReadOnly(copy);
+            FallbackSequence = copy[0];
         }
 
         public IReadOnlyList<EnemyBehaviorEntry> Entries => _entries;
@@ -169,6 +213,15 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     nameof(normalizedRoll),
                     normalizedRoll,
                     "Selection roll must be at least 0 and less than 1.");
+            }
+
+            if (_scriptedSequences.Count > 0)
+            {
+                EnemyActionSequence scripted =
+                    _scriptedSequences[_nextScriptedSequenceIndex];
+                _nextScriptedSequenceIndex =
+                    (_nextScriptedSequenceIndex + 1) % _scriptedSequences.Count;
+                return scripted;
             }
 
             var eligible = new List<EnemyBehaviorEntry>();
@@ -209,6 +262,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return new EnemyBehaviorTable(
                 Array.Empty<EnemyBehaviorEntry>(),
                 sequence ?? throw new ArgumentNullException(nameof(sequence)));
+        }
+
+        public static EnemyBehaviorTable Scripted(
+            IReadOnlyList<EnemyActionSequence> sequences)
+        {
+            return new EnemyBehaviorTable(sequences);
         }
     }
 }

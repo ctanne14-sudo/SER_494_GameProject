@@ -38,7 +38,7 @@ namespace SER494.Gameplay.CombatSandbox
 
         private const string BuilderSceneName = "ComboBuilderSandbox";
         private const int ManaRecoveryPerTurn = 1;
-        private const int StaminaRecoveryPerTurn = 2;
+        private const int ScriptedTrialStaminaRecoveryPerTurn = 30;
         private const int IntentTimelineLength = 30;
         private const float WideLayoutThreshold = 1050f;
 
@@ -128,6 +128,13 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.BeginArea(new Rect(left, top, width, height), GUI.skin.box);
             GUILayout.Label("Solo Combo Combat Sandbox", _titleStyle);
             GUILayout.Label("Prototype debug UI — preview intent, then resolve both sides on one timeline.");
+            if (loadoutSession != null && loadoutSession.HasPreparedLoadout)
+            {
+                SoloComboTestScenario scenario = loadoutSession.SelectedTestScenario;
+                GUILayout.Label(
+                    $"Test Scenario: {SoloComboTestScenarioInfo.DisplayName(scenario)} — "
+                    + SoloComboTestScenarioInfo.Description(scenario));
+            }
             GUILayout.Space(8f);
 
             if (_battle == null)
@@ -1117,6 +1124,8 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
+            SoloComboTestScenario selectedScenario = loadoutSession.SelectedTestScenario;
+
             var player = new CombatantState(
                 "Player",
                 new CombatantStats(
@@ -1126,14 +1135,20 @@ namespace SER494.Gameplay.CombatSandbox
                     attack: loadoutSession.EquippedWeapon?.WeaponAttack ?? 50,
                     defense: 50));
 
+            GetEnemyProfile(
+                selectedScenario,
+                out string enemyName,
+                out int enemyHealth,
+                out int enemyAttack,
+                out int enemyDefense);
             var enemy = new CombatantState(
-                "Training Enemy",
+                enemyName,
                 new CombatantStats(
-                    maxHealth: 100,
+                    maxHealth: enemyHealth,
                     maxMana: 0,
                     maxStamina: 0,
-                    attack: 60,
-                    defense: 60));
+                    attack: enemyAttack,
+                    defense: enemyDefense));
 
             // Temporary sandbox traits make type-specific modifier behavior visible
             // before equipment, Inherent Skills, and timed statuses own these effects.
@@ -1142,252 +1157,7 @@ namespace SER494.Gameplay.CombatSandbox
             enemy.AddDamageTakenModifier(
                 DamageModifier.ForType(DamageType.Fire, -0.20d));
 
-            var exposed = new CombatStatusDefinition(
-                "training.exposed",
-                "Exposed",
-                CombatStatusDurationType.Rounds,
-                duration: 2,
-                CombatStatusModifierDirection.DamageTaken,
-                DamageModifier.All(0.20d));
-
-            // The seeded first intent is an interactive Sustained Attack drill.
-            // combo3 evades the T1 hit but not the T3 hit, making the independent
-            // per-hit avoidance checks immediately visible in Play Mode.
-            var sustainedBarrage = new EnemyActionSequence(
-                "training.sustained-barrage-pattern",
-                "Sustained Barrage",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.twin-sweep",
-                        "Twin Sweep",
-                        timelineCost: 4,
-                        resolutionOffset: 1,
-                        damageMultiplier: 0.30d,
-                        disruptionResponseSegments: PauseOnStagger(timelineCost: 4),
-                        sustainedAttack: new SustainedAttackDefinition(
-                            windowStartOffset: 1,
-                            windowEndOffset: 3,
-                            firstHitOffset: 1,
-                            hitInterval: 2,
-                            maximumHitCount: 2))
-                });
-
-            var overcommitFeint = new EnemyActionSequence(
-                "training.overcommit-feint-pattern",
-                "Overcommit Feint",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.committed-lunge",
-                        "Committed Lunge",
-                        timelineCost: 4,
-                        resolutionOffset: 1,
-                        damageMultiplier: 0.60d,
-                        damageTags: DamageResolutionTag.Overcommit,
-                        disruptionResponseSegments: new[]
-                        {
-                            new DisruptionResponseSegmentDefinition(
-                                startOffset: 1,
-                                endOffset: 4,
-                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
-                                staggerResponse: ActionDisruptionResponse.CancelAction,
-                                knockdownResponse: ActionDisruptionResponse.CancelAction)
-                        },
-                        onEvadedDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2)),
-                    new EnemyActionDefinition(
-                        "training.feint-follow-up",
-                        "Feint Follow-up",
-                        timelineCost: 3,
-                        resolutionOffset: 3,
-                        damageMultiplier: 0.35d,
-                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
-                });
-
-            var clashDrill = new EnemyActionSequence(
-                "training.clash-drill-pattern",
-                "Clash Drill",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.clash-strike",
-                        "Clash Strike",
-                        timelineCost: 10,
-                        resolutionOffset: 9,
-                        damageMultiplier: 0.50d,
-                        onHitDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2))
-                });
-
-            var exposeClaw = new EnemyActionSequence(
-                "training.claw-pattern",
-                "Claw Pattern",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.expose",
-                        "Expose",
-                        timelineCost: 2,
-                        resolutionOffset: 2,
-                        damageMultiplier: 0d,
-                        resolutionEffect: ActionResolutionEffect.ApplyDebuff,
-                        statusEffect: exposed,
-                        statusTarget: ActionStatusTarget.Opponent),
-                    new EnemyActionDefinition(
-                        "training.claw",
-                        "Claw",
-                        timelineCost: 3,
-                        resolutionOffset: 2,
-                        damageMultiplier: 0.40d,
-                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
-                });
-
-            var recklessAssault = new EnemyActionSequence(
-                "training.reckless-assault-pattern",
-                "Reckless Assault",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.reckless-lunge",
-                        "Reckless Lunge",
-                        timelineCost: 4,
-                        resolutionOffset: 1,
-                        damageMultiplier: 0.55d,
-                        disruptionResponseSegments: new[]
-                        {
-                            new DisruptionResponseSegmentDefinition(
-                                startOffset: 1,
-                                endOffset: 4,
-                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
-                                staggerResponse: ActionDisruptionResponse.Continue,
-                                knockdownResponse: ActionDisruptionResponse.CancelAction)
-                        },
-                        onGuardedDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Flinch,
-                            duration: 2)),
-                    new EnemyActionDefinition(
-                        "training.reckless-follow-up",
-                        "Follow-up Slash",
-                        timelineCost: 3,
-                        resolutionOffset: 3,
-                        damageMultiplier: 0.35d,
-                        disruptionResponseSegments: PauseOnStagger(timelineCost: 3))
-                });
-
-            var armoredAdvance = new EnemyActionSequence(
-                "training.armored-advance-pattern",
-                "Armored Advance",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.armored-thrust",
-                        "Armored Thrust",
-                        timelineCost: 5,
-                        resolutionOffset: 5,
-                        damageMultiplier: 0.45d,
-                        activeWindows: new[]
-                        {
-                            new ActionActiveWindowDefinition(
-                                "training.armored-thrust.super-armor",
-                                "Super Armor Lv2",
-                                startOffset: 1,
-                                endOffset: 5,
-                                ActiveWindowEffect.SuperArmor,
-                                damageReduction: 0d,
-                                ActiveWindowDisruptionPolicy.PersistThroughDisruption,
-                                superArmorLevel: 2)
-                        },
-                        disruptionResponseSegments: new[]
-                        {
-                            new DisruptionResponseSegmentDefinition(
-                                startOffset: 1,
-                                endOffset: 5,
-                                flinchResponse: ActionDisruptionResponse.PauseAndResume,
-                                staggerResponse: ActionDisruptionResponse.CancelAction,
-                                knockdownResponse: ActionDisruptionResponse.CancelAction)
-                        })
-                });
-
-            var heavySwing = new EnemyActionSequence(
-                "training.heavy-swing-pattern",
-                "Heavy Swing",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.heavy-swing",
-                        "Heavy Swing",
-                        timelineCost: 5,
-                        resolutionOffset: 5,
-                        damageMultiplier: 0.65d,
-                        damageTags: DamageResolutionTag.Overcommit,
-                        activeWindows: new[]
-                        {
-                            new ActionActiveWindowDefinition(
-                                "training.heavy-guard",
-                                "Heavy Guard",
-                                startOffset: 1,
-                                endOffset: 5,
-                                ActiveWindowEffect.DefensiveState,
-                                damageReduction: 0.30d,
-                                ActiveWindowDisruptionPolicy.BreakOnDisruption)
-                        },
-                        disruptionResponseSegments: RestartOnStagger(timelineCost: 5))
-                });
-
-            var jab = new EnemyActionSequence(
-                "training.fallback-jab",
-                "Jab",
-                new[]
-                {
-                    new EnemyActionDefinition(
-                        "training.jab",
-                        "Jab",
-                        timelineCost: 3,
-                        resolutionOffset: 3,
-                        damageMultiplier: 0.30d,
-                        disruptionResponseSegments: CancelOnStagger(timelineCost: 3))
-                });
-
-            var enemyBehavior = new EnemyBehaviorTable(
-                new[]
-                {
-                    new EnemyBehaviorEntry(
-                        sustainedBarrage,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        overcommitFeint,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        clashDrill,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        recklessAssault,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        armoredAdvance,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        exposeClaw,
-                        selectionWeight: 2,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        heavySwing,
-                        selectionWeight: 1,
-                        preventImmediateRepeat: true),
-                    new EnemyBehaviorEntry(
-                        jab,
-                        selectionWeight: 2,
-                        preventImmediateRepeat: true)
-                },
-                jab);
+            EnemyBehaviorTable enemyBehavior = CreateScriptedEnemyBehavior(selectedScenario);
 
             _battle = new SoloComboBattleState(
                 player,
@@ -1395,8 +1165,8 @@ namespace SER494.Gameplay.CombatSandbox
                 combos,
                 enemyBehavior,
                 ManaRecoveryPerTurn,
-                StaminaRecoveryPerTurn,
-                enemyRandom: new System.Random(594),
+                ScriptedTrialStaminaRecoveryPerTurn,
+                enemyRandom: new System.Random(594 + (int)selectedScenario),
                 startingItems: new Dictionary<string, int>
                 {
                     { "healing-potion", 12 },
@@ -1404,9 +1174,225 @@ namespace SER494.Gameplay.CombatSandbox
                     { "vitality-tonic", 6 }
                 });
             AppendLog(
-                "Battle started. Choose a prepared Combo to preview.",
+                $"{SoloComboTestScenarioInfo.DisplayName(selectedScenario)} started against "
+                + $"{enemyName}. Choose a prepared Combo to preview.",
                 CombatLogTone.System);
             RefreshPresentation();
+        }
+
+        private static void GetEnemyProfile(
+            SoloComboTestScenario scenario,
+            out string displayName,
+            out int maximumHealth,
+            out int attack,
+            out int defense)
+        {
+            switch (scenario)
+            {
+                case SoloComboTestScenario.SwordAndShieldTrial:
+                    displayName = "Sword & Shield Training Knight";
+                    maximumHealth = 450;
+                    attack = 45;
+                    defense = 50;
+                    return;
+                case SoloComboTestScenario.GlaiveAndShieldTrial:
+                    displayName = "Glaive & Shield Training Knight";
+                    maximumHealth = 450;
+                    attack = 45;
+                    defense = 55;
+                    return;
+                default:
+                    displayName = "Greatsword Training Knight";
+                    maximumHealth = 450;
+                    attack = 45;
+                    defense = 55;
+                    return;
+            }
+        }
+
+        private static EnemyBehaviorTable CreateScriptedEnemyBehavior(
+            SoloComboTestScenario scenario)
+        {
+            switch (scenario)
+            {
+                case SoloComboTestScenario.SwordAndShieldTrial:
+                    return EnemyBehaviorTable.Scripted(CreateSwordAndShieldTrialScript());
+                case SoloComboTestScenario.GlaiveAndShieldTrial:
+                    return EnemyBehaviorTable.Scripted(CreateGlaiveAndShieldTrialScript());
+                default:
+                    return EnemyBehaviorTable.Scripted(CreateGreatswordTrialScript());
+            }
+        }
+
+        private static IReadOnlyList<EnemyActionSequence> CreateGreatswordTrialScript()
+        {
+            return new[]
+            {
+                ScriptedSequence(
+                    "training.greatsword.round-1",
+                    "R1 / Combo 1 — Charge Timing",
+                    GuardPoint("greatsword.r1.guard", "Charge Check Guard", 12),
+                    DamagePoint("greatsword.r1.pressure", "Shoulder Pressure", 6, 0.35d)),
+                ScriptedSequence(
+                    "training.greatsword.round-2",
+                    "R2 / Combo 2 — Clash then Evade",
+                    DamagePoint("greatsword.r2.clash", "Clash Strike", 13, 0.55d),
+                    DamagePoint(
+                        "greatsword.r2.overcommit",
+                        "Overcommitted Finish",
+                        10,
+                        0.45d,
+                        DamageResolutionTag.Overcommit,
+                        onEvadedDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2))),
+                ScriptedSequence(
+                    "training.greatsword.round-3",
+                    "R3 / Combo 3 — Armor and Unguardable",
+                    DamagePoint(
+                        "greatsword.r3.interrupt",
+                        "Charge Breaker",
+                        10,
+                        0.25d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2)),
+                    GuardPoint("greatsword.r3.guard", "Unguardable Check", 3),
+                    DamagePoint("greatsword.r3.buff-check", "Steadfast Check", 7, 0.40d)),
+                ScriptedSequence(
+                    "training.greatsword.round-4",
+                    "R4 / Combo 4 — Buff and Split Damage",
+                    DamagePoint("greatsword.r4.opening", "Opening Pressure", 6, 0.30d),
+                    GuardPoint("greatsword.r4.split-guard", "First Sweep Guard", 17),
+                    DamagePoint("greatsword.r4.finish", "Closing Check", 2, 0.25d))
+            };
+        }
+
+        private static IReadOnlyList<EnemyActionSequence> CreateSwordAndShieldTrialScript()
+        {
+            return new[]
+            {
+                ScriptedSequence(
+                    "training.sword-shield.round-1",
+                    "R1 / Combo 1 — Evade and Guard Chain",
+                    DamagePoint("sword-shield.r1.evade-1", "Evade Check A", 10, 0.25d),
+                    DamagePoint("sword-shield.r1.guard", "Guard Check", 2, 0.30d),
+                    DamagePoint("sword-shield.r1.evade-2", "Evade Check B", 5, 0.25d),
+                    DamagePoint("sword-shield.r1.evade-3", "Evade Check C", 5, 0.25d)),
+                ScriptedSequence(
+                    "training.sword-shield.round-2",
+                    "R2 / Combo 2 — Three Guard Points",
+                    DamagePoint("sword-shield.r2.guard-1", "Opening Guard Check", 4, 0.30d),
+                    DamagePoint("sword-shield.r2.guard-2", "Main Guard Check", 9, 0.35d),
+                    DamagePoint("sword-shield.r2.guard-3", "Closing Guard Check", 10, 0.40d)),
+                ScriptedSequence(
+                    "training.sword-shield.round-3",
+                    "R3 / Combo 3 — Airborne Split Attack",
+                    DamagePoint("sword-shield.r3.setup", "Airborne Setup Check", 10, 0.25d),
+                    GuardPoint("sword-shield.r3.guard", "First Aerial Hit Guard", 3),
+                    DamagePoint("sword-shield.r3.second-hit", "Second Aerial Hit Check", 2, 0.30d),
+                    DamagePoint("sword-shield.r3.recovery", "Breather Setup", 8, 0.25d)),
+                ScriptedSequence(
+                    "training.sword-shield.round-4",
+                    "R4 / Combo 4 — Guard QTE and Split Healing",
+                    DamagePoint("sword-shield.r4.qte-1", "Guard Window A", 14, 0.20d),
+                    DamagePoint("sword-shield.r4.qte-2", "Guard Window B", 1, 0.20d),
+                    DamagePoint("sword-shield.r4.qte-3", "Guard Window C", 1, 0.20d),
+                    DamagePoint("sword-shield.r4.wound-1", "Potion Setup A", 2, 0.35d),
+                    DamagePoint("sword-shield.r4.wound-2", "Potion Setup B", 1, 0.25d))
+            };
+        }
+
+        private static IReadOnlyList<EnemyActionSequence> CreateGlaiveAndShieldTrialScript()
+        {
+            return new[]
+            {
+                ScriptedSequence(
+                    "training.glaive-shield.round-1",
+                    "R1 / Combo 1 — Guard, Clash, Counter",
+                    DamagePoint("glaive-shield.r1.guard-1", "Opening Guard Check", 4, 0.30d),
+                    DamagePoint("glaive-shield.r1.clash", "Clash Strike", 9, 0.55d),
+                    DamagePoint("glaive-shield.r1.guard-2", "Counter Guard Check", 3, 0.30d),
+                    DamagePoint("glaive-shield.r1.evade", "Closing Evade Check", 7, 0.35d)),
+                ScriptedSequence(
+                    "training.glaive-shield.round-2",
+                    "R2 / Combo 2 — Defensive Chain and Buff",
+                    DamagePoint("glaive-shield.r2.defense-1", "Opening Defense Check", 2, 0.40d),
+                    DamagePoint("glaive-shield.r2.defense-2", "Main Defense Check", 8, 0.45d),
+                    DamagePoint("glaive-shield.r2.buff", "Empower Check", 11, 0.30d)),
+                ScriptedSequence(
+                    "training.glaive-shield.round-3",
+                    "R3 / Combo 3 — Armor, Guard, Finish",
+                    DamagePoint(
+                        "glaive-shield.r3.armor-1",
+                        "Opening Armor Check",
+                        3,
+                        0.25d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2)),
+                    DamagePoint("glaive-shield.r3.guard", "Main Guard Check", 5, 0.35d),
+                    DamagePoint(
+                        "glaive-shield.r3.armor-2",
+                        "Finisher Armor Check",
+                        13,
+                        0.30d,
+                        onHitDisruption: new ActionDisruptionDefinition(
+                            ActionDisruptionType.Stagger,
+                            duration: 2))),
+                ScriptedSequence(
+                    "training.glaive-shield.round-4",
+                    "R4 / Combo 4 — Guard QTE and Recovery",
+                    DamagePoint("glaive-shield.r4.qte-1", "Guard Window A", 6, 0.20d),
+                    DamagePoint("glaive-shield.r4.qte-2", "Guard Window B", 1, 0.20d),
+                    DamagePoint("glaive-shield.r4.qte-3", "Guard Window C", 1, 0.20d),
+                    DamagePoint("glaive-shield.r4.linked-guard", "Linked Guard Check", 10, 0.35d),
+                    DamagePoint("glaive-shield.r4.recovery", "Recovery Setup", 4, 0.25d))
+            };
+        }
+
+        private static EnemyActionSequence ScriptedSequence(
+            string sequenceId,
+            string displayName,
+            params EnemyActionDefinition[] actions)
+        {
+            return new EnemyActionSequence(sequenceId, displayName, actions);
+        }
+
+        private static EnemyActionDefinition DamagePoint(
+            string actionId,
+            string displayName,
+            int timeSincePreviousPoint,
+            double damageMultiplier,
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            ActionDisruptionDefinition onHitDisruption = null,
+            ActionDisruptionDefinition onEvadedDisruption = null)
+        {
+            return new EnemyActionDefinition(
+                actionId,
+                displayName,
+                timelineCost: timeSincePreviousPoint,
+                resolutionOffset: timeSincePreviousPoint,
+                damageMultiplier: damageMultiplier,
+                damageTags: damageTags,
+                onHitDisruption: onHitDisruption,
+                disruptionResponseSegments: PauseOnStagger(timeSincePreviousPoint),
+                onEvadedDisruption: onEvadedDisruption);
+        }
+
+        private static EnemyActionDefinition GuardPoint(
+            string actionId,
+            string displayName,
+            int timeSincePreviousPoint)
+        {
+            return new EnemyActionDefinition(
+                actionId,
+                displayName,
+                timelineCost: timeSincePreviousPoint,
+                resolutionOffset: timeSincePreviousPoint,
+                damageMultiplier: 0d,
+                resolutionEffect: ActionResolutionEffect.Guard,
+                disruptionResponseSegments: PauseOnStagger(timeSincePreviousPoint));
         }
 
         private static IReadOnlyList<DisruptionResponseSegmentDefinition> PauseOnStagger(
@@ -1681,7 +1667,7 @@ namespace SER494.Gameplay.CombatSandbox
         {
             string actor = resolution.Side == TimelineActorSide.Player
                 ? "Player"
-                : "Training Enemy";
+                : _battle.Enemy.DisplayName;
             if (!resolution.Succeeded)
             {
                     string reason =
@@ -1752,7 +1738,7 @@ namespace SER494.Gameplay.CombatSandbox
                 string recipient = resolution.StatusTarget == ActionStatusTarget.Self
                     ? actor
                     : resolution.Side == TimelineActorSide.Player
-                        ? "Training Enemy"
+                        ? _battle.Enemy.DisplayName
                         : "Player";
                 AppendLog(
                     resolution.StatusApplied
@@ -1802,7 +1788,7 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 string target = resolution.DisruptedSide == TimelineActorSide.Player
                     ? "Player"
-                    : "Training Enemy";
+                    : _battle.Enemy.DisplayName;
                 string result;
                 switch (resolution.DisruptionResponse)
                 {

@@ -164,6 +164,20 @@
     margin-top: 4px;
 }
 
+.preset-button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    margin-bottom: 8px;
+}
+
+.preset-button {
+    flex-grow: 1;
+    min-width: 220px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
 .secondary-button {
     min-width: 180px;
     min-height: 36px;

@@ -58,6 +58,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private TextField _comboNameField;
         private DropdownField _weaponField;
         private Label _weaponSummaryLabel;
+        private Button _fillGreatswordLoadoutButton;
+        private Button _fillSwordShieldLoadoutButton;
+        private Button _fillGlaiveShieldLoadoutButton;
+        private DropdownField _testScenarioField;
+        private Label _testScenarioSummaryLabel;
         private DropdownField _openingActionField;
         private DropdownField _mainActionField;
         private DropdownField _closingActionField;
@@ -71,7 +76,6 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private Label _loadoutStatusLabel;
         private Label _actionLibraryLabel;
         private Button _resetComboButton;
-        private Button _fillSampleLoadoutButton;
         private Button _startBattleButton;
 
         private List<ComboActionAsset> _openingOptions;
@@ -79,6 +83,8 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         private List<ComboActionAsset> _closingOptions;
         private List<ComboActionAsset> _linkedOptions;
         private int _selectedComboIndex;
+        private SoloComboTestScenario _selectedTestScenario =
+            SoloComboTestScenario.GreatswordTrial;
         private bool _isBound;
 
         public SoloComboLoadoutSession LoadoutSession
@@ -164,6 +170,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _comboNameField = _root.Q<TextField>("comboNameField");
             _weaponField = _root.Q<DropdownField>("weaponField");
             _weaponSummaryLabel = _root.Q<Label>("weaponSummaryLabel");
+            _fillGreatswordLoadoutButton = _root.Q<Button>("fillGreatswordLoadoutButton");
+            _fillSwordShieldLoadoutButton = _root.Q<Button>("fillSwordShieldLoadoutButton");
+            _fillGlaiveShieldLoadoutButton = _root.Q<Button>("fillGlaiveShieldLoadoutButton");
+            _testScenarioField = _root.Q<DropdownField>("testScenarioField");
+            _testScenarioSummaryLabel = _root.Q<Label>("testScenarioSummaryLabel");
             _openingActionField = _root.Q<DropdownField>("openingActionField");
             _mainActionField = _root.Q<DropdownField>("mainActionField");
             _closingActionField = _root.Q<DropdownField>("closingActionField");
@@ -177,7 +188,6 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _loadoutStatusLabel = _root.Q<Label>("loadoutStatusLabel");
             _actionLibraryLabel = _root.Q<Label>("actionLibraryLabel");
             _resetComboButton = _root.Q<Button>("resetComboButton");
-            _fillSampleLoadoutButton = _root.Q<Button>("fillSampleLoadoutButton");
             _startBattleButton = _root.Q<Button>("startBattleButton");
 
             if (!HasRequiredElements())
@@ -187,6 +197,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             }
 
             BuildWeaponOptions();
+            BuildTestScenarioOptions();
             BuildActionOptions();
             RegisterCallbacks();
             _isBound = true;
@@ -213,7 +224,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _linkedActionField.UnregisterValueChangedCallback(OnLinkedActionChanged);
             _linkedPlacementField.UnregisterValueChangedCallback(OnLinkedPlacementChanged);
             _resetComboButton.clicked -= ResetCurrentCombo;
-            _fillSampleLoadoutButton.clicked -= FillSampleLoadout;
+            _fillGreatswordLoadoutButton.clicked -= FillGreatswordLoadout;
+            _fillSwordShieldLoadoutButton.clicked -= FillSwordShieldLoadout;
+            _fillGlaiveShieldLoadoutButton.clicked -= FillGlaiveShieldLoadout;
+            _testScenarioField.UnregisterValueChangedCallback(OnTestScenarioChanged);
             _startBattleButton.clicked -= StartTestBattle;
             _isBound = false;
         }
@@ -231,6 +245,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             return _comboNameField != null
                 && _weaponField != null
                 && _weaponSummaryLabel != null
+                && _fillGreatswordLoadoutButton != null
+                && _fillSwordShieldLoadoutButton != null
+                && _fillGlaiveShieldLoadoutButton != null
+                && _testScenarioField != null
+                && _testScenarioSummaryLabel != null
                 && _openingActionField != null
                 && _mainActionField != null
                 && _closingActionField != null
@@ -244,7 +263,6 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 && _loadoutStatusLabel != null
                 && _actionLibraryLabel != null
                 && _resetComboButton != null
-                && _fillSampleLoadoutButton != null
                 && _startBattleButton != null;
         }
 
@@ -298,6 +316,18 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             RefreshWeaponSummary();
         }
 
+        private void BuildTestScenarioOptions()
+        {
+            _testScenarioField.choices = new List<string>
+            {
+                ScenarioLabel(SoloComboTestScenario.GreatswordTrial),
+                ScenarioLabel(SoloComboTestScenario.SwordAndShieldTrial),
+                ScenarioLabel(SoloComboTestScenario.GlaiveAndShieldTrial)
+            };
+            _testScenarioField.SetValueWithoutNotify(ScenarioLabel(_selectedTestScenario));
+            RefreshTestScenarioSummary();
+        }
+
         private List<ComboActionAsset> BuildOptions(ComboActionCategory category)
         {
             var options = new List<ComboActionAsset> { null };
@@ -331,7 +361,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _linkedActionField.RegisterValueChangedCallback(OnLinkedActionChanged);
             _linkedPlacementField.RegisterValueChangedCallback(OnLinkedPlacementChanged);
             _resetComboButton.clicked += ResetCurrentCombo;
-            _fillSampleLoadoutButton.clicked += FillSampleLoadout;
+            _fillGreatswordLoadoutButton.clicked += FillGreatswordLoadout;
+            _fillSwordShieldLoadoutButton.clicked += FillSwordShieldLoadout;
+            _fillGlaiveShieldLoadoutButton.clicked += FillGlaiveShieldLoadout;
+            _testScenarioField.RegisterValueChangedCallback(OnTestScenarioChanged);
             _startBattleButton.clicked += StartTestBattle;
         }
 
@@ -352,6 +385,12 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             RefreshActionLibrary();
             RefreshWeaponSummary();
             RefreshSummaryAndValidation();
+        }
+
+        private void OnTestScenarioChanged(ChangeEvent<string> changeEvent)
+        {
+            _selectedTestScenario = ParseScenario(changeEvent.newValue);
+            RefreshTestScenarioSummary();
         }
 
         private void RemoveIncompatibleDraftActions()
@@ -441,23 +480,32 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             RefreshSummaryAndValidation();
         }
 
-        private void FillSampleLoadout()
+        private void FillGreatswordLoadout() =>
+            FillWeaponShowcaseLoadout(WeaponType.Greatsword);
+
+        private void FillSwordShieldLoadout() =>
+            FillWeaponShowcaseLoadout(WeaponType.SwordAndShield);
+
+        private void FillGlaiveShieldLoadout() =>
+            FillWeaponShowcaseLoadout(WeaponType.GlaiveAndShield);
+
+        private void FillWeaponShowcaseLoadout(WeaponType weaponType)
         {
-            string[,] presetActionIds =
+            WeaponDefinitionAsset presetWeapon = FindWeaponOption(weaponType);
+            if (presetWeapon == null)
             {
-                { "common.opening.roll", "common.main.focused-guard-1", "common.closing.use-healing-potion", "common.linked.breather-1" },
-                { "common.opening.use-healing-potion", "common.main.focused-guard-2", "common.closing.roll", "common.linked.jump" },
-                { "common.opening.defensive-stance", "common.main.use-greater-healing-potion", "common.closing.breather-1", "common.linked.focused-guard" },
-                { "common.opening.use-vitality-tonic", "common.main.defensive-stance", "common.closing.use-vitality-tonic", "common.linked.use-healing-potion" }
-            };
+                string weaponMessage = $"Quick Fill could not find a {weaponType} Weapon asset.";
+                SetStatus(_loadoutStatusLabel, $"Loadout: {weaponMessage}", isValid: false);
+                _startBattleButton.SetEnabled(false);
+                Debug.LogError(weaponMessage, this);
+                return;
+            }
+
+            GetWeaponShowcasePreset(
+                weaponType,
+                out string[,] presetActionIds,
+                out LinkedActionPlacement[] linkedPlacements);
             var presetActions = new ComboActionAsset[ComboCount, 4];
-            var linkedPlacements = new[]
-            {
-                LinkedActionPlacement.AfterMain,
-                LinkedActionPlacement.AfterMain,
-                LinkedActionPlacement.AfterOpening,
-                LinkedActionPlacement.AfterMain
-            };
 
             for (int comboIndex = 0; comboIndex < ComboCount; comboIndex++)
             {
@@ -473,7 +521,9 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     presetActions[comboIndex, slotIndex] = FindAvailableAction(actionId);
                     if (presetActions[comboIndex, slotIndex] == null)
                     {
-                        string message = $"Quick Fill requires the common Action '{actionId}'. Create Common Actions and repair the Combo Builder prototype scene.";
+                        string message = $"Quick Fill requires Action '{actionId}'. "
+                            + "Synchronize the physical/common Action assets and repair the "
+                            + "Combo Builder prototype scene.";
                         SetStatus(_loadoutStatusLabel, $"Loadout: {message}", isValid: false);
                         _startBattleButton.SetEnabled(false);
                         Debug.LogError(message, this);
@@ -481,6 +531,11 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     }
                 }
             }
+
+            equippedWeapon = presetWeapon;
+            _weaponField.SetValueWithoutNotify(WeaponOptionLabel(equippedWeapon));
+            BuildActionOptions();
+            RefreshWeaponSummary();
 
             for (int comboIndex = 0; comboIndex < ComboCount; comboIndex++)
             {
@@ -496,6 +551,51 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             RefreshTabs();
             RefreshEditorFields();
             RefreshSummaryAndValidation();
+        }
+
+        private static void GetWeaponShowcasePreset(
+            WeaponType weaponType,
+            out string[,] actionIds,
+            out LinkedActionPlacement[] linkedPlacements)
+        {
+            linkedPlacements = new[]
+            {
+                LinkedActionPlacement.AfterMain,
+                LinkedActionPlacement.AfterMain,
+                LinkedActionPlacement.AfterClosing,
+                LinkedActionPlacement.AfterMain
+            };
+
+            switch (weaponType)
+            {
+                case WeaponType.SwordAndShield:
+                    actionIds = new[,]
+                    {
+                        { "sword-and-shield.opening.guarded-advance", "sword-and-shield.main.fourfold-turning-slash", "sword-and-shield.closing.spinning-uppercut", "sword-and-shield.linked.turning-backhand-slash" },
+                        { "sword-and-shield.opening.restraining-slash", "sword-and-shield.main.sword-shield-combo", "sword-and-shield.closing.double-turning-slash", "sword-and-shield.linked.double-slash" },
+                        { "sword-and-shield.opening.advancing-slash", "sword-and-shield.main.rising-slash", "sword-and-shield.closing.aerial-shield-bash", "common.linked.breather-1" },
+                        { "sword-and-shield.opening.horizontal-slash", "sword-and-shield.main.sword-shield-assault", "common.closing.use-healing-potion", "common.linked.focused-guard" }
+                    };
+                    return;
+                case WeaponType.GlaiveAndShield:
+                    actionIds = new[,]
+                    {
+                        { "glaive-and-shield.opening.restraining-slash", "glaive-and-shield.main.flying-round-slash", "glaive-and-shield.closing.turning-back-thrust", "glaive-and-shield.linked.counter-thrust" },
+                        { "glaive-and-shield.opening.guarded-thrust", "glaive-and-shield.main.guarded-chain-slash", "glaive-and-shield.closing.empowered-double-slash", "glaive-and-shield.linked.bash" },
+                        { "glaive-and-shield.opening.leaping-slash", "glaive-and-shield.main.rising-slash-chain", "glaive-and-shield.closing.flying-round-slash", "glaive-and-shield.linked.double-slash" },
+                        { "glaive-and-shield.opening.bash", "common.main.focused-guard-1", "common.closing.breather-2", "glaive-and-shield.linked.restraining-slash" }
+                    };
+                    return;
+                default:
+                    actionIds = new[,]
+                    {
+                        { "greatsword.opening.quick-draw-slash", "greatsword.main.charged-slash", "greatsword.closing.empowered-sheathe", "greatsword.linked.shoulder-tackle" },
+                        { "greatsword.opening.leaping-sweep", "greatsword.main.clash-slash", "greatsword.closing.sidestep-sheathe", "greatsword.linked.guarding-charge" },
+                        { "greatsword.opening.sweeping-slash", "greatsword.main.strong-charged-slash", "greatsword.closing.steadfast-slash", "common.linked.breather-1" },
+                        { "common.opening.use-vitality-tonic", "greatsword.main.vertical-slash", "greatsword.closing.double-sweep", "greatsword.linked.vertical-slash" }
+                    };
+                    return;
+            }
         }
 
         private void StartTestBattle()
@@ -531,7 +631,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                 return;
             }
 
-            loadoutSession.Prepare(configurations, weaponDefinition);
+            loadoutSession.Prepare(
+                configurations,
+                weaponDefinition,
+                _selectedTestScenario);
             SceneManager.LoadScene(CombatSceneName);
         }
 
@@ -744,6 +847,18 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _weaponSummaryLabel.text = definition == null
                 ? "Legacy mode: no Weapon data assigned; all compatible Actions are shown."
                 : $"{definition.DisplayName} — {definition.WeaponType} | Weapon ATK {definition.WeaponAttack}";
+        }
+
+        private void RefreshTestScenarioSummary()
+        {
+            if (_testScenarioSummaryLabel == null)
+            {
+                return;
+            }
+
+            _testScenarioSummaryLabel.text =
+                $"{SoloComboTestScenarioInfo.DisplayName(_selectedTestScenario)} — "
+                + SoloComboTestScenarioInfo.Description(_selectedTestScenario);
         }
 
         private void RefreshActionLibrary()
@@ -998,9 +1113,43 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             return null;
         }
 
+        private WeaponDefinitionAsset FindWeaponOption(WeaponType weaponType)
+        {
+            for (int index = 0; index < availableWeapons.Length; index++)
+            {
+                WeaponDefinitionAsset weapon = availableWeapons[index];
+                if (weapon != null && weapon.WeaponType == weaponType)
+                {
+                    return weapon;
+                }
+            }
+
+            return null;
+        }
+
         private static string WeaponOptionLabel(WeaponDefinitionAsset weapon)
         {
             return $"{weapon.DisplayName} [{weapon.WeaponType}]";
+        }
+
+        private static string ScenarioLabel(SoloComboTestScenario scenario)
+        {
+            return SoloComboTestScenarioInfo.DisplayName(scenario);
+        }
+
+        private static SoloComboTestScenario ParseScenario(string label)
+        {
+            if (label == ScenarioLabel(SoloComboTestScenario.SwordAndShieldTrial))
+            {
+                return SoloComboTestScenario.SwordAndShieldTrial;
+            }
+
+            if (label == ScenarioLabel(SoloComboTestScenario.GlaiveAndShieldTrial))
+            {
+                return SoloComboTestScenario.GlaiveAndShieldTrial;
+            }
+
+            return SoloComboTestScenario.GreatswordTrial;
         }
 
         private static string FormatCompatibleWeapons(CompatibleWeaponTypes compatibleWeapons)

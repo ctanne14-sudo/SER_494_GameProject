@@ -22,6 +22,18 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement class="section-card">
+                    <ui:Label text="Play Mode Test Setup" class="section-title" />
+                    <ui:Label text="Choose a weapon showcase loadout, then independently choose the encounter used to test it." class="library-text" />
+                    <ui:VisualElement class="preset-button-row">
+                        <ui:Button name="fillGreatswordLoadoutButton" text="Quick Fill: Greatsword" class="secondary-button preset-button" />
+                        <ui:Button name="fillSwordShieldLoadoutButton" text="Quick Fill: Sword &amp; Shield" class="secondary-button preset-button" />
+                        <ui:Button name="fillGlaiveShieldLoadoutButton" text="Quick Fill: Glaive &amp; Shield" class="secondary-button preset-button" />
+                    </ui:VisualElement>
+                    <ui:DropdownField name="testScenarioField" label="Test Scenario" class="combo-field" />
+                    <ui:Label name="testScenarioSummaryLabel" text="Select a Test Scenario." class="library-text" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="section-card">
                     <ui:Label text="Combo Identity" class="section-title" />
                     <ui:TextField name="comboNameField" label="Combo Name" class="combo-field" />
                 </ui:VisualElement>
@@ -58,7 +70,6 @@
 
                 <ui:VisualElement class="button-row">
                     <ui:Button name="resetComboButton" text="Reset Current Combo" class="secondary-button" />
-                    <ui:Button name="fillSampleLoadoutButton" text="Fill Valid Sample Loadout" class="secondary-button spaced-button" />
                     <ui:Button name="startBattleButton" text="Start Test Battle" class="primary-button" />
                 </ui:VisualElement>
             </ui:ScrollView>

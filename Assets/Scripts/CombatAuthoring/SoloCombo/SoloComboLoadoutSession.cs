@@ -6,6 +6,42 @@ using UnityEngine;
 
 namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 {
+    public enum SoloComboTestScenario
+    {
+        GreatswordTrial,
+        SwordAndShieldTrial,
+        GlaiveAndShieldTrial
+    }
+
+    public static class SoloComboTestScenarioInfo
+    {
+        public static string DisplayName(SoloComboTestScenario scenario)
+        {
+            switch (scenario)
+            {
+                case SoloComboTestScenario.SwordAndShieldTrial:
+                    return "Sword & Shield Trial";
+                case SoloComboTestScenario.GlaiveAndShieldTrial:
+                    return "Glaive & Shield Trial";
+                default:
+                    return "Greatsword Trial";
+            }
+        }
+
+        public static string Description(SoloComboTestScenario scenario)
+        {
+            switch (scenario)
+            {
+                case SoloComboTestScenario.SwordAndShieldTrial:
+                    return "Four scripted rounds for Guard, Evade, airborne setup, multi-hit, and split healing. Stamina refills between rounds.";
+                case SoloComboTestScenario.GlaiveAndShieldTrial:
+                    return "Four scripted rounds for Clash, Guard windows, defense, Buffs, and split recovery. Stamina refills between rounds.";
+                default:
+                    return "Four scripted rounds for Charge, Clash, Super Armor, Buffs, and split damage. Stamina refills between rounds.";
+            }
+        }
+    }
+
     [CreateAssetMenu(
         fileName = "SoloComboLoadoutSession",
         menuName = "SER494/Solo Combo/Runtime Loadout Session")]
@@ -17,9 +53,15 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [NonSerialized]
         private WeaponDefinition _equippedWeapon;
 
+        [NonSerialized]
+        private SoloComboTestScenario _selectedTestScenario =
+            SoloComboTestScenario.GreatswordTrial;
+
         public bool HasPreparedLoadout => _preparedCombos != null && _preparedCombos.Length > 0;
 
         public WeaponDefinition EquippedWeapon => _equippedWeapon;
+
+        public SoloComboTestScenario SelectedTestScenario => _selectedTestScenario;
 
         public void Prepare(IReadOnlyList<ComboConfiguration> combos)
         {
@@ -29,6 +71,17 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         public void Prepare(
             IReadOnlyList<ComboConfiguration> combos,
             WeaponDefinition equippedWeapon)
+        {
+            Prepare(
+                combos,
+                equippedWeapon,
+                SoloComboTestScenario.GreatswordTrial);
+        }
+
+        public void Prepare(
+            IReadOnlyList<ComboConfiguration> combos,
+            WeaponDefinition equippedWeapon,
+            SoloComboTestScenario selectedTestScenario)
         {
             if (combos == null)
             {
@@ -49,6 +102,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
             _preparedCombos = copy;
             _equippedWeapon = equippedWeapon;
+            _selectedTestScenario = selectedTestScenario;
         }
 
         public bool TryGetPreparedLoadout(out IReadOnlyList<ComboConfiguration> combos)
@@ -61,6 +115,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         {
             _preparedCombos = null;
             _equippedWeapon = null;
+            _selectedTestScenario = SoloComboTestScenario.GreatswordTrial;
         }
     }
 }

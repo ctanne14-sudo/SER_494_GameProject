@@ -60,6 +60,34 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(_session.EquippedWeapon, Is.SameAs(weapon));
         }
 
+        [Test]
+        public void Prepare_WithScenario_PreservesSelectedTestScenario()
+        {
+            _session.Prepare(
+                new[] { MainOnlyCombo() },
+                equippedWeapon: null,
+                SoloComboTestScenario.GlaiveAndShieldTrial);
+
+            Assert.That(
+                _session.SelectedTestScenario,
+                Is.EqualTo(SoloComboTestScenario.GlaiveAndShieldTrial));
+        }
+
+        [Test]
+        public void Clear_RestoresDefaultTestScenario()
+        {
+            _session.Prepare(
+                new[] { MainOnlyCombo() },
+                equippedWeapon: null,
+                SoloComboTestScenario.SwordAndShieldTrial);
+
+            _session.Clear();
+
+            Assert.That(
+                _session.SelectedTestScenario,
+                Is.EqualTo(SoloComboTestScenario.GreatswordTrial));
+        }
+
         private static ComboConfiguration MainOnlyCombo()
         {
             var main = new ComboActionDefinition(
