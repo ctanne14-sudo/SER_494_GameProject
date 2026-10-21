@@ -117,51 +117,22 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
         {
             Undo.RecordObject(controller, "Assign Solo Combo Loadout Session");
             controller.LoadoutSession = loadoutSession;
-
-            var serializedController = new SerializedObject(controller);
-            SerializedProperty actionArray = serializedController.FindProperty("availableActions");
-            actionArray.arraySize = sampleActions.Length;
-            SerializedProperty weaponArray = serializedController.FindProperty("availableWeapons");
-            weaponArray.arraySize = sampleWeapons.Length;
-
-            // Persist array resizing before assigning references. Unity can otherwise retain the
-            // new size while discarding most object references when an existing scene array grows.
-            serializedController.ApplyModifiedPropertiesWithoutUndo();
-            serializedController.Update();
-
-            actionArray = serializedController.FindProperty("availableActions");
-            for (int index = 0; index < sampleActions.Length; index++)
-            {
-                actionArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleActions[index];
-            }
-
-            weaponArray = serializedController.FindProperty("availableWeapons");
-            for (int index = 0; index < sampleWeapons.Length; index++)
-            {
-                weaponArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleWeapons[index];
-            }
+            controller.ConfigureAvailableContent(sampleActions, sampleWeapons);
 
             WeaponDefinitionAsset defaultWeapon = FindWeapon(
                 sampleWeapons,
                 "weapon.sword-and-shield");
-            serializedController.FindProperty("equippedWeapon").objectReferenceValue =
+            controller.EquippedWeapon =
                 defaultWeapon ?? (sampleWeapons.Length > 0 ? sampleWeapons[0] : null);
 
-            serializedController.ApplyModifiedPropertiesWithoutUndo();
-            serializedController.Update();
-
-            if (!HasAllReferences(
-                    serializedController.FindProperty("availableActions"),
-                    sampleActions.Length))
+            if (!HasAllReferences(controller.AvailableActions, sampleActions.Length))
             {
                 Debug.LogError(
                     "Failed to assign every physical/common Action asset to "
                     + "SoloComboBuilderController.");
             }
 
-            if (!HasAllReferences(
-                    serializedController.FindProperty("availableWeapons"),
-                    sampleWeapons.Length))
+            if (!HasAllReferences(controller.AvailableWeapons, sampleWeapons.Length))
             {
                 Debug.LogError(
                     "Failed to assign every Weapon asset to SoloComboBuilderController.");
@@ -175,18 +146,19 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             }
         }
 
-        private static bool HasAllReferences(
-            SerializedProperty array,
+        private static bool HasAllReferences<T>(
+            IReadOnlyList<T> assets,
             int expectedCount)
+            where T : UnityEngine.Object
         {
-            if (array == null || array.arraySize != expectedCount)
+            if (assets == null || assets.Count != expectedCount)
             {
                 return false;
             }
 
-            for (int index = 0; index < array.arraySize; index++)
+            for (int index = 0; index < assets.Count; index++)
             {
-                if (array.GetArrayElementAtIndex(index).objectReferenceValue == null)
+                if (assets[index] == null)
                 {
                     return false;
                 }

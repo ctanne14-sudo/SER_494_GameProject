@@ -93,6 +93,28 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             set => equippedWeapon = value;
         }
 
+        public IReadOnlyList<ComboActionAsset> AvailableActions => availableActions;
+
+        public IReadOnlyList<WeaponDefinitionAsset> AvailableWeapons => availableWeapons;
+
+        public void ConfigureAvailableContent(
+            ComboActionAsset[] actions,
+            WeaponDefinitionAsset[] weapons)
+        {
+            if (actions == null)
+            {
+                throw new ArgumentNullException(nameof(actions));
+            }
+
+            if (weapons == null)
+            {
+                throw new ArgumentNullException(nameof(weapons));
+            }
+
+            availableActions = (ComboActionAsset[])actions.Clone();
+            availableWeapons = (WeaponDefinitionAsset[])weapons.Clone();
+        }
+
         private void Awake()
         {
             for (int index = 0; index < _drafts.Length; index++)
