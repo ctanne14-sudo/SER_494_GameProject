@@ -59,6 +59,23 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int sequenceIndex,
             int selectedTime)
         {
+            ScheduledTimelineAction action = FindAction(schedule, side, sequenceIndex);
+            int resolutionEventIndex = FindFirstResolutionWindowIndex(action);
+            return SelectResolutionTime(
+                schedule,
+                side,
+                sequenceIndex,
+                resolutionEventIndex,
+                selectedTime);
+        }
+
+        public static InitialTimelineSchedule SelectResolutionTime(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex,
+            int resolutionEventIndex,
+            int selectedTime)
+        {
             if (schedule == null)
             {
                 throw new ArgumentNullException(nameof(schedule));
@@ -71,9 +88,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ScheduledTimelineAction action = schedule.Actions[index];
                 if (action.Side == side && action.SequenceIndex == sequenceIndex)
                 {
-                    if (!action.HasResolutionWindow
-                        || selectedTime < action.ResolutionWindowStartTime.Value
-                        || selectedTime > action.ResolutionWindowEndTime.Value)
+                    if (resolutionEventIndex < 0
+                        || resolutionEventIndex >= action.ResolutionEvents.Count)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(resolutionEventIndex));
+                    }
+
+                    ScheduledResolutionEvent selectedEvent =
+                        action.ResolutionEvents[resolutionEventIndex];
+                    if (!selectedEvent.HasResolutionWindow
+                        || selectedTime < selectedEvent.ResolutionWindowStartTime.Value
+                        || selectedTime > selectedEvent.ResolutionWindowEndTime.Value)
                     {
                         throw new ArgumentOutOfRangeException(nameof(selectedTime));
                     }
@@ -107,10 +132,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         onEvadedDisruption: action.OnEvadedDisruption,
                         resolutionEvents: TransformResolutionEvents(
                             action.ResolutionEvents,
-                            (time, resolutionIndex) => resolutionIndex == 0
+                            (time, index) => index == resolutionEventIndex
                                 ? selectedTime
                                 : time,
-                            damageScale: 1d));
+                            damageScale: 1d,
+                            clearResolutionWindowIndex: resolutionEventIndex));
                     replaced = true;
                 }
 
@@ -123,6 +149,41 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return CreateSchedule(actions, schedule.CompletionTime);
+        }
+
+        private static ScheduledTimelineAction FindAction(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            int sequenceIndex)
+        {
+            if (schedule == null)
+            {
+                throw new ArgumentNullException(nameof(schedule));
+            }
+
+            for (int index = 0; index < schedule.Actions.Count; index++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[index];
+                if (action.Side == side && action.SequenceIndex == sequenceIndex)
+                {
+                    return action;
+                }
+            }
+
+            throw new ArgumentException("The requested scheduled Action was not found.");
+        }
+
+        private static int FindFirstResolutionWindowIndex(ScheduledTimelineAction action)
+        {
+            for (int index = 0; index < action.ResolutionEvents.Count; index++)
+            {
+                if (action.ResolutionEvents[index].HasResolutionWindow)
+                {
+                    return index;
+                }
+            }
+
+            throw new ArgumentException("The requested Resolution Window was not found.");
         }
 
         public static InitialTimelineSchedule ApplyChargeLevel(
@@ -581,7 +642,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         currentTime,
                         definition.ResolutionOffset),
                     resolutionEvents: definition.SustainedAttack == null
-                        ? ScheduleResolutionEvents(definition.ResolutionEvents, currentTime)
+                        ? ScheduleResolutionEvents(
+                            definition.ResolutionEvents,
+                            currentTime,
+                            definition.ResolutionWindowStart,
+                            definition.ResolutionWindowEnd)
                         : null));
                 currentTime = endTime;
             }
@@ -928,12 +993,24 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         private static IReadOnlyList<ScheduledResolutionEvent> ScheduleResolutionEvents(
             IReadOnlyList<ActionResolutionDefinition> definitions,
-            int actionStartTime)
+            int actionStartTime,
+            int? legacyPrimaryWindowStart = null,
+            int? legacyPrimaryWindowEnd = null)
         {
             var scheduled = new ScheduledResolutionEvent[definitions.Count];
             for (int index = 0; index < definitions.Count; index++)
             {
                 ActionResolutionDefinition definition = definitions[index];
+                int? eventWindowStart = definition.ResolutionWindowStart.HasValue
+                    ? (int?)checked(actionStartTime + definition.ResolutionWindowStart.Value)
+                    : index == 0 && legacyPrimaryWindowStart.HasValue
+                        ? (int?)checked(actionStartTime + legacyPrimaryWindowStart.Value)
+                        : null;
+                int? eventWindowEnd = definition.ResolutionWindowEnd.HasValue
+                    ? (int?)checked(actionStartTime + definition.ResolutionWindowEnd.Value)
+                    : index == 0 && legacyPrimaryWindowEnd.HasValue
+                        ? (int?)checked(actionStartTime + legacyPrimaryWindowEnd.Value)
+                        : null;
                 scheduled[index] = new ScheduledResolutionEvent(
                     checked(actionStartTime + definition.Offset),
                     definition.DamageEffect,
@@ -947,7 +1024,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     definition.OnEvadedDisruption,
                     healingAmount: 0,
                     itemCost: definition.ItemCost,
-                    healing: definition.Healing);
+                    healing: definition.Healing,
+                    staminaRecovery: definition.StaminaRecovery,
+                    resolutionWindowStartTime: eventWindowStart,
+                    resolutionWindowEndTime: eventWindowEnd);
             }
 
             return Array.AsReadOnly(scheduled);
@@ -980,12 +1060,27 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private static IReadOnlyList<ScheduledResolutionEvent> TransformResolutionEvents(
             IReadOnlyList<ScheduledResolutionEvent> source,
             Func<int, int, int> transformTime,
-            double damageScale)
+            double damageScale,
+            int? clearResolutionWindowIndex = null)
         {
             var transformed = new ScheduledResolutionEvent[source.Count];
             for (int index = 0; index < source.Count; index++)
             {
                 ScheduledResolutionEvent resolution = source[index];
+                int? eventWindowStart = clearResolutionWindowIndex == index
+                    ? (int?)null
+                    : resolution.ResolutionWindowStartTime.HasValue
+                        ? (int?)transformTime(
+                            resolution.ResolutionWindowStartTime.Value,
+                            index)
+                        : null;
+                int? eventWindowEnd = clearResolutionWindowIndex == index
+                    ? (int?)null
+                    : resolution.ResolutionWindowEndTime.HasValue
+                        ? (int?)transformTime(
+                            resolution.ResolutionWindowEndTime.Value,
+                            index)
+                        : null;
                 transformed[index] = new ScheduledResolutionEvent(
                     transformTime(resolution.Time, index),
                     ScaleDamageEffect(resolution.DamageEffect, damageScale),
@@ -999,7 +1094,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     resolution.OnEvadedDisruption,
                     healingAmount: 0,
                     itemCost: resolution.ItemCost,
-                    healing: resolution.Healing);
+                    healing: resolution.Healing,
+                    staminaRecovery: resolution.StaminaRecovery,
+                    resolutionWindowStartTime: eventWindowStart,
+                    resolutionWindowEndTime: eventWindowEnd);
             }
 
             return Array.AsReadOnly(transformed);

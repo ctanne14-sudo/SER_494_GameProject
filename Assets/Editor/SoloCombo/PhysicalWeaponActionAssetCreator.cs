@@ -18,6 +18,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
         private const string GreatswordFolder = WeaponActionsFolder + "/Greatsword";
         private const string SwordAndShieldFolder = WeaponActionsFolder + "/SwordAndShield";
         private const string GlaiveAndShieldFolder = WeaponActionsFolder + "/GlaiveAndShield";
+        private const string CommonFolder = WeaponActionsFolder + "/Common";
         private const string AirborneSetupStatusId = "sequence.airborne-setup";
         private const string AirborneSetupDisplayName = "Airborne Setup";
 
@@ -43,6 +44,12 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 GlaiveAndShieldFolder,
                 "Glaive and Shield",
                 GlaiveAndShieldSpecifications());
+        }
+
+        [MenuItem("Tools/SER494/Create Physical Weapon Actions/Common")]
+        public static void CreateCommonActions()
+        {
+            CreateActions(CommonFolder, "Common", CommonSpecifications());
         }
 
         private static void CreateActions(
@@ -907,6 +914,227 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             };
         }
 
+        private static ActionSpec[] CommonSpecifications()
+        {
+            const CompatibleWeaponTypes weapons = CompatibleWeaponTypes.All;
+            return new[]
+            {
+                new ActionSpec(
+                    "Common_Roll_O", "common.opening.roll", "Roll [O]",
+                    ComboActionCategory.Opening, 3, 2, weapons,
+                    new[] { ResolutionSpec.Simple(2, ActionResolutionEffect.Evade) }),
+                new ActionSpec(
+                    "Common_UseHealingPotion_O", "common.opening.use-healing-potion",
+                    "Use Healing Potion [O]", ComboActionCategory.Opening, 7, 0, weapons,
+                    HealingPotion(3, 0.25f, 6, 0.10f)),
+                new ActionSpec(
+                    "Common_DefensiveStance_O", "common.opening.defensive-stance",
+                    "Defensive Stance [O]", ComboActionCategory.Opening, 6, 5, weapons,
+                    NoResolution(),
+                    activeWindows: FullActionDefense(
+                        "common.opening.defensive-stance", "Defensive Stance", 6, 0.30f)),
+                new ActionSpec(
+                    "Common_Prepare_O", "common.opening.prepare", "Prepare [O]",
+                    ComboActionCategory.Opening, 4, 0, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.Buff(
+                            3, "common.prepare.damage", "Prepared: Damage +10%", 30,
+                            CombatStatusModifierDirection.DamageDealt,
+                            DamageModifierScope.All, DamageType.Slashing, 0.10f,
+                            CombatStatusStackingPolicy.IndependentInstances)
+                    }),
+                new ActionSpec(
+                    "Common_UseVitalityTonic_O", "common.opening.use-vitality-tonic",
+                    "Use Vitality Tonic [O]", ComboActionCategory.Opening, 7, 0, weapons,
+                    VitalityTonic(6, 5)),
+
+                new ActionSpec(
+                    "Common_UseHealingPotion_M", "common.main.use-healing-potion",
+                    "Use Healing Potion [M]", ComboActionCategory.Main, 10, 0, weapons,
+                    HealingPotion(3, 0.30f, 6, 0.10f, 8, 0.10f)),
+                new ActionSpec(
+                    "Common_DefensiveStance_M", "common.main.defensive-stance",
+                    "Defensive Stance [M]", ComboActionCategory.Main, 8, 5, weapons,
+                    NoResolution(),
+                    activeWindows: FullActionDefense(
+                        "common.main.defensive-stance", "Defensive Stance", 8, 0.30f)),
+                new ActionSpec(
+                    "Common_UseGreaterHealingPotion_M",
+                    "common.main.use-greater-healing-potion",
+                    "Use Greater Healing Potion [M]", ComboActionCategory.Main, 10, 0, weapons,
+                    GreaterHealingPotion()),
+                new ActionSpec(
+                    "Common_FocusedGuardI_M", "common.main.focused-guard-1",
+                    "Focused Guard I [M]", ComboActionCategory.Main, 9, 4, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.GuardWindow(1, 3),
+                        ResolutionSpec.GuardWindow(6, 8)
+                    }),
+                new ActionSpec(
+                    "Common_FocusedGuardII_M", "common.main.focused-guard-2",
+                    "Focused Guard II [M]", ComboActionCategory.Main, 9, 4, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.GuardWindow(2, 4),
+                        ResolutionSpec.GuardWindow(7, 9)
+                    }),
+                new ActionSpec(
+                    "Common_UseVitalityTonic_M", "common.main.use-vitality-tonic",
+                    "Use Vitality Tonic [M]", ComboActionCategory.Main, 10, 0, weapons,
+                    VitalityTonic(6, 5, 10, 5)),
+
+                new ActionSpec(
+                    "Common_UseHealingPotion_C", "common.closing.use-healing-potion",
+                    "Use Healing Potion [C]", ComboActionCategory.Closing, 7, 0, weapons,
+                    HealingPotion(3, 0.25f, 6, 0.10f)),
+                new ActionSpec(
+                    "Common_BackstepJump_C", "common.closing.backstep-jump",
+                    "Backstep Jump [C]", ComboActionCategory.Closing, 4, 2, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.Simple(2, ActionResolutionEffect.Evade),
+                        ResolutionSpec.StatusSetup(
+                            4, AirborneSetupStatusId, AirborneSetupDisplayName)
+                    }),
+                new ActionSpec(
+                    "Common_Roll_C", "common.closing.roll", "Roll [C]",
+                    ComboActionCategory.Closing, 3, 2, weapons,
+                    new[] { ResolutionSpec.Simple(2, ActionResolutionEffect.Evade) }),
+                new ActionSpec(
+                    "Common_BreatherI_C", "common.closing.breather-1", "Breather I [C]",
+                    ComboActionCategory.Closing, 6, 0, weapons,
+                    StaminaRecoveryEvents(2, 9, 4, 3, 6, 3)),
+                new ActionSpec(
+                    "Common_BreatherII_C", "common.closing.breather-2", "Breather II [C]",
+                    ComboActionCategory.Closing, 7, 0, weapons,
+                    StaminaRecoveryEvents(2, 11, 5, 3, 7, 3)),
+                new ActionSpec(
+                    "Common_BreatherIII_C", "common.closing.breather-3", "Breather III [C]",
+                    ComboActionCategory.Closing, 8, 0, weapons,
+                    StaminaRecoveryEvents(2, 14, 6, 3, 8, 3)),
+                new ActionSpec(
+                    "Common_UseVitalityTonic_C", "common.closing.use-vitality-tonic",
+                    "Use Vitality Tonic [C]", ComboActionCategory.Closing, 7, 0, weapons,
+                    VitalityTonic(6, 5)),
+
+                new ActionSpec(
+                    "Common_FocusedGuard_L", "common.linked.focused-guard",
+                    "Focused Guard [L]", ComboActionCategory.Linked, 5, 3, weapons,
+                    new[] { ResolutionSpec.GuardWindow(2, 4) }),
+                new ActionSpec(
+                    "Common_UseHealingPotion_L", "common.linked.use-healing-potion",
+                    "Use Healing Potion [L]", ComboActionCategory.Linked, 5, 0, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.HealMaximumHealth(
+                            3, 0.20f, "healing-potion", "Healing Potion")
+                    }),
+                new ActionSpec(
+                    "Common_Jump_L", "common.linked.jump", "Jump [L]",
+                    ComboActionCategory.Linked, 2, 1, weapons,
+                    new[]
+                    {
+                        ResolutionSpec.StatusSetup(
+                            2, AirborneSetupStatusId, AirborneSetupDisplayName)
+                    }),
+                new ActionSpec(
+                    "Common_BreatherI_L", "common.linked.breather-1", "Breather I [L]",
+                    ComboActionCategory.Linked, 4, 0, weapons,
+                    StaminaRecoveryEvents(2, 5, 4, 3)),
+                new ActionSpec(
+                    "Common_UseVitalityTonic_L", "common.linked.use-vitality-tonic",
+                    "Use Vitality Tonic [L]", ComboActionCategory.Linked, 5, 0, weapons,
+                    VitalityTonic())
+            };
+        }
+
+        private static ResolutionSpec[] NoResolution()
+        {
+            return new[] { ResolutionSpec.Simple(0, ActionResolutionEffect.None) };
+        }
+
+        private static ActiveWindowSpec[] FullActionDefense(
+            string id,
+            string displayName,
+            int timelineCost,
+            float reduction)
+        {
+            return new[]
+            {
+                ActiveWindowSpec.Defense(id, displayName, 1, timelineCost, reduction)
+            };
+        }
+
+        private static ResolutionSpec[] HealingPotion(
+            int firstOffset,
+            float firstPercentage,
+            int secondOffset,
+            float secondPercentage,
+            int? thirdOffset = null,
+            float thirdPercentage = 0f)
+        {
+            var events = new List<ResolutionSpec>
+            {
+                ResolutionSpec.HealMaximumHealth(
+                    firstOffset, firstPercentage, "healing-potion", "Healing Potion"),
+                ResolutionSpec.HealMaximumHealth(secondOffset, secondPercentage)
+            };
+            if (thirdOffset.HasValue)
+            {
+                events.Add(ResolutionSpec.HealMaximumHealth(
+                    thirdOffset.Value, thirdPercentage));
+            }
+
+            return events.ToArray();
+        }
+
+        private static ResolutionSpec[] GreaterHealingPotion()
+        {
+            return new[]
+            {
+                ResolutionSpec.HealMaximumHealth(
+                    3, 0.60f, "greater-healing-potion", "Greater Healing Potion"),
+                ResolutionSpec.HealMaximumHealth(6, 0.20f),
+                ResolutionSpec.HealMaximumHealth(8, 0.20f)
+            };
+        }
+
+        private static ResolutionSpec[] VitalityTonic(params int[] recoveryOffsetAmounts)
+        {
+            var events = new List<ResolutionSpec>
+            {
+                ResolutionSpec.StaminaRecoveryBuff(
+                    2,
+                    "common.vitality-tonic.stamina-recovery",
+                    "Vitality Tonic: Base Stamina Recovery +50%",
+                    "vitality-tonic",
+                    "Vitality Tonic")
+            };
+            for (int index = 0; index < recoveryOffsetAmounts.Length; index += 2)
+            {
+                events.Add(ResolutionSpec.RestoreStamina(
+                    recoveryOffsetAmounts[index],
+                    recoveryOffsetAmounts[index + 1]));
+            }
+
+            return events.ToArray();
+        }
+
+        private static ResolutionSpec[] StaminaRecoveryEvents(params int[] offsetAmounts)
+        {
+            var events = new ResolutionSpec[offsetAmounts.Length / 2];
+            for (int index = 0; index < events.Length; index++)
+            {
+                events[index] = ResolutionSpec.RestoreStamina(
+                    offsetAmounts[index * 2],
+                    offsetAmounts[(index * 2) + 1]);
+            }
+
+            return events;
+        }
+
         private static ResolutionSpec[] DamageOnly(
             int offset,
             float multiplier,
@@ -1093,19 +1321,32 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 element.FindPropertyRelative("damageTags").intValue =
                     (int)specification.DamageTags;
                 element.FindPropertyRelative("healingType").enumValueIndex =
-                    (int)ActionHealingType.FlatAmount;
-                element.FindPropertyRelative("healingAmount").intValue = 0;
-                element.FindPropertyRelative("maximumHealthHealingPercentage").floatValue = 0f;
-                element.FindPropertyRelative("consumedItemId").stringValue = string.Empty;
-                element.FindPropertyRelative("consumedItemDisplayName").stringValue = string.Empty;
-                element.FindPropertyRelative("consumedItemAmount").intValue = 0;
+                    (int)specification.HealingType;
+                element.FindPropertyRelative("healingAmount").intValue =
+                    specification.HealingAmount;
+                element.FindPropertyRelative("maximumHealthHealingPercentage").floatValue =
+                    specification.MaximumHealthHealingPercentage;
+                element.FindPropertyRelative("staminaRecovery").intValue =
+                    specification.StaminaRecovery;
+                element.FindPropertyRelative("useResolutionWindow").boolValue =
+                    specification.ResolutionWindowStart.HasValue;
+                element.FindPropertyRelative("resolutionWindowStart").intValue =
+                    specification.ResolutionWindowStart ?? specification.Offset;
+                element.FindPropertyRelative("resolutionWindowEnd").intValue =
+                    specification.ResolutionWindowEnd ?? specification.Offset;
+                element.FindPropertyRelative("consumedItemId").stringValue =
+                    specification.ConsumedItemId;
+                element.FindPropertyRelative("consumedItemDisplayName").stringValue =
+                    specification.ConsumedItemDisplayName;
+                element.FindPropertyRelative("consumedItemAmount").intValue =
+                    specification.ConsumedItemAmount;
                 element.FindPropertyRelative("statusId").stringValue = specification.StatusId;
                 element.FindPropertyRelative("statusDisplayName").stringValue =
                     specification.StatusDisplayName;
                 element.FindPropertyRelative("statusTarget").enumValueIndex =
-                    (int)ActionStatusTarget.Self;
+                    (int)specification.StatusTarget;
                 element.FindPropertyRelative("statusDurationType").enumValueIndex =
-                    (int)CombatStatusDurationType.TimeSteps;
+                    (int)specification.StatusDurationType;
                 element.FindPropertyRelative("statusDuration").intValue = specification.StatusDuration;
                 element.FindPropertyRelative("statusModifierDirection").enumValueIndex =
                     (int)specification.ModifierDirection;
@@ -1119,6 +1360,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     specification.ModifierAmount;
                 element.FindPropertyRelative("statusStackingPolicy").enumValueIndex =
                     (int)specification.StackingPolicy;
+                element.FindPropertyRelative("statusStaminaRecoveryMultiplierBonus").floatValue =
+                    specification.StatusStaminaRecoveryMultiplierBonus;
                 element.FindPropertyRelative("clashDamageReduction").floatValue =
                     specification.ClashDamageReduction;
                 element.FindPropertyRelative("clashSuperArmorLevel").intValue =
@@ -1274,7 +1517,20 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 DamageModifierScope modifierScope,
                 DamageType modifierType,
                 float modifierAmount,
-                CombatStatusStackingPolicy stackingPolicy)
+                CombatStatusStackingPolicy stackingPolicy,
+                ActionHealingType healingType = ActionHealingType.FlatAmount,
+                int healingAmount = 0,
+                float maximumHealthHealingPercentage = 0f,
+                int staminaRecovery = 0,
+                string consumedItemId = null,
+                string consumedItemDisplayName = null,
+                int consumedItemAmount = 0,
+                ActionStatusTarget statusTarget = ActionStatusTarget.Self,
+                CombatStatusDurationType statusDurationType =
+                    CombatStatusDurationType.TimeSteps,
+                float statusStaminaRecoveryMultiplierBonus = 0f,
+                int? resolutionWindowStart = null,
+                int? resolutionWindowEnd = null)
             {
                 Offset = offset;
                 Effect = effect;
@@ -1292,6 +1548,19 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 ModifierType = modifierType;
                 ModifierAmount = modifierAmount;
                 StackingPolicy = stackingPolicy;
+                HealingType = healingType;
+                HealingAmount = healingAmount;
+                MaximumHealthHealingPercentage = maximumHealthHealingPercentage;
+                StaminaRecovery = staminaRecovery;
+                ConsumedItemId = consumedItemId ?? string.Empty;
+                ConsumedItemDisplayName = consumedItemDisplayName ?? string.Empty;
+                ConsumedItemAmount = consumedItemAmount;
+                StatusTarget = statusTarget;
+                StatusDurationType = statusDurationType;
+                StatusStaminaRecoveryMultiplierBonus =
+                    statusStaminaRecoveryMultiplierBonus;
+                ResolutionWindowStart = resolutionWindowStart;
+                ResolutionWindowEnd = resolutionWindowEnd;
             }
 
             public static ResolutionSpec Damage(
@@ -1343,6 +1612,81 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     CombatStatusStackingPolicy.RefreshDuration);
             }
 
+            public static ResolutionSpec GuardWindow(int start, int end)
+            {
+                return new ResolutionSpec(
+                    start,
+                    ActionResolutionEffect.Guard,
+                    0f,
+                    DamageType.Slashing,
+                    DamageResolutionTag.None,
+                    null,
+                    0f,
+                    0,
+                    null,
+                    null,
+                    1,
+                    CombatStatusModifierDirection.DamageDealt,
+                    DamageModifierScope.All,
+                    DamageType.Slashing,
+                    0f,
+                    CombatStatusStackingPolicy.RefreshDuration,
+                    resolutionWindowStart: start,
+                    resolutionWindowEnd: end);
+            }
+
+            public static ResolutionSpec HealMaximumHealth(
+                int offset,
+                float percentage,
+                string consumedItemId = null,
+                string consumedItemDisplayName = null)
+            {
+                return new ResolutionSpec(
+                    offset,
+                    ActionResolutionEffect.Heal,
+                    0f,
+                    DamageType.Slashing,
+                    DamageResolutionTag.None,
+                    null,
+                    0f,
+                    0,
+                    null,
+                    null,
+                    1,
+                    CombatStatusModifierDirection.DamageDealt,
+                    DamageModifierScope.All,
+                    DamageType.Slashing,
+                    0f,
+                    CombatStatusStackingPolicy.RefreshDuration,
+                    healingType: ActionHealingType.MaximumHealthPercentage,
+                    maximumHealthHealingPercentage: percentage,
+                    consumedItemId: consumedItemId,
+                    consumedItemDisplayName: consumedItemDisplayName,
+                    consumedItemAmount: string.IsNullOrWhiteSpace(consumedItemId) ? 0 : 1);
+            }
+
+            public static ResolutionSpec RestoreStamina(int offset, int amount)
+            {
+                return new ResolutionSpec(
+                    offset,
+                    ActionResolutionEffect.RestoreStamina,
+                    0f,
+                    DamageType.Slashing,
+                    DamageResolutionTag.None,
+                    null,
+                    0f,
+                    0,
+                    null,
+                    null,
+                    1,
+                    CombatStatusModifierDirection.DamageDealt,
+                    DamageModifierScope.All,
+                    DamageType.Slashing,
+                    0f,
+                    CombatStatusStackingPolicy.RefreshDuration,
+                    staminaRecovery: amount);
+            }
+
             public static ResolutionSpec Buff(
                 int offset,
                 string statusId,
@@ -1372,6 +1716,37 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     modifierType,
                     modifierAmount,
                     stackingPolicy);
+            }
+
+            public static ResolutionSpec StaminaRecoveryBuff(
+                int offset,
+                string statusId,
+                string displayName,
+                string consumedItemId,
+                string consumedItemDisplayName)
+            {
+                return new ResolutionSpec(
+                    offset,
+                    ActionResolutionEffect.ApplyBuff,
+                    0f,
+                    DamageType.Slashing,
+                    DamageResolutionTag.None,
+                    null,
+                    0f,
+                    0,
+                    statusId,
+                    displayName,
+                    2,
+                    CombatStatusModifierDirection.DamageDealt,
+                    DamageModifierScope.All,
+                    DamageType.Slashing,
+                    0f,
+                    CombatStatusStackingPolicy.IndependentInstances,
+                    consumedItemId: consumedItemId,
+                    consumedItemDisplayName: consumedItemDisplayName,
+                    consumedItemAmount: 1,
+                    statusDurationType: CombatStatusDurationType.Rounds,
+                    statusStaminaRecoveryMultiplierBonus: 0.50f);
             }
 
             public static ResolutionSpec StatusSetup(
@@ -1406,6 +1781,18 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             public DamageType ModifierType { get; }
             public float ModifierAmount { get; }
             public CombatStatusStackingPolicy StackingPolicy { get; }
+            public ActionHealingType HealingType { get; }
+            public int HealingAmount { get; }
+            public float MaximumHealthHealingPercentage { get; }
+            public int StaminaRecovery { get; }
+            public string ConsumedItemId { get; }
+            public string ConsumedItemDisplayName { get; }
+            public int ConsumedItemAmount { get; }
+            public ActionStatusTarget StatusTarget { get; }
+            public CombatStatusDurationType StatusDurationType { get; }
+            public float StatusStaminaRecoveryMultiplierBonus { get; }
+            public int? ResolutionWindowStart { get; }
+            public int? ResolutionWindowEnd { get; }
         }
 
         private sealed class ChargeLevelSpec

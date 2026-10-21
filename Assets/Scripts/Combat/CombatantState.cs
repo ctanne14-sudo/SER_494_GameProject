@@ -208,6 +208,19 @@ namespace SER494.Gameplay.Combat
             CurrentStamina = Restore(CurrentStamina, amount, Stats.MaxStamina);
         }
 
+        public double GetStaminaRecoveryMultiplier()
+        {
+            double multiplier = 1d;
+            for (int index = 0; index < _activeStatuses.Count; index++)
+            {
+                multiplier += _activeStatuses[index]
+                    .Definition
+                    .StaminaRecoveryMultiplierBonus;
+            }
+
+            return multiplier;
+        }
+
         internal void Pay(int manaCost, int staminaCost)
         {
             if (!CanPay(manaCost, staminaCost))

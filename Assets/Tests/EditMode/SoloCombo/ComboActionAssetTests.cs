@@ -850,6 +850,57 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.ResolutionEvents[1].Offset, Is.EqualTo(6));
         }
 
+        [Test]
+        public void ResolutionEventAuthoring_SupportsStaminaRecoveryAndIndependentWindows()
+        {
+            ConfigureAsset(
+                "focused-breather",
+                "Focused Breather [M]",
+                ComboActionCategory.Main,
+                timelineCost: 8,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.None,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            SerializedProperty events = serializedAsset.FindProperty("resolutionEvents");
+            events.arraySize = 2;
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(0),
+                offset: 2,
+                effect: ActionResolutionEffect.Guard,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing);
+            events.GetArrayElementAtIndex(0)
+                .FindPropertyRelative("useResolutionWindow").boolValue = true;
+            events.GetArrayElementAtIndex(0)
+                .FindPropertyRelative("resolutionWindowStart").intValue = 2;
+            events.GetArrayElementAtIndex(0)
+                .FindPropertyRelative("resolutionWindowEnd").intValue = 4;
+            ConfigureResolutionEvent(
+                events.GetArrayElementAtIndex(1),
+                offset: 6,
+                effect: ActionResolutionEffect.RestoreStamina,
+                damageMultiplier: 0f,
+                damageType: DamageType.Slashing);
+            events.GetArrayElementAtIndex(1)
+                .FindPropertyRelative("staminaRecovery").intValue = 5;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(definition.ResolutionEvents[0].ResolutionWindowStart, Is.EqualTo(2));
+            Assert.That(definition.ResolutionEvents[0].ResolutionWindowEnd, Is.EqualTo(4));
+            Assert.That(definition.ResolutionEvents[1].StaminaRecovery, Is.EqualTo(5));
+        }
+
         private void ConfigureAsset(
             string actionId,
             string displayName,

@@ -979,6 +979,7 @@ namespace SER494.Gameplay.CombatSandbox
                     return new Color(0.25f, 0.65f, 0.95f, 0.9f);
                 case ActionResolutionEffect.ApplyBuff:
                 case ActionResolutionEffect.Heal:
+                case ActionResolutionEffect.RestoreStamina:
                     return new Color(0.25f, 0.80f, 0.35f, 0.9f);
                 case ActionResolutionEffect.ApplyDebuff:
                     return new Color(0.70f, 0.30f, 0.85f, 0.9f);
@@ -1395,7 +1396,13 @@ namespace SER494.Gameplay.CombatSandbox
                 enemyBehavior,
                 ManaRecoveryPerTurn,
                 StaminaRecoveryPerTurn,
-                enemyRandom: new System.Random(594));
+                enemyRandom: new System.Random(594),
+                startingItems: new Dictionary<string, int>
+                {
+                    { "healing-potion", 12 },
+                    { "greater-healing-potion", 4 },
+                    { "vitality-tonic", 6 }
+                });
             AppendLog(
                 "Battle started. Choose a prepared Combo to preview.",
                 CombatLogTone.System);
@@ -1727,6 +1734,15 @@ namespace SER494.Gameplay.CombatSandbox
                 AppendLog(
                     $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} restored "
                     + $"{resolution.HealingDone} HP.{itemConsumption}",
+                    resolution.Side == TimelineActorSide.Player
+                        ? CombatLogTone.Player
+                        : CombatLogTone.Enemy);
+            }
+            else if (resolution.ResolutionEffect == ActionResolutionEffect.RestoreStamina)
+            {
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {actor} {resolution.DisplayName} restored "
+                    + $"{resolution.StaminaRestored} Stamina.",
                     resolution.Side == TimelineActorSide.Player
                         ? CombatLogTone.Player
                         : CombatLogTone.Enemy);

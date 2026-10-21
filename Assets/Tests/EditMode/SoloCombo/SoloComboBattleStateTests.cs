@@ -310,6 +310,153 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void AdvanceTimeline_TwoEventWindows_RequestTwoIndependentInputs()
+        {
+            var focusedGuard = new ComboActionDefinition(
+                "focused-guard",
+                "Focused Guard I [M]",
+                ComboActionCategory.Main,
+                timelineCost: 9,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        1,
+                        ActionResolutionEffect.Guard,
+                        resolutionWindowStart: 1,
+                        resolutionWindowEnd: 3),
+                    new ActionResolutionDefinition(
+                        6,
+                        ActionResolutionEffect.Guard,
+                        resolutionWindowStart: 6,
+                        resolutionWindowEnd: 8)
+                });
+            SoloComboBattleState battle = CreatePassiveBattle(
+                new[] { MainOnlyConfiguration("focused", focusedGuard) },
+                playerStamina: 14,
+                maximumStamina: 14,
+                staminaRecoveryPerTurn: 0);
+
+            Assert.That(battle.BeginCombo(0), Is.EqualTo(SoloComboExecutionFailure.None));
+            SoloComboTimelineAdvanceResult firstRequest = battle.AdvanceTimeline();
+            Assert.That(firstRequest.RequiresTimingInput, Is.True);
+            Assert.That(firstRequest.TimingRequest.ResolutionEventIndex, Is.Zero);
+            battle.SelectResolutionPoint(3);
+            SoloComboTimelineAdvanceResult secondRequest = null;
+            while (battle.IsTimelineResolving && secondRequest == null)
+            {
+                SoloComboTimelineAdvanceResult advance = battle.AdvanceTimeline();
+                if (advance.RequiresTimingInput)
+                {
+                    secondRequest = advance;
+                }
+            }
+
+            Assert.That(secondRequest, Is.Not.Null);
+            Assert.That(secondRequest.TimingRequest.ResolutionEventIndex, Is.EqualTo(1));
+            Assert.That(secondRequest.TimingRequest.MinimumTimeStep, Is.EqualTo(6));
+            Assert.That(secondRequest.TimingRequest.MaximumTimeStep, Is.EqualTo(8));
+        }
+
+        [Test]
+        public void ExecuteCombo_RestoreStaminaEventsResolveAtAuthoredTimesAndCapAtMaximum()
+        {
+            var breather = new ComboActionDefinition(
+                "breather",
+                "Breather I [C]",
+                ComboActionCategory.Main,
+                timelineCost: 4,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.RestoreStamina,
+                        staminaRecovery: 5),
+                    new ActionResolutionDefinition(
+                        4,
+                        ActionResolutionEffect.RestoreStamina,
+                        staminaRecovery: 3)
+                });
+            SoloComboBattleState battle = CreatePassiveBattle(
+                new[] { MainOnlyConfiguration("breather", breather) },
+                playerStamina: 4,
+                maximumStamina: 10,
+                staminaRecoveryPerTurn: 0);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(
+                result.ActionResolutions
+                    .Where(item => item.ResolutionEffect == ActionResolutionEffect.RestoreStamina)
+                    .Select(item => (item.TimeStep, item.StaminaRestored)),
+                Is.EqualTo(new[] { (2, 5), (4, 1) }));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void VitalityTonicBuff_AffectsCurrentAndNextRoundThenExpires()
+        {
+            var vitality = new CombatStatusDefinition(
+                "vitality",
+                "Vitality Tonic",
+                CombatStatusDurationType.Rounds,
+                duration: 2,
+                CombatStatusModifierDirection.DamageDealt,
+                DamageModifier.All(0d),
+                CombatStatusStackingPolicy.IndependentInstances,
+                staminaRecoveryMultiplierBonus: 0.50d);
+            var tonic = new ComboActionDefinition(
+                "tonic",
+                "Use Vitality Tonic [M]",
+                ComboActionCategory.Main,
+                timelineCost: 2,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        2,
+                        ActionResolutionEffect.ApplyBuff,
+                        statusEffect: vitality)
+                });
+            var wait = new ComboActionDefinition(
+                "plain",
+                "Plain [M]",
+                ComboActionCategory.Main,
+                timelineCost: 1,
+                manaCost: 0,
+                staminaCost: 0,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(1, ActionResolutionEffect.None)
+                });
+            SoloComboBattleState battle = CreatePassiveBattle(
+                new[]
+                {
+                    MainOnlyConfiguration("tonic", tonic),
+                    MainOnlyConfiguration("plain", wait)
+                },
+                playerStamina: 0,
+                maximumStamina: 30,
+                staminaRecoveryPerTurn: 3);
+
+            battle.ExecuteCombo(0);
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(5));
+            battle.ExecuteCombo(1);
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(10));
+            battle.ExecuteCombo(1);
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(13));
+        }
+
+        [Test]
         public void AdvanceTimeline_ChargeableActionPausesBeforeBaseResolutionPoint()
         {
             SoloComboBattleState battle = CreateBattleWithChargeAction();
@@ -2383,6 +2530,40 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 closingAction: null,
                 linkedAction: null,
                 linkedActionPlacement: null);
+        }
+
+        private static ComboConfiguration MainOnlyConfiguration(
+            string name,
+            ComboActionDefinition main)
+        {
+            return new ComboConfiguration(
+                name,
+                openingAction: null,
+                mainAction: main,
+                closingAction: null,
+                linkedAction: null,
+                linkedActionPlacement: null);
+        }
+
+        private static SoloComboBattleState CreatePassiveBattle(
+            ComboConfiguration[] combos,
+            int playerStamina,
+            int maximumStamina,
+            int staminaRecoveryPerTurn)
+        {
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 30, maximumStamina, 50, 50));
+            player.Pay(manaCost: 0, staminaCost: maximumStamina - playerStamina);
+            return new SoloComboBattleState(
+                player,
+                new CombatantState(
+                    "Training Enemy",
+                    new CombatantStats(100, 0, 0, 60, 60)),
+                combos,
+                PassiveEnemySequence(),
+                manaRecoveryPerTurn: 0,
+                staminaRecoveryPerTurn: staminaRecoveryPerTurn);
         }
 
         private static ComboActionDefinition Action(

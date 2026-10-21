@@ -18,7 +18,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
         private const string PanelSettingsPath = "Assets/UI/SoloCombo/ComboBuilderPanelSettings.asset";
         private const string LoadoutSessionPath = "Assets/GameData/SoloCombo/SoloComboLoadoutSession.asset";
         private const string VisualTreePath = "Assets/UI/SoloCombo/SoloComboBuilder.uxml";
-        private const string SampleActionFolder = "Assets/GameData/SoloCombo/SampleActions";
+        private const string WeaponActionFolder =
+            "Assets/GameData/SoloCombo/WeaponActions";
 
         [MenuItem("Tools/SER494/Create Combo Builder Prototype Scene")]
         public static void CreatePrototypeScene()
@@ -45,7 +46,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 return;
             }
 
-            ComboActionAsset[] sampleActions = LoadSampleActions();
+            ComboActionAsset[] availableActions = LoadAvailableActions();
             WeaponDefinitionAsset[] sampleWeapons =
                 SampleWeaponAssetCreator.SynchronizeSampleWeapons();
 
@@ -67,7 +68,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             SoloComboBuilderController controller =
                 GetOrAddComponent<SoloComboBuilderController>(builderObject);
-            ConfigureController(controller, sampleActions, sampleWeapons, loadoutSession);
+            ConfigureController(controller, availableActions, sampleWeapons, loadoutSession);
             EnsureCamera(scene);
 
             if (document.panelSettings == null)
@@ -92,7 +93,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             EditorGUIUtility.PingObject(builderObject);
             Debug.Log(
                 $"Created or repaired Combo Builder prototype scene at {ScenePath} with "
-                + $"{sampleActions.Length} sample Action asset(s) and "
+                + $"{availableActions.Length} physical/common Action asset(s) and "
                 + $"{sampleWeapons.Length} Weapon asset(s).");
         }
 
@@ -120,14 +121,21 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             var serializedController = new SerializedObject(controller);
             SerializedProperty actionArray = serializedController.FindProperty("availableActions");
             actionArray.arraySize = sampleActions.Length;
+            SerializedProperty weaponArray = serializedController.FindProperty("availableWeapons");
+            weaponArray.arraySize = sampleWeapons.Length;
 
+            // Persist array resizing before assigning references. Unity can otherwise retain the
+            // new size while discarding most object references when an existing scene array grows.
+            serializedController.ApplyModifiedPropertiesWithoutUndo();
+            serializedController.Update();
+
+            actionArray = serializedController.FindProperty("availableActions");
             for (int index = 0; index < sampleActions.Length; index++)
             {
                 actionArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleActions[index];
             }
 
-            SerializedProperty weaponArray = serializedController.FindProperty("availableWeapons");
-            weaponArray.arraySize = sampleWeapons.Length;
+            weaponArray = serializedController.FindProperty("availableWeapons");
             for (int index = 0; index < sampleWeapons.Length; index++)
             {
                 weaponArray.GetArrayElementAtIndex(index).objectReferenceValue = sampleWeapons[index];
@@ -140,12 +148,51 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 defaultWeapon ?? (sampleWeapons.Length > 0 ? sampleWeapons[0] : null);
 
             serializedController.ApplyModifiedPropertiesWithoutUndo();
+            serializedController.Update();
+
+            if (!HasAllReferences(
+                    serializedController.FindProperty("availableActions"),
+                    sampleActions.Length))
+            {
+                Debug.LogError(
+                    "Failed to assign every physical/common Action asset to "
+                    + "SoloComboBuilderController.");
+            }
+
+            if (!HasAllReferences(
+                    serializedController.FindProperty("availableWeapons"),
+                    sampleWeapons.Length))
+            {
+                Debug.LogError(
+                    "Failed to assign every Weapon asset to SoloComboBuilderController.");
+            }
+
             EditorUtility.SetDirty(controller);
 
             if (controller.LoadoutSession == null)
             {
                 Debug.LogError("Failed to assign the runtime loadout session to SoloComboBuilderController.");
             }
+        }
+
+        private static bool HasAllReferences(
+            SerializedProperty array,
+            int expectedCount)
+        {
+            if (array == null || array.arraySize != expectedCount)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < array.arraySize; index++)
+            {
+                if (array.GetArrayElementAtIndex(index).objectReferenceValue == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static WeaponDefinitionAsset FindWeapon(
@@ -328,9 +375,11 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
             return AssetDatabase.LoadAssetAtPath<SoloComboLoadoutSession>(LoadoutSessionPath);
         }
 
-        private static ComboActionAsset[] LoadSampleActions()
+        private static ComboActionAsset[] LoadAvailableActions()
         {
-            string[] guids = AssetDatabase.FindAssets("t:ComboActionAsset", new[] { SampleActionFolder });
+            string[] guids = AssetDatabase.FindAssets(
+                "t:ComboActionAsset",
+                new[] { WeaponActionFolder });
             var actions = new List<ComboActionAsset>(guids.Length);
 
             for (int index = 0; index < guids.Length; index++)
@@ -343,7 +392,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                 }
                 else
                 {
-                    Debug.LogWarning($"Could not load sample Combo Action at {assetPath}.");
+                    Debug.LogWarning($"Could not load Combo Action at {assetPath}.");
                 }
             }
 

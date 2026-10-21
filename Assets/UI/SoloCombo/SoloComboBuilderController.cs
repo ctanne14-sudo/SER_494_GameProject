@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Authoring.Weapons;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using UnityEngine;
@@ -421,10 +423,10 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
         {
             string[,] presetActionIds =
             {
-                { "sample.focus-stance", "sample.arcane-slash", "sample.backstep", "sample.flame-echo" },
-                { "sample.quick-guard", "sample.guard-breaker", "sample.guarded-retreat", "sample.ward-echo" },
-                { "sample.sidestep", "sample.ice-lance", "sample.parting-slash", "sample.vanish-step" },
-                { "sample.ember-primer", "sample.precise-shot", "sample.steady-finish", "sample.spark-echo" }
+                { "common.opening.roll", "common.main.focused-guard-1", "common.closing.use-healing-potion", "common.linked.breather-1" },
+                { "common.opening.use-healing-potion", "common.main.focused-guard-2", "common.closing.roll", "common.linked.jump" },
+                { "common.opening.defensive-stance", "common.main.use-greater-healing-potion", "common.closing.breather-1", "common.linked.focused-guard" },
+                { "common.opening.use-vitality-tonic", "common.main.defensive-stance", "common.closing.use-vitality-tonic", "common.linked.use-healing-potion" }
             };
             var presetActions = new ComboActionAsset[ComboCount, 4];
             var linkedPlacements = new[]
@@ -449,7 +451,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     presetActions[comboIndex, slotIndex] = FindAvailableAction(actionId);
                     if (presetActions[comboIndex, slotIndex] == null)
                     {
-                        string message = $"Quick Fill requires the sample Action '{actionId}'. Repair the Combo Builder prototype scene.";
+                        string message = $"Quick Fill requires the common Action '{actionId}'. Create Common Actions and repair the Combo Builder prototype scene.";
                         SetStatus(_loadoutStatusLabel, $"Loadout: {message}", isValid: false);
                         _startBattleButton.SetEnabled(false);
                         Debug.LogError(message, this);
@@ -751,75 +753,29 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     .Append(" | CD ")
                     .Append(action.Cooldown)
                     .Append(" | Weapons ")
-                    .Append(FormatCompatibleWeapons(action.CompatibleWeaponTypes))
-                    .Append(action.UsesSustainedAttack
-                        ? " | Sustained Hits — Local T+"
-                        : action.UsesResolutionWindow
-                        ? " | Resolution Window — Local T+"
-                        : " | Resolution Point — Local T+")
-                    .Append(action.UsesSustainedAttack
-                        ? $"{action.SustainedFirstHitOffset}–{action.SustainedWindowEndOffset}"
-                            + $" every {action.SustainedHitInterval} (max {action.SustainedMaximumHitCount})"
-                        : action.UsesResolutionWindow
-                        ? $"{action.ResolutionWindowStart}–{action.ResolutionWindowEnd}"
-                        : action.ResolutionOffset.ToString())
-                    .Append(": ")
-                    .Append(action.ResolutionEffect);
-                if (action.ResolutionEffect == ActionResolutionEffect.Damage)
+                    .Append(FormatCompatibleWeapons(action.CompatibleWeaponTypes));
+                if (action.UsesSustainedAttack)
                 {
-                    builder.Append(" (")
-                        .Append(action.DamageType)
-                        .Append(" x")
-                        .Append(action.DamageMultiplier.ToString("0.00"));
-                    if (action.DamageTags != DamageResolutionTag.None)
-                    {
-                        builder.Append(" | Tags: ")
-                            .Append(action.DamageTags);
-                    }
-
-                    builder.Append(')');
-                    if (action.AppliesOnHitDisruption)
-                    {
-                        builder.Append(" | On Hit: ")
-                            .Append(action.OnHitDisruptionType)
-                            .Append(" for ")
-                            .Append(action.OnHitDisruptionDuration)
-                            .Append(" Time Steps");
-                    }
-
-                    if (action.AppliesOnGuardedDisruption)
-                    {
-                        builder.Append(" | On Guarded: self-")
-                            .Append(action.OnGuardedDisruptionType)
-                            .Append(" for ")
-                            .Append(action.OnGuardedDisruptionDuration)
-                            .Append(" Time Steps");
-                    }
-
-                    if (action.AppliesOnEvadedDisruption)
-                    {
-                        builder.Append(" | On Evaded: self-")
-                            .Append(action.OnEvadedDisruptionType)
-                            .Append(" for ")
-                            .Append(action.OnEvadedDisruptionDuration)
-                            .Append(" Time Steps");
-                    }
-
-                    if ((action.DamageTags & DamageResolutionTag.Clash) != 0)
-                    {
-                        builder.Append(" | Clash: -")
-                            .Append((action.ClashDamageReduction * 100f).ToString("0"))
-                            .Append("% incoming Damage");
-                        if (action.ClashSuperArmorLevel > 0)
-                        {
-                            builder.Append(" | Super Armor Lv")
-                                .Append(action.ClashSuperArmorLevel);
-                        }
-                    }
+                    builder.Append(" | Sustained Hits — Local T+")
+                        .Append(action.SustainedFirstHitOffset)
+                        .Append('–')
+                        .Append(action.SustainedWindowEndOffset)
+                        .Append(" every ")
+                        .Append(action.SustainedHitInterval)
+                        .Append(" (max ")
+                        .Append(action.SustainedMaximumHitCount)
+                        .Append(')');
                 }
-                else if (action.ResolutionEffect == ActionResolutionEffect.None)
+
+                if (action.TryCreateDefinition(
+                        out ComboActionDefinition definition,
+                        out string validationError))
                 {
-                    builder.Append(" (no Damage / Guard / Evade prototype effect)");
+                    AppendResolutionEventSummary(builder, definition.ResolutionEvents);
+                }
+                else
+                {
+                    builder.Append(" | Invalid: ").Append(validationError);
                 }
 
                 if (action.ChargeLevelCount > 0)
@@ -868,6 +824,101 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             _actionLibraryLabel.text = builder.Length == 0
                 ? "No Actions assigned to the builder."
                 : builder.ToString();
+        }
+
+        private static void AppendResolutionEventSummary(
+            StringBuilder builder,
+            IReadOnlyList<ActionResolutionDefinition> resolutions)
+        {
+            bool wroteHeading = false;
+            for (int index = 0; index < resolutions.Count; index++)
+            {
+                ActionResolutionDefinition resolution = resolutions[index];
+                if (resolution.Effect == ActionResolutionEffect.None)
+                {
+                    continue;
+                }
+
+                builder.Append(wroteHeading ? "; " : " | Events: ");
+                wroteHeading = true;
+                if (resolution.HasResolutionWindow)
+                {
+                    builder.Append("T")
+                        .Append(resolution.ResolutionWindowStart)
+                        .Append('–')
+                        .Append(resolution.ResolutionWindowEnd)
+                        .Append(" QTE (default T")
+                        .Append(resolution.Offset)
+                        .Append(") ");
+                }
+                else
+                {
+                    builder.Append('T').Append(resolution.Offset).Append(' ');
+                }
+
+                builder.Append(resolution.Effect);
+                if (resolution.DamageEffect != null)
+                {
+                    builder.Append(" (");
+                    for (int componentIndex = 0;
+                        componentIndex < resolution.DamageEffect.Components.Count;
+                        componentIndex++)
+                    {
+                        if (componentIndex > 0)
+                        {
+                            builder.Append(" + ");
+                        }
+
+                        DamageComponentDefinition component =
+                            resolution.DamageEffect.Components[componentIndex];
+                        builder.Append(component.Type)
+                            .Append(" x")
+                            .Append(component.ActionMultiplier.ToString("0.00"));
+                    }
+
+                    if (resolution.DamageTags != DamageResolutionTag.None)
+                    {
+                        builder.Append(" | ").Append(resolution.DamageTags);
+                    }
+
+                    builder.Append(')');
+                }
+                else if (resolution.Healing != null)
+                {
+                    builder.Append(" (")
+                        .Append(resolution.Healing.Type == ActionHealingType.FlatAmount
+                            ? resolution.Healing.Value.ToString("0")
+                            : $"{resolution.Healing.Value * 100d:0}% Max HP")
+                        .Append(')');
+                }
+                else if (resolution.Effect == ActionResolutionEffect.RestoreStamina)
+                {
+                    builder.Append(" (+")
+                        .Append(resolution.StaminaRecovery)
+                        .Append(" Stamina)");
+                }
+                else if (resolution.StatusEffect != null)
+                {
+                    builder.Append(" (")
+                        .Append(resolution.StatusEffect.DisplayName)
+                        .Append(" for ")
+                        .Append(resolution.StatusEffect.Duration)
+                        .Append(resolution.StatusEffect.DurationType ==
+                            CombatStatusDurationType.Rounds
+                                ? " Rounds"
+                                : " Time Steps")
+                        .Append(')');
+                }
+
+                if (resolution.ItemCost != null)
+                {
+                    builder.Append(" [Consumes ")
+                        .Append(resolution.ItemCost.Amount)
+                        .Append(' ')
+                        .Append(resolution.ItemCost.DisplayName)
+                        .Append(']');
+                }
+            }
         }
 
         private static List<string> BuildLabels(IReadOnlyList<ComboActionAsset> options)

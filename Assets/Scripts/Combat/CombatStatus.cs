@@ -31,7 +31,8 @@ namespace SER494.Gameplay.Combat
             CombatStatusModifierDirection modifierDirection,
             DamageModifier modifier,
             CombatStatusStackingPolicy stackingPolicy =
-                CombatStatusStackingPolicy.RefreshDuration)
+                CombatStatusStackingPolicy.RefreshDuration,
+            double staminaRecoveryMultiplierBonus = 0d)
         {
             if (string.IsNullOrWhiteSpace(statusId))
             {
@@ -66,6 +67,14 @@ namespace SER494.Gameplay.Combat
                 throw new ArgumentOutOfRangeException(nameof(stackingPolicy));
             }
 
+            if (double.IsNaN(staminaRecoveryMultiplierBonus)
+                || double.IsInfinity(staminaRecoveryMultiplierBonus)
+                || staminaRecoveryMultiplierBonus < 0d)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(staminaRecoveryMultiplierBonus));
+            }
+
             StatusId = statusId;
             DisplayName = displayName;
             DurationType = durationType;
@@ -73,6 +82,7 @@ namespace SER494.Gameplay.Combat
             ModifierDirection = modifierDirection;
             Modifier = modifier;
             StackingPolicy = stackingPolicy;
+            StaminaRecoveryMultiplierBonus = staminaRecoveryMultiplierBonus;
         }
 
         public string StatusId { get; }
@@ -88,6 +98,8 @@ namespace SER494.Gameplay.Combat
         public DamageModifier Modifier { get; }
 
         public CombatStatusStackingPolicy StackingPolicy { get; }
+
+        public double StaminaRecoveryMultiplierBonus { get; }
     }
 
     public sealed class CombatStatusInstance

@@ -211,6 +211,58 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void SelectResolutionTime_TwoEventWindows_AreSelectedIndependently()
+        {
+            var focusedGuard = new ComboActionDefinition(
+                "focused-guard",
+                "Focused Guard I [M]",
+                ComboActionCategory.Main,
+                timelineCost: 9,
+                manaCost: 0,
+                staminaCost: 4,
+                cooldown: 0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        1,
+                        ActionResolutionEffect.Guard,
+                        resolutionWindowStart: 1,
+                        resolutionWindowEnd: 3),
+                    new ActionResolutionDefinition(
+                        6,
+                        ActionResolutionEffect.Guard,
+                        resolutionWindowStart: 6,
+                        resolutionWindowEnd: 8)
+                });
+            InitialTimelineSchedule initial = InitialTimelineScheduleBuilder.Build(
+                MainOnlyCombo(focusedGuard),
+                EnemySequence(EnemyAction("enemy", timelineCost: 9, resolution: 9)));
+
+            InitialTimelineSchedule firstSelected =
+                InitialTimelineScheduleBuilder.SelectResolutionTime(
+                    initial,
+                    TimelineActorSide.Player,
+                    sequenceIndex: 0,
+                    resolutionEventIndex: 0,
+                    selectedTime: 3);
+            InitialTimelineSchedule bothSelected =
+                InitialTimelineScheduleBuilder.SelectResolutionTime(
+                    firstSelected,
+                    TimelineActorSide.Player,
+                    sequenceIndex: 0,
+                    resolutionEventIndex: 1,
+                    selectedTime: 8);
+
+            ScheduledTimelineAction action = bothSelected.Actions.Single(
+                candidate => candidate.Side == TimelineActorSide.Player);
+            Assert.That(action.ResolutionEvents.Select(step => step.Time),
+                Is.EqualTo(new[] { 3, 8 }));
+            Assert.That(action.ResolutionEvents.All(step => !step.HasResolutionWindow),
+                Is.True);
+            Assert.That(action.EndTime, Is.EqualTo(9));
+        }
+
+        [Test]
         public void ApplyPauseAndResume_MultiEventAction_ShiftsOnlyUnresolvedEvents()
         {
             var main = new ComboActionDefinition(

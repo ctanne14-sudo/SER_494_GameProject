@@ -211,7 +211,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onEvadedDisruption,
             int healingAmount = 0,
             ActionItemCostDefinition itemCost = null,
-            ActionHealingDefinition healing = null)
+            ActionHealingDefinition healing = null,
+            int staminaRecovery = 0,
+            int? resolutionWindowStartTime = null,
+            int? resolutionWindowEndTime = null)
         {
             Time = time;
             DamageEffect = damageEffect;
@@ -227,6 +230,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ? ActionHealingDefinition.Flat(healingAmount)
                 : null);
             ItemCost = itemCost;
+            StaminaRecovery = staminaRecovery;
+            ResolutionWindowStartTime = resolutionWindowStartTime;
+            ResolutionWindowEndTime = resolutionWindowEndTime;
         }
 
         public int Time { get; }
@@ -245,6 +251,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ? checked((int)Healing.Value)
             : 0;
         public ActionItemCostDefinition ItemCost { get; }
+        public int StaminaRecovery { get; }
+        public int? ResolutionWindowStartTime { get; }
+        public int? ResolutionWindowEndTime { get; }
+        public bool HasResolutionWindow => ResolutionWindowStartTime.HasValue;
     }
 
     public sealed class ScheduledTimelineAction
@@ -334,6 +344,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             OnEvadedDisruption = primary.OnEvadedDisruption;
             Healing = primary.Healing;
             ItemCost = primary.ItemCost;
+            StaminaRecovery = primary.StaminaRecovery;
         }
 
         public TimelineActorSide Side { get; }
@@ -393,6 +404,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             : 0;
 
         public ActionItemCostDefinition ItemCost { get; }
+
+        public int StaminaRecovery { get; }
 
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
@@ -492,7 +505,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 && ReferenceEquals(resolutionEvent.Clash, Clash)
                 && ReferenceEquals(resolutionEvent.OnEvadedDisruption, OnEvadedDisruption)
                 && ReferenceEquals(resolutionEvent.Healing, Healing)
-                && ReferenceEquals(resolutionEvent.ItemCost, ItemCost);
+                && ReferenceEquals(resolutionEvent.ItemCost, ItemCost)
+                && resolutionEvent.StaminaRecovery == StaminaRecovery;
         }
 
         private static IReadOnlyList<ScheduledResolutionEvent> CreateLegacyResolutionEvents(

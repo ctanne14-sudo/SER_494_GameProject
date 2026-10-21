@@ -21,7 +21,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         Evade,
         ApplyBuff,
         ApplyDebuff,
-        Heal
+        Heal,
+        RestoreStamina
     }
 
     public enum ActionStatusTarget
@@ -597,7 +598,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ActionDisruptionDefinition onEvadedDisruption = null,
             int healingAmount = 0,
             ActionItemCostDefinition itemCost = null,
-            ActionHealingDefinition healing = null)
+            ActionHealingDefinition healing = null,
+            int staminaRecovery = 0,
+            int? resolutionWindowStart = null,
+            int? resolutionWindowEnd = null)
         {
             if (offset < 0)
             {
@@ -629,6 +633,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 DamageTags,
                 onEvadedDisruption);
             Healing = ValidateHealing(effect, healingAmount, healing);
+            StaminaRecovery = ValidateStaminaRecovery(effect, staminaRecovery);
+            ValidateResolutionWindow(
+                offset,
+                resolutionWindowStart,
+                resolutionWindowEnd);
+            ResolutionWindowStart = resolutionWindowStart;
+            ResolutionWindowEnd = resolutionWindowEnd;
             ItemCost = itemCost;
         }
 
@@ -662,12 +673,77 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public ActionItemCostDefinition ItemCost { get; }
 
+        public int StaminaRecovery { get; }
+
+        public int? ResolutionWindowStart { get; }
+
+        public int? ResolutionWindowEnd { get; }
+
+        public bool HasResolutionWindow => ResolutionWindowStart.HasValue;
+
         internal void ValidateForActionTimelineCost(int timelineCost)
         {
             if (Offset > timelineCost)
             {
                 throw new ArgumentException(
                     "A Resolution Event cannot occur after its Action Timeline Cost.");
+            }
+
+
+            if (ResolutionWindowEnd.HasValue
+                && ResolutionWindowEnd.Value > timelineCost)
+            {
+                throw new ArgumentException(
+                    "A Resolution Window cannot extend beyond its Action Timeline Cost.");
+            }
+        }
+
+        private static int ValidateStaminaRecovery(
+            ActionResolutionEffect effect,
+            int staminaRecovery)
+        {
+            if (staminaRecovery < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(staminaRecovery));
+            }
+
+            if ((effect == ActionResolutionEffect.RestoreStamina)
+                != (staminaRecovery > 0))
+            {
+                throw new ArgumentException(
+                    "A Restore Stamina Resolution Event requires a positive recovery amount.",
+                    nameof(staminaRecovery));
+            }
+
+            return staminaRecovery;
+        }
+
+        private static void ValidateResolutionWindow(
+            int offset,
+            int? start,
+            int? end)
+        {
+            if (start.HasValue != end.HasValue)
+            {
+                throw new ArgumentException(
+                    "Resolution Window start and end must both be set or both be omitted.");
+            }
+
+            if (!start.HasValue)
+            {
+                return;
+            }
+
+            if (start.Value < 0 || start.Value >= end.Value)
+            {
+                throw new ArgumentException(
+                    "A Resolution Window must contain at least two ordered Time Steps.");
+            }
+
+            if (offset < start.Value || offset > end.Value)
+            {
+                throw new ArgumentException(
+                    "The default Resolution Point must be inside its Resolution Window.");
             }
         }
 
@@ -869,6 +945,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 GetPrimaryResolution(resolutionEvents).Clash,
                 GetPrimaryResolution(resolutionEvents).OnEvadedDisruption,
                 GetPrimaryResolution(resolutionEvents).Healing,
+                GetPrimaryResolution(resolutionEvents).StaminaRecovery,
                 null,
                 compatibleWeaponTypes,
                 previousActionStatusRequirement)
@@ -930,6 +1007,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 clash,
                 onEvadedDisruption,
                 null,
+                0,
                 sustainedAttack,
                 compatibleWeaponTypes,
                 previousActionStatusRequirement)
@@ -987,6 +1065,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 clash,
                 onEvadedDisruption,
                 null,
+                0,
                 sustainedAttack,
                 compatibleWeaponTypes,
                 previousActionStatusRequirement)
@@ -1017,6 +1096,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageClashDefinition clash,
             ActionDisruptionDefinition onEvadedDisruption,
             ActionHealingDefinition healing,
+            int staminaRecovery,
             SustainedAttackDefinition sustainedAttack,
             CompatibleWeaponTypes compatibleWeaponTypes,
             PreviousActionStatusRequirementDefinition previousActionStatusRequirement)
@@ -1069,6 +1149,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 DamageTags,
                 onEvadedDisruption);
             Healing = healing;
+            StaminaRecovery = staminaRecovery;
             PreviousActionStatusRequirement = previousActionStatusRequirement;
             DisruptionResponseSegments = CopyAndValidateDisruptionResponseSegments(
                 disruptionResponseSegments,
@@ -1094,7 +1175,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     OnGuardedDisruption,
                     Clash,
                     OnEvadedDisruption,
-                    healing: Healing)
+                    healing: Healing,
+                    staminaRecovery: StaminaRecovery)
             });
         }
 
@@ -1154,6 +1236,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionDefinition OnEvadedDisruption { get; }
 
         public ActionHealingDefinition Healing { get; }
+
+        public int StaminaRecovery { get; }
 
         public int HealingAmount => Healing?.Type == ActionHealingType.FlatAmount
             ? checked((int)Healing.Value)

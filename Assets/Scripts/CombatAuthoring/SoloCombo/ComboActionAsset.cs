@@ -80,6 +80,15 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             [Tooltip("Fraction of Maximum Health restored. For example, 0.25 restores 25%.")]
             public float maximumHealthHealingPercentage = 0f;
 
+            [Min(0)]
+            public int staminaRecovery = 0;
+
+            [Tooltip("When enabled, this Resolution Event receives its own independent timing QTE.")]
+            public bool useResolutionWindow = false;
+
+            [Min(0)] public int resolutionWindowStart = 1;
+            [Min(0)] public int resolutionWindowEnd = 1;
+
             public string consumedItemId = string.Empty;
             public string consumedItemDisplayName = string.Empty;
             [Min(0)] public int consumedItemAmount = 0;
@@ -98,6 +107,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             public float statusModifierAmount = 0f;
             public CombatStatusStackingPolicy statusStackingPolicy =
                 CombatStatusStackingPolicy.IndependentInstances;
+
+            [Min(0f)]
+            [Tooltip("Additive multiplier applied to base Stamina recovery at Round End. 0.5 means +50%.")]
+            public float statusStaminaRecoveryMultiplierBonus = 0f;
 
             [Range(0f, 1f)]
             public float clashDamageReduction = 0f;
@@ -999,6 +1012,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                         && authored.damageMultiplier > 0f)
                     || (authored.effect != ActionResolutionEffect.Damage
                         && authored.damageTags != DamageResolutionTag.None)
+                    || ((authored.effect == ActionResolutionEffect.RestoreStamina)
+                        != (authored.staminaRecovery > 0))
                     || !HasValidHealingAuthoring(authored))
                 {
                     definitions = null;
@@ -1031,6 +1046,12 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     CombatStatusDefinition status = CreateStatusDefinition(authored);
                     ActionItemCostDefinition itemCost = CreateItemCost(authored);
                     ActionHealingDefinition healing = CreateHealing(authored);
+                    int? eventWindowStart = authored.useResolutionWindow
+                        ? (int?)authored.resolutionWindowStart
+                        : null;
+                    int? eventWindowEnd = authored.useResolutionWindow
+                        ? (int?)authored.resolutionWindowEnd
+                        : null;
                     created[index] = new ActionResolutionDefinition(
                         authored.offset,
                         authored.effect,
@@ -1064,7 +1085,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                             : null,
                         healing: healing,
                         itemCost: itemCost,
-                        healingAmount: 0);
+                        healingAmount: 0,
+                        staminaRecovery: authored.staminaRecovery,
+                        resolutionWindowStart: eventWindowStart,
+                        resolutionWindowEnd: eventWindowEnd);
                 }
                 catch (ArgumentException exception)
                 {
@@ -1087,7 +1111,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             if (!appliesStatus)
             {
                 if (!string.IsNullOrWhiteSpace(authored.statusId)
-                    || !string.IsNullOrWhiteSpace(authored.statusDisplayName))
+                    || !string.IsNullOrWhiteSpace(authored.statusDisplayName)
+                    || authored.statusStaminaRecoveryMultiplierBonus > 0f)
                 {
                     throw new ArgumentException(
                         "Only Apply Buff and Apply Debuff events may author a Status.");
@@ -1132,7 +1157,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 authored.statusDuration,
                 authored.statusModifierDirection,
                 modifier,
-                authored.statusStackingPolicy);
+                authored.statusStackingPolicy,
+                authored.statusStaminaRecoveryMultiplierBonus);
         }
 
         private static ActionItemCostDefinition CreateItemCost(

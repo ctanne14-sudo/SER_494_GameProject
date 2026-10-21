@@ -65,7 +65,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             SoloComboResolutionFailure resolutionFailure = SoloComboResolutionFailure.None,
             string failedRequirementDisplayName = null,
             string consumedItemDisplayName = null,
-            int consumedItemAmount = 0)
+            int consumedItemAmount = 0,
+            int staminaRestored = 0)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -104,6 +105,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             ConsumedItemAmount = consumedItemAmount >= 0
                 ? consumedItemAmount
                 : throw new ArgumentOutOfRangeException(nameof(consumedItemAmount));
+            StaminaRestored = staminaRestored >= 0
+                ? staminaRestored
+                : throw new ArgumentOutOfRangeException(nameof(staminaRestored));
         }
 
         public TimelineActorSide Side { get; }
@@ -147,6 +151,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public ActionDisruptionTrigger DisruptionTrigger { get; }
 
         public int HealingDone { get; }
+
+        public int StaminaRestored { get; }
 
         public SoloComboResolutionFailure ResolutionFailure { get; }
 
@@ -313,14 +319,18 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
     public sealed class SoloComboTimingRequest
     {
-        internal SoloComboTimingRequest(ScheduledTimelineAction action)
+        internal SoloComboTimingRequest(
+            ScheduledTimelineAction action,
+            int resolutionEventIndex,
+            ScheduledResolutionEvent resolutionEvent)
         {
             Side = action.Side;
             SequenceIndex = action.SequenceIndex;
             ActionId = action.ActionId;
             DisplayName = action.DisplayName;
-            MinimumTimeStep = action.ResolutionWindowStartTime.Value;
-            MaximumTimeStep = action.ResolutionWindowEndTime.Value;
+            ResolutionEventIndex = resolutionEventIndex;
+            MinimumTimeStep = resolutionEvent.ResolutionWindowStartTime.Value;
+            MaximumTimeStep = resolutionEvent.ResolutionWindowEndTime.Value;
         }
 
         public TimelineActorSide Side { get; }
@@ -330,6 +340,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public string ActionId { get; }
 
         public string DisplayName { get; }
+
+        public int ResolutionEventIndex { get; }
 
         public int MinimumTimeStep { get; }
 
@@ -628,11 +640,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     chargeRequest: _pendingChargeRequest);
             }
 
-            ScheduledTimelineAction pendingWindow = FindWindowStartingAt(
+            SoloComboTimingRequest pendingWindow = FindWindowStartingAt(
                 _currentTimelineTimeStep + 1);
             if (pendingWindow != null)
             {
-                _pendingTimingRequest = new SoloComboTimingRequest(pendingWindow);
+                _pendingTimingRequest = pendingWindow;
                 return new SoloComboTimelineAdvanceResult(
                     _currentTimelineTimeStep,
                     NoResolutions,
@@ -687,6 +699,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 _activeSchedule,
                 _pendingTimingRequest.Side,
                 _pendingTimingRequest.SequenceIndex,
+                _pendingTimingRequest.ResolutionEventIndex,
                 selectedTimeStep);
             _activeResolutionStepIndex = 0;
             while (_activeResolutionStepIndex < _activeSchedule.ResolutionSteps.Count
@@ -728,6 +741,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int pendingEnemyDamage = 0;
             var pendingStatuses = new List<ScheduledTimelineAction>();
             var pendingHeals = new List<ScheduledTimelineAction>();
+            var pendingStaminaRecovery = new List<ScheduledTimelineAction>();
             ActionResolutionEffect playerDefense = FindDefensiveResolution(
                 step,
                 TimelineActorSide.Player);
@@ -777,6 +791,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 if (action.ResolutionEffect == ActionResolutionEffect.Heal)
                 {
                     pendingHeals.Add(action);
+                    continue;
+                }
+
+                if (action.ResolutionEffect == ActionResolutionEffect.RestoreStamina)
+                {
+                    pendingStaminaRecovery.Add(action);
                     continue;
                 }
 
@@ -953,6 +973,34 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     consumedItemAmount: action.ItemCost?.Amount ?? 0));
             }
 
+            for (int recoveryIndex = 0;
+                recoveryIndex < pendingStaminaRecovery.Count;
+                recoveryIndex++)
+            {
+                ScheduledTimelineAction action = pendingStaminaRecovery[recoveryIndex];
+                CombatantState recipient = action.Side == TimelineActorSide.Player
+                    ? Player
+                    : Enemy;
+                int staminaBefore = recipient.CurrentStamina;
+                recipient.RestoreStamina(action.StaminaRecovery);
+                int staminaRestored = recipient.CurrentStamina - staminaBefore;
+                resolutions.Add(new SoloComboActionResolution(
+                    action.Side,
+                    action.ActionId,
+                    action.DisplayName,
+                    step.TimeStep,
+                    damageDealt: 0,
+                    ActionResolutionEffect.RestoreStamina,
+                    DamageAvoidanceResult.None,
+                    DamageResolutionTag.None,
+                    statusDisplayName: null,
+                    statusTarget: ActionStatusTarget.Self,
+                    statusApplied: false,
+                    consumedItemDisplayName: action.ItemCost?.DisplayName,
+                    consumedItemAmount: action.ItemCost?.Amount ?? 0,
+                    staminaRestored: staminaRestored));
+            }
+
             for (int resolutionIndex = 0; resolutionIndex < resolutions.Count; resolutionIndex++)
             {
                 SoloComboActionResolution resolution = resolutions[resolutionIndex];
@@ -1079,16 +1127,29 @@ namespace SER494.Gameplay.Combat.SoloCombo
             return result;
         }
 
-        private ScheduledTimelineAction FindWindowStartingAt(int timeStep)
+        private SoloComboTimingRequest FindWindowStartingAt(int timeStep)
         {
             for (int index = 0; index < _activeSchedule.Actions.Count; index++)
             {
                 ScheduledTimelineAction action = _activeSchedule.Actions[index];
-                if (!action.IsCanceled
-                    && action.Side == TimelineActorSide.Player
-                    && action.ResolutionWindowStartTime == timeStep)
+                if (action.IsCanceled || action.Side != TimelineActorSide.Player)
                 {
-                    return action;
+                    continue;
+                }
+
+                for (int eventIndex = 0;
+                    eventIndex < action.ResolutionEvents.Count;
+                    eventIndex++)
+                {
+                    ScheduledResolutionEvent resolutionEvent =
+                        action.ResolutionEvents[eventIndex];
+                    if (resolutionEvent.ResolutionWindowStartTime == timeStep)
+                    {
+                        return new SoloComboTimingRequest(
+                            action,
+                            eventIndex,
+                            resolutionEvent);
+                    }
                 }
             }
 
@@ -1351,7 +1412,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int manaBeforeRecovery = Player.CurrentMana;
             int staminaBeforeRecovery = Player.CurrentStamina;
             Player.RestoreMana(_manaRecoveryPerTurn);
-            Player.RestoreStamina(_staminaRecoveryPerTurn);
+            int staminaRecovery = checked((int)Math.Round(
+                _staminaRecoveryPerTurn * Player.GetStaminaRecoveryMultiplier(),
+                MidpointRounding.AwayFromZero));
+            Player.RestoreStamina(staminaRecovery);
             manaRecovered = Player.CurrentMana - manaBeforeRecovery;
             staminaRecovered = Player.CurrentStamina - staminaBeforeRecovery;
         }
