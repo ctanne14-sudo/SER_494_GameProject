@@ -78,7 +78,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 251889413fcfbe841a4d11ea37dfe4fe, type: 3}
       propertyPath: m_TagString
-      value: InventoryItem
+      value: Untagged
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -111,12 +111,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdea255426b684946a168cd98a63120e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickUp
-  itemPrefab: {fileID: 7215856734752065869, guid: db7eb5d107bff0b4281a2f8a3c7486e5, type: 3}
-  itemImage: {fileID: 2800000, guid: 123aa862dab06064681b3b4e6c47b111, type: 3}
-  uses: 1
   uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
   uiOffset: {x: 0, y: 0.5, z: 0}
   uiScale: 0.025
+  displayName: Red Potion
+  itemPrefab: {fileID: 7215856734752065869, guid: 9f1027ebe2fc38b4b90100a9a14649e7, type: 3}
+  itemImage: {fileID: 2800000, guid: 123aa862dab06064681b3b4e6c47b111, type: 3}
+  uses: 1
+  id: 
 --- !u!114 &4928174087731725495
 MonoBehaviour:
   m_ObjectHideFlags: 0

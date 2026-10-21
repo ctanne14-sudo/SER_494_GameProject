@@ -101,3 +101,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66334652168b5e04abf872eafbe9b766, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeartAction
+  offset: {fileID: 0}
+  displayName: Heart

@@ -43,28 +43,18 @@ public class HotbarSlot : MonoBehaviour
             Transform sp = spawnPoint.transform;
             spawned = Instantiate(item.prefab, sp.position, sp.rotation, sp);
 
-            Action action = spawned.GetComponent<Action>();
-            if (action != null && action.Offset != null)
+            Transform offset = spawned.transform.Find("handOffset");
+            if (offset != null)
             {
-                Transform o = action.Offset;
-
-                Quaternion rel = Quaternion.Inverse(spawned.transform.rotation) * o.rotation;
+                Quaternion rel = Quaternion.Inverse(spawned.transform.rotation) * offset.rotation;
                 spawned.transform.rotation = sp.rotation * Quaternion.Inverse(rel);
 
-                spawned.transform.position += sp.position - o.position;
+                spawned.transform.position += sp.position - offset.position;
             }
-                }
+        }
         if (spawned != null && !isSelected)
         {
             Destroy(spawned);
-        }
-    }
-
-    public void updateIndex(int index)
-    {
-        if (invIndex > index)
-        {
-            invIndex -= 1;
         }
     }
 
@@ -79,7 +69,12 @@ public class HotbarSlot : MonoBehaviour
         if (spawned != null) Destroy(spawned);
         return index;
     }
-        
+    public void updateIndex(int index)
+    {
+        if (index == invIndex) clear();
+        if (invIndex > index) invIndex--;
+    }
+
     public Item getItem() => item;
     public int getInvIndex() => invIndex;
 
@@ -92,6 +87,6 @@ public class HotbarSlot : MonoBehaviour
             itemName.text = "";
             return;
         }
-        itemName.text = item.prefab.GetComponent<Action>().setUiPrompt();
+        itemName.text = item.displayName;
     }
 }

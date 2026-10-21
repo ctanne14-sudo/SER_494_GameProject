@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
-using System.Collections;
 using TMPro;
 
 public class ChestAction : Action {
 
 	[Header("Chest Objects")]
+	[SerializeField] private string displayName;
 	[SerializeField] private Transform top;
 	[SerializeField] private Transform open;
 	[SerializeField] private Transform close;
@@ -12,12 +12,16 @@ public class ChestAction : Action {
 
 	[Header("Chest Items")]
     [SerializeField] private GameObject[] items;
-    [SerializeField] private GameObject unlockItem;
 
 	[Header("Chest Attributes")]
 	[SerializeField] private float speed = 5F;
     [SerializeField] private bool canClose;
-    [SerializeField] private bool unlock;
+	[SerializeField] private string lockId;
+	[SerializeField] private bool setLock;
+	[SerializeField] private Inventory inventory;
+
+    private bool unlocked;
+	private bool hasKey;
 
 	private GameObject[] itemSpawned;
 	private bool spawned;
@@ -27,19 +31,22 @@ public class ChestAction : Action {
 	[SerializeField] private GameObject uiPrefab;
     [SerializeField] private Vector3 uiOffset = new Vector3(0, 1.5f, 0);
     [SerializeField] private float uiScale = .01f;
+	private UIShake uiShake;
     private GameObject spawnedUI;
     private TextMeshProUGUI uiTextComponent;
 
     private void Start()
     {
-        Vector3 scale = Vector3.one * uiScale;
+		unlocked = !setLock || isOpen;
         if (uiPrefab != null)
         {
             spawnedUI = Instantiate(uiPrefab, transform.position + uiOffset, Quaternion.identity, transform);
-            spawnedUI.transform.localScale = scale;
+            spawnedUI.transform.localScale = Vector3.one * uiScale;
             uiTextComponent = spawnedUI.GetComponentInChildren<TextMeshProUGUI>();
-            uiTextComponent.text = setUiPrompt();
             spawnedUI.SetActive(false);
+			uiTextComponent.text = setUiPrompt();
+			uiShake = spawnedUI.GetComponentInChildren<UIShake>();
+			uiShake.enabled = false;
         }
 		itemSpawned = new GameObject[spawnPoints.Length + 1];
     }
@@ -51,6 +58,20 @@ public class ChestAction : Action {
 		if(top.rotation != toRot){
 			top.rotation = Quaternion.Lerp(top.rotation, toRot, Time.deltaTime * speed);
 		}
+
+		if (setLock && !unlocked)
+			checkForKey();
+	}
+
+	private void checkForKey()
+	{
+		Item item = inventory.getSelected();
+		bool stateChange = item != null && item.id == lockId;
+
+		if (stateChange == hasKey) return;
+
+		hasKey = stateChange;
+		uiTextComponent.text = setUiPrompt();
 	}
 	
 	void spawnItem()
@@ -67,26 +88,40 @@ public class ChestAction : Action {
 		}
 	}
 	public override void action(PlayerInteractor interactor){
-		if (!unlock) {
-			if (!canClose && isOpen) return;
-			
+		if (!canClose && isOpen) return;
+        		
+		if (unlocked)
+		{
 			isOpen = canClose ? !isOpen : true;
 			if (!spawned && isOpen) spawnItem();
-			if (spawned && !isOpen) {
-				for (int i = 0; i < itemSpawned.Length; i++)
-					Destroy(itemSpawned[i]);
+			else if (spawned && !isOpen) {
+				foreach (var item in itemSpawned)
+					Destroy(item);
 				spawned = false;
 			}
+
 			if (!canClose && isOpen) gameObject.layer = 0;
+			unlocked = !setLock || isOpen;
+		} else
+		{
+			Item item = inventory.getSelected();
+			if (item != null && item.id == lockId)
+			{
+				item.usesLeft--;
+				unlocked = true;
+			} else {
+					uiShake.shake();
+			}
 		}
+		uiTextComponent.text = setUiPrompt();
 	}
 
-	public override string setUiPrompt()
+	public string setUiPrompt()
 	{
-		if (!canClose && isOpen) return "";
-		else if (!unlock) 
-			return isOpen ? "[E] Close Chest" : "[E] Open Chest";
-		else return "KEY Required to Open";
+		if (isOpen) return canClose ? "[E] Close " + displayName : "";
+		if (unlocked) return "[E] Open " + displayName;
+		if (hasKey) return "[E] Unlock " + displayName;
+		return lockId + " Required to Open";
 	}
 
     public override void showUI(bool show)

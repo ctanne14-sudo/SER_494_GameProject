@@ -78,7 +78,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
       propertyPath: m_TagString
-      value: ConsumableItem
+      value: Untagged
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -86,51 +86,22 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -2622056510871743824}
+      addedObject: {fileID: 6506201164442935580}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3907578171123028045}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4238409225462941013}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
       insertIndex: -1
       addedObject: {fileID: -7022823659774420026}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6506201164442935580}
   m_SourcePrefab: {fileID: 100100000, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
 --- !u!1 &4318606248750396421 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
   m_PrefabInstance: {fileID: 3976586461788080468}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-2622056510871743824
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4318606248750396421}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fdea255426b684946a168cd98a63120e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickUp
-  itemPrefab: {fileID: 4318606248750396421, guid: 90a7f5b3b401afd40a16f4848269ff2e, type: 3}
-  itemImage: {fileID: 2800000, guid: 79a6f27f6e6d1f4408f141b379796d20, type: 3}
-  uses: 1
-  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
-  uiOffset: {x: 0, y: 0.5, z: 0}
-  uiScale: 0.02
---- !u!114 &-7022823659774420026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4318606248750396421}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d70f2814a575ef34a8eaf63197977289, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RotateAndBounce
-  rotSpeed: 100
-  speed: 0.25
 --- !u!64 &6506201164442935580
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -153,3 +124,48 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2929563531361107545, guid: 01ee5422ad585ae4388dbfcac584f133, type: 3}
+--- !u!114 &3907578171123028045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4318606248750396421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb010acbbf6e1c84891ef989743f3723, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConsumablePickUp
+  offset: {fileID: 0}
+  uiPrefab: {fileID: 7695588182924130738, guid: 30a50fff0b289d1438b912f3e259b70d, type: 3}
+  uiOffset: {x: 0, y: 0.5, z: 0}
+  uiScale: 0.01
+  displayName: Money
+  itemAction: {fileID: -4238409225462941013}
+--- !u!114 &-4238409225462941013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4318606248750396421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58c1a0b0ef3402347b74d887f0359c79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MoneyAction
+  offset: {fileID: 0}
+--- !u!114 &-7022823659774420026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4318606248750396421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d70f2814a575ef34a8eaf63197977289, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RotateAndBounce
+  rotSpeed: 100
+  speed: 0.25

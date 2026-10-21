@@ -37,20 +37,28 @@ public class Inventory : MonoBehaviour
 
         fillSlots();
 
-        if (selected >= 0 && selected < slots.Length)
-            foreach(KeyCode i in inputKeys)
-                if (Input.GetKeyUp(i)) useItem(i);
+        if (Input.GetMouseButtonUp(0))
+            useItem();
+
+        for (int i = 0; i < inInventory.Count; i++)
+        {
+            if (inInventory[i].usesLeft <= 0)
+            {
+                removeItem(i);
+                i--;
+            }
+        }
     }
 
-    void useItem(KeyCode button)
+    void useItem()
     {
-        Item item = slots[selected].getItem();
+        Item item = getSelected();
         if (item != null) {
-            if (button == KeyCode.Mouse0) {
-                item.prefab.GetComponent<Action>().action(interactor);
+            Action action = item.prefab.GetComponent<Action>();
+            if (action != null) {
+                action.action(interactor);
                 item.usesLeft--;
             }
-            if (item.usesLeft <= 0) removeItem(slots[selected].clear());            
         }
     }
 
@@ -87,6 +95,9 @@ public class Inventory : MonoBehaviour
         ps.changeMultiplier(select ? .8f : 1f); 
     }
 
+    public Item getSelected() 
+        => selected >= 0 && selected < slots.Length ? slots[selected].getItem() : null;
+
     public void addItem(Item item)
     {
         inInventory.Add(item);
@@ -108,15 +119,18 @@ public class Inventory : MonoBehaviour
 
 public class Item
 {
+    public string id;
     public GameObject prefab;
     public Texture texture;
-    //public string displayName;
     public int usesLeft;
+    public string displayName;
 
-    public Item(GameObject prefab, Texture texture, int uses)
+    public Item(GameObject prefab, Texture texture, int uses, string displayName, string id = null)
     {
+        this.id = id;
         this.prefab = prefab;
         this.texture = texture;
         usesLeft = uses;
+        this.displayName = displayName;
     }
 }

@@ -8,11 +8,5 @@ public class BombAction : Action
         interactor.hc.damagePlayer(50);
     }
 
-    public override string setUiPrompt()
-    {
-        return "Bomb";
-    }
-
     public override void showUI(bool show) {}
-
 }

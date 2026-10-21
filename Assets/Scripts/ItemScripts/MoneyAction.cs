@@ -8,10 +8,5 @@ public class MoneyAction : Action
         interactor.inventory.gold += 50;
     }
 
-    public override string setUiPrompt()
-    {
-        return "50 Gold";
-    }
-
     public override void showUI(bool show) {}
 }

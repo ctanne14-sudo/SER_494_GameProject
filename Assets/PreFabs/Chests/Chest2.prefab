@@ -1185,6 +1185,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1861363f1e7ba26409507f599ae47aa8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChestAction
+  offset: {fileID: 0}
+  displayName: Chest
   top: {fileID: 4198830577288694894}
   open: {fileID: 3600131990887465509}
   close: {fileID: 8917090621954684143}

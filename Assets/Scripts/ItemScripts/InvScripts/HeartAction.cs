@@ -8,10 +8,5 @@ public class HeartAction : Action
         interactor.hc.healPlayer(50);
     }
 
-    public override string setUiPrompt()
-    {
-        return "Heart";
-    }
-
     public override void showUI(bool show) {}
 }

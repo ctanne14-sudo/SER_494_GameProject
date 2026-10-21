@@ -27,7 +27,7 @@ public class PlayerInteractor : MonoBehaviour
 
             float d = Vector3.Distance(hits[i].ClosestPoint(origin), origin);
 
-            bool prioritze = hits[i].CompareTag("InventoryItem") || hits[i].CompareTag("ConsumableItem");
+            bool prioritze = a is PickUp;
 
             bool better = (prioritze && !closestPriority) || (prioritze == closestPriority && d < distance);
             if (better) {
