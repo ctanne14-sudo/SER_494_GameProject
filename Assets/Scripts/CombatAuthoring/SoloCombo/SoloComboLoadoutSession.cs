@@ -15,8 +15,26 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
     public static class SoloComboTestScenarioInfo
     {
+        public static string EncounterId(SoloComboTestScenario scenario)
+        {
+            switch (scenario)
+            {
+                case SoloComboTestScenario.SwordAndShieldTrial:
+                    return "training.sword-and-shield";
+                case SoloComboTestScenario.GlaiveAndShieldTrial:
+                    return "training.glaive-and-shield";
+                default:
+                    return "training.greatsword";
+            }
+        }
+
         public static string DisplayName(SoloComboTestScenario scenario)
         {
+            if (SoloComboEncounterLibrary.TryLoad(scenario, out var asset, out _))
+            {
+                return asset.DisplayName;
+            }
+
             switch (scenario)
             {
                 case SoloComboTestScenario.SwordAndShieldTrial:
@@ -30,6 +48,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         public static string Description(SoloComboTestScenario scenario)
         {
+            if (SoloComboEncounterLibrary.TryLoad(scenario, out var asset, out _))
+            {
+                return asset.Description;
+            }
+
             switch (scenario)
             {
                 case SoloComboTestScenario.SwordAndShieldTrial:
@@ -39,6 +62,54 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 default:
                     return "Four scripted rounds for Charge, Clash, Super Armor, Buffs, and split damage. Stamina refills between rounds.";
             }
+        }
+    }
+
+    public static class SoloComboEncounterLibrary
+    {
+        private const string ResourcesPath = "SoloCombo/Encounters";
+
+        public static bool TryLoad(
+            SoloComboTestScenario scenario,
+            out SoloComboEncounterDefinitionAsset asset,
+            out string validationError)
+        {
+            string expectedId = SoloComboTestScenarioInfo.EncounterId(scenario);
+            SoloComboEncounterDefinitionAsset[] assets =
+                Resources.LoadAll<SoloComboEncounterDefinitionAsset>(ResourcesPath);
+            SoloComboEncounterDefinitionAsset match = null;
+            for (int index = 0; index < assets.Length; index++)
+            {
+                SoloComboEncounterDefinitionAsset candidate = assets[index];
+                if (candidate != null
+                    && string.Equals(
+                        candidate.EncounterId,
+                        expectedId,
+                        StringComparison.Ordinal))
+                {
+                    if (match != null)
+                    {
+                        asset = null;
+                        validationError = $"Multiple Encounter assets use ID '{expectedId}'.";
+                        return false;
+                    }
+
+                    match = candidate;
+                }
+            }
+
+            if (match != null)
+            {
+                asset = match;
+                validationError = null;
+                return true;
+            }
+
+            asset = null;
+            validationError = $"Encounter '{expectedId}' was not found under "
+                + $"Resources/{ResourcesPath}. Run Tools > SER494 > Create or Update "
+                + "Solo Combo Trial Encounters.";
+            return false;
         }
     }
 

@@ -1,0 +1,300 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: SwordAndShieldTrialEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: training.sword-and-shield
+  displayName: Sword & Shield Trial
+  description: Four scripted rounds for Guard, Evade, airborne setup, multi-hit,
+    and split healing. Stamina refills between rounds.
+  enemyDisplayName: Sword & Shield Training Knight
+  enemyMaximumHealth: 450
+  enemyAttack: 45
+  enemyDefense: 50
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 30
+  startingItems:
+  - itemId: healing-potion
+    quantity: 12
+  - itemId: greater-healing-potion
+    quantity: 4
+  - itemId: vitality-tonic
+    quantity: 6
+  scriptedSequences:
+  - sequenceId: training.sword-shield.round-1
+    displayName: "R1 / Combo 1 \u2014 Evade and Guard Chain"
+    actions:
+    - actionId: sword-shield.r1.evade-1
+      displayName: Evade Check A
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r1.guard
+      displayName: Guard Check
+      timelineCost: 2
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r1.evade-2
+      displayName: Evade Check B
+      timelineCost: 5
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r1.evade-3
+      displayName: Evade Check C
+      timelineCost: 5
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.sword-shield.round-2
+    displayName: "R2 / Combo 2 \u2014 Three Guard Points"
+    actions:
+    - actionId: sword-shield.r2.guard-1
+      displayName: Opening Guard Check
+      timelineCost: 4
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r2.guard-2
+      displayName: Main Guard Check
+      timelineCost: 9
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r2.guard-3
+      displayName: Closing Guard Check
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.4
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.sword-shield.round-3
+    displayName: "R3 / Combo 3 \u2014 Airborne Split Attack"
+    actions:
+    - actionId: sword-shield.r3.setup
+      displayName: Airborne Setup Check
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r3.guard
+      displayName: First Aerial Hit Guard
+      timelineCost: 3
+      resolutionEffect: 2
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r3.second-hit
+      displayName: Second Aerial Hit Check
+      timelineCost: 2
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r3.recovery
+      displayName: Breather Setup
+      timelineCost: 8
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.sword-shield.round-4
+    displayName: "R4 / Combo 4 \u2014 Guard QTE and Split Healing"
+    actions:
+    - actionId: sword-shield.r4.qte-1
+      displayName: Guard Window A
+      timelineCost: 14
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r4.qte-2
+      displayName: Guard Window B
+      timelineCost: 1
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r4.qte-3
+      displayName: Guard Window C
+      timelineCost: 1
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r4.wound-1
+      displayName: Potion Setup A
+      timelineCost: 2
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: sword-shield.r4.wound-2
+      displayName: Potion Setup B
+      timelineCost: 1
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1

@@ -1,0 +1,204 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: GreatswordTrialEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: training.greatsword
+  displayName: Greatsword Trial
+  description: Four scripted rounds for Charge, Clash, Super Armor, Buffs, and split
+    damage. Stamina refills between rounds.
+  enemyDisplayName: Greatsword Training Knight
+  enemyMaximumHealth: 450
+  enemyAttack: 45
+  enemyDefense: 55
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 30
+  startingItems:
+  - itemId: healing-potion
+    quantity: 12
+  - itemId: greater-healing-potion
+    quantity: 4
+  - itemId: vitality-tonic
+    quantity: 6
+  scriptedSequences:
+  - sequenceId: training.greatsword.round-1
+    displayName: "R1 / Combo 1 \u2014 Charge Timing"
+    actions:
+    - actionId: greatsword.r1.guard
+      displayName: Charge Check Guard
+      timelineCost: 12
+      resolutionEffect: 2
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r1.pressure
+      displayName: Shoulder Pressure
+      timelineCost: 6
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.greatsword.round-2
+    displayName: "R2 / Combo 2 \u2014 Clash then Evade"
+    actions:
+    - actionId: greatsword.r2.clash
+      displayName: Clash Strike
+      timelineCost: 13
+      resolutionEffect: 1
+      damageMultiplier: 0.55
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r2.overcommit
+      displayName: Overcommitted Finish
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.45
+      damageType: 0
+      damageTags: 4
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 1
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 2
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.greatsword.round-3
+    displayName: "R3 / Combo 3 \u2014 Armor and Unguardable"
+    actions:
+    - actionId: greatsword.r3.interrupt
+      displayName: Charge Breaker
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 1
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 2
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r3.guard
+      displayName: Unguardable Check
+      timelineCost: 3
+      resolutionEffect: 2
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r3.buff-check
+      displayName: Steadfast Check
+      timelineCost: 7
+      resolutionEffect: 1
+      damageMultiplier: 0.4
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.greatsword.round-4
+    displayName: "R4 / Combo 4 \u2014 Buff and Split Damage"
+    actions:
+    - actionId: greatsword.r4.opening
+      displayName: Opening Pressure
+      timelineCost: 6
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r4.split-guard
+      displayName: First Sweep Guard
+      timelineCost: 17
+      resolutionEffect: 2
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: greatsword.r4.finish
+      displayName: Closing Check
+      timelineCost: 2
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1

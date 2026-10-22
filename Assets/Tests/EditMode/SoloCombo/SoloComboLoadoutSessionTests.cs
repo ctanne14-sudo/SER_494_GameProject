@@ -88,6 +88,23 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(SoloComboTestScenario.GreatswordTrial));
         }
 
+        [Test]
+        public void EncounterId_MapsEveryTrialToStableEncounterData()
+        {
+            Assert.That(
+                SoloComboTestScenarioInfo.EncounterId(
+                    SoloComboTestScenario.GreatswordTrial),
+                Is.EqualTo("training.greatsword"));
+            Assert.That(
+                SoloComboTestScenarioInfo.EncounterId(
+                    SoloComboTestScenario.SwordAndShieldTrial),
+                Is.EqualTo("training.sword-and-shield"));
+            Assert.That(
+                SoloComboTestScenarioInfo.EncounterId(
+                    SoloComboTestScenario.GlaiveAndShieldTrial),
+                Is.EqualTo("training.glaive-and-shield"));
+        }
+
         private static ComboConfiguration MainOnlyCombo()
         {
             var main = new ComboActionDefinition(

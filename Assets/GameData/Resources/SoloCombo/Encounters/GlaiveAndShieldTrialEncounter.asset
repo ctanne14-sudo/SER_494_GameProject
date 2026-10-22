@@ -1,0 +1,284 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: GlaiveAndShieldTrialEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: training.glaive-and-shield
+  displayName: Glaive & Shield Trial
+  description: Four scripted rounds for Clash, Guard windows, defense, Buffs, and
+    split recovery. Stamina refills between rounds.
+  enemyDisplayName: Glaive & Shield Training Knight
+  enemyMaximumHealth: 450
+  enemyAttack: 45
+  enemyDefense: 55
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 30
+  startingItems:
+  - itemId: healing-potion
+    quantity: 12
+  - itemId: greater-healing-potion
+    quantity: 4
+  - itemId: vitality-tonic
+    quantity: 6
+  scriptedSequences:
+  - sequenceId: training.glaive-shield.round-1
+    displayName: "R1 / Combo 1 \u2014 Guard, Clash, Counter"
+    actions:
+    - actionId: glaive-shield.r1.guard-1
+      displayName: Opening Guard Check
+      timelineCost: 4
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r1.clash
+      displayName: Clash Strike
+      timelineCost: 9
+      resolutionEffect: 1
+      damageMultiplier: 0.55
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r1.guard-2
+      displayName: Counter Guard Check
+      timelineCost: 3
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r1.evade
+      displayName: Closing Evade Check
+      timelineCost: 7
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.glaive-shield.round-2
+    displayName: "R2 / Combo 2 \u2014 Defensive Chain and Buff"
+    actions:
+    - actionId: glaive-shield.r2.defense-1
+      displayName: Opening Defense Check
+      timelineCost: 2
+      resolutionEffect: 1
+      damageMultiplier: 0.4
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r2.defense-2
+      displayName: Main Defense Check
+      timelineCost: 8
+      resolutionEffect: 1
+      damageMultiplier: 0.45
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r2.buff
+      displayName: Empower Check
+      timelineCost: 11
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.glaive-shield.round-3
+    displayName: "R3 / Combo 3 \u2014 Armor, Guard, Finish"
+    actions:
+    - actionId: glaive-shield.r3.armor-1
+      displayName: Opening Armor Check
+      timelineCost: 3
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 1
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 2
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r3.guard
+      displayName: Main Guard Check
+      timelineCost: 5
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r3.armor-2
+      displayName: Finisher Armor Check
+      timelineCost: 13
+      resolutionEffect: 1
+      damageMultiplier: 0.3
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 1
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 2
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+  - sequenceId: training.glaive-shield.round-4
+    displayName: "R4 / Combo 4 \u2014 Guard QTE and Recovery"
+    actions:
+    - actionId: glaive-shield.r4.qte-1
+      displayName: Guard Window A
+      timelineCost: 6
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r4.qte-2
+      displayName: Guard Window B
+      timelineCost: 1
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r4.qte-3
+      displayName: Guard Window C
+      timelineCost: 1
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r4.linked-guard
+      displayName: Linked Guard Check
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0.35
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1
+    - actionId: glaive-shield.r4.recovery
+      displayName: Recovery Setup
+      timelineCost: 4
+      resolutionEffect: 1
+      damageMultiplier: 0.25
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1

@@ -37,8 +37,6 @@ namespace SER494.Gameplay.CombatSandbox
         }
 
         private const string BuilderSceneName = "ComboBuilderSandbox";
-        private const int ManaRecoveryPerTurn = 1;
-        private const int ScriptedTrialStaminaRecoveryPerTurn = 30;
         private const int IntentTimelineLength = 30;
         private const float WideLayoutThreshold = 1050f;
 
@@ -1126,6 +1124,17 @@ namespace SER494.Gameplay.CombatSandbox
 
             SoloComboTestScenario selectedScenario = loadoutSession.SelectedTestScenario;
 
+            if (!SoloComboEncounterLibrary.TryLoad(
+                    selectedScenario,
+                    out SoloComboEncounterDefinitionAsset encounterAsset,
+                    out _setupError)
+                || !encounterAsset.TryCreateDefinition(
+                    out SoloComboEncounterDefinition encounter,
+                    out _setupError))
+            {
+                return;
+            }
+
             var player = new CombatantState(
                 "Player",
                 new CombatantStats(
@@ -1135,20 +1144,9 @@ namespace SER494.Gameplay.CombatSandbox
                     attack: loadoutSession.EquippedWeapon?.WeaponAttack ?? 50,
                     defense: 50));
 
-            GetEnemyProfile(
-                selectedScenario,
-                out string enemyName,
-                out int enemyHealth,
-                out int enemyAttack,
-                out int enemyDefense);
             var enemy = new CombatantState(
-                enemyName,
-                new CombatantStats(
-                    maxHealth: enemyHealth,
-                    maxMana: 0,
-                    maxStamina: 0,
-                    attack: enemyAttack,
-                    defense: enemyDefense));
+                encounter.EnemyDisplayName,
+                encounter.EnemyStats);
 
             // Temporary sandbox traits make type-specific modifier behavior visible
             // before equipment, Inherent Skills, and timed statuses own these effects.
@@ -1157,284 +1155,20 @@ namespace SER494.Gameplay.CombatSandbox
             enemy.AddDamageTakenModifier(
                 DamageModifier.ForType(DamageType.Fire, -0.20d));
 
-            EnemyBehaviorTable enemyBehavior = CreateScriptedEnemyBehavior(selectedScenario);
-
             _battle = new SoloComboBattleState(
                 player,
                 enemy,
                 combos,
-                enemyBehavior,
-                ManaRecoveryPerTurn,
-                ScriptedTrialStaminaRecoveryPerTurn,
+                encounter.EnemyBehavior,
+                encounter.ManaRecoveryPerTurn,
+                encounter.StaminaRecoveryPerTurn,
                 enemyRandom: new System.Random(594 + (int)selectedScenario),
-                startingItems: new Dictionary<string, int>
-                {
-                    { "healing-potion", 12 },
-                    { "greater-healing-potion", 4 },
-                    { "vitality-tonic", 6 }
-                });
+                startingItems: encounter.StartingItems);
             AppendLog(
-                $"{SoloComboTestScenarioInfo.DisplayName(selectedScenario)} started against "
-                + $"{enemyName}. Choose a prepared Combo to preview.",
+                $"{encounter.DisplayName} started against "
+                + $"{encounter.EnemyDisplayName}. Choose a prepared Combo to preview.",
                 CombatLogTone.System);
             RefreshPresentation();
-        }
-
-        private static void GetEnemyProfile(
-            SoloComboTestScenario scenario,
-            out string displayName,
-            out int maximumHealth,
-            out int attack,
-            out int defense)
-        {
-            switch (scenario)
-            {
-                case SoloComboTestScenario.SwordAndShieldTrial:
-                    displayName = "Sword & Shield Training Knight";
-                    maximumHealth = 450;
-                    attack = 45;
-                    defense = 50;
-                    return;
-                case SoloComboTestScenario.GlaiveAndShieldTrial:
-                    displayName = "Glaive & Shield Training Knight";
-                    maximumHealth = 450;
-                    attack = 45;
-                    defense = 55;
-                    return;
-                default:
-                    displayName = "Greatsword Training Knight";
-                    maximumHealth = 450;
-                    attack = 45;
-                    defense = 55;
-                    return;
-            }
-        }
-
-        private static EnemyBehaviorTable CreateScriptedEnemyBehavior(
-            SoloComboTestScenario scenario)
-        {
-            switch (scenario)
-            {
-                case SoloComboTestScenario.SwordAndShieldTrial:
-                    return EnemyBehaviorTable.Scripted(CreateSwordAndShieldTrialScript());
-                case SoloComboTestScenario.GlaiveAndShieldTrial:
-                    return EnemyBehaviorTable.Scripted(CreateGlaiveAndShieldTrialScript());
-                default:
-                    return EnemyBehaviorTable.Scripted(CreateGreatswordTrialScript());
-            }
-        }
-
-        private static IReadOnlyList<EnemyActionSequence> CreateGreatswordTrialScript()
-        {
-            return new[]
-            {
-                ScriptedSequence(
-                    "training.greatsword.round-1",
-                    "R1 / Combo 1 — Charge Timing",
-                    GuardPoint("greatsword.r1.guard", "Charge Check Guard", 12),
-                    DamagePoint("greatsword.r1.pressure", "Shoulder Pressure", 6, 0.35d)),
-                ScriptedSequence(
-                    "training.greatsword.round-2",
-                    "R2 / Combo 2 — Clash then Evade",
-                    DamagePoint("greatsword.r2.clash", "Clash Strike", 13, 0.55d),
-                    DamagePoint(
-                        "greatsword.r2.overcommit",
-                        "Overcommitted Finish",
-                        10,
-                        0.45d,
-                        DamageResolutionTag.Overcommit,
-                        onEvadedDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2))),
-                ScriptedSequence(
-                    "training.greatsword.round-3",
-                    "R3 / Combo 3 — Armor and Unguardable",
-                    DamagePoint(
-                        "greatsword.r3.interrupt",
-                        "Charge Breaker",
-                        10,
-                        0.25d,
-                        onHitDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2)),
-                    GuardPoint("greatsword.r3.guard", "Unguardable Check", 3),
-                    DamagePoint("greatsword.r3.buff-check", "Steadfast Check", 7, 0.40d)),
-                ScriptedSequence(
-                    "training.greatsword.round-4",
-                    "R4 / Combo 4 — Buff and Split Damage",
-                    DamagePoint("greatsword.r4.opening", "Opening Pressure", 6, 0.30d),
-                    GuardPoint("greatsword.r4.split-guard", "First Sweep Guard", 17),
-                    DamagePoint("greatsword.r4.finish", "Closing Check", 2, 0.25d))
-            };
-        }
-
-        private static IReadOnlyList<EnemyActionSequence> CreateSwordAndShieldTrialScript()
-        {
-            return new[]
-            {
-                ScriptedSequence(
-                    "training.sword-shield.round-1",
-                    "R1 / Combo 1 — Evade and Guard Chain",
-                    DamagePoint("sword-shield.r1.evade-1", "Evade Check A", 10, 0.25d),
-                    DamagePoint("sword-shield.r1.guard", "Guard Check", 2, 0.30d),
-                    DamagePoint("sword-shield.r1.evade-2", "Evade Check B", 5, 0.25d),
-                    DamagePoint("sword-shield.r1.evade-3", "Evade Check C", 5, 0.25d)),
-                ScriptedSequence(
-                    "training.sword-shield.round-2",
-                    "R2 / Combo 2 — Three Guard Points",
-                    DamagePoint("sword-shield.r2.guard-1", "Opening Guard Check", 4, 0.30d),
-                    DamagePoint("sword-shield.r2.guard-2", "Main Guard Check", 9, 0.35d),
-                    DamagePoint("sword-shield.r2.guard-3", "Closing Guard Check", 10, 0.40d)),
-                ScriptedSequence(
-                    "training.sword-shield.round-3",
-                    "R3 / Combo 3 — Airborne Split Attack",
-                    DamagePoint("sword-shield.r3.setup", "Airborne Setup Check", 10, 0.25d),
-                    GuardPoint("sword-shield.r3.guard", "First Aerial Hit Guard", 3),
-                    DamagePoint("sword-shield.r3.second-hit", "Second Aerial Hit Check", 2, 0.30d),
-                    DamagePoint("sword-shield.r3.recovery", "Breather Setup", 8, 0.25d)),
-                ScriptedSequence(
-                    "training.sword-shield.round-4",
-                    "R4 / Combo 4 — Guard QTE and Split Healing",
-                    DamagePoint("sword-shield.r4.qte-1", "Guard Window A", 14, 0.20d),
-                    DamagePoint("sword-shield.r4.qte-2", "Guard Window B", 1, 0.20d),
-                    DamagePoint("sword-shield.r4.qte-3", "Guard Window C", 1, 0.20d),
-                    DamagePoint("sword-shield.r4.wound-1", "Potion Setup A", 2, 0.35d),
-                    DamagePoint("sword-shield.r4.wound-2", "Potion Setup B", 1, 0.25d))
-            };
-        }
-
-        private static IReadOnlyList<EnemyActionSequence> CreateGlaiveAndShieldTrialScript()
-        {
-            return new[]
-            {
-                ScriptedSequence(
-                    "training.glaive-shield.round-1",
-                    "R1 / Combo 1 — Guard, Clash, Counter",
-                    DamagePoint("glaive-shield.r1.guard-1", "Opening Guard Check", 4, 0.30d),
-                    DamagePoint("glaive-shield.r1.clash", "Clash Strike", 9, 0.55d),
-                    DamagePoint("glaive-shield.r1.guard-2", "Counter Guard Check", 3, 0.30d),
-                    DamagePoint("glaive-shield.r1.evade", "Closing Evade Check", 7, 0.35d)),
-                ScriptedSequence(
-                    "training.glaive-shield.round-2",
-                    "R2 / Combo 2 — Defensive Chain and Buff",
-                    DamagePoint("glaive-shield.r2.defense-1", "Opening Defense Check", 2, 0.40d),
-                    DamagePoint("glaive-shield.r2.defense-2", "Main Defense Check", 8, 0.45d),
-                    DamagePoint("glaive-shield.r2.buff", "Empower Check", 11, 0.30d)),
-                ScriptedSequence(
-                    "training.glaive-shield.round-3",
-                    "R3 / Combo 3 — Armor, Guard, Finish",
-                    DamagePoint(
-                        "glaive-shield.r3.armor-1",
-                        "Opening Armor Check",
-                        3,
-                        0.25d,
-                        onHitDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2)),
-                    DamagePoint("glaive-shield.r3.guard", "Main Guard Check", 5, 0.35d),
-                    DamagePoint(
-                        "glaive-shield.r3.armor-2",
-                        "Finisher Armor Check",
-                        13,
-                        0.30d,
-                        onHitDisruption: new ActionDisruptionDefinition(
-                            ActionDisruptionType.Stagger,
-                            duration: 2))),
-                ScriptedSequence(
-                    "training.glaive-shield.round-4",
-                    "R4 / Combo 4 — Guard QTE and Recovery",
-                    DamagePoint("glaive-shield.r4.qte-1", "Guard Window A", 6, 0.20d),
-                    DamagePoint("glaive-shield.r4.qte-2", "Guard Window B", 1, 0.20d),
-                    DamagePoint("glaive-shield.r4.qte-3", "Guard Window C", 1, 0.20d),
-                    DamagePoint("glaive-shield.r4.linked-guard", "Linked Guard Check", 10, 0.35d),
-                    DamagePoint("glaive-shield.r4.recovery", "Recovery Setup", 4, 0.25d))
-            };
-        }
-
-        private static EnemyActionSequence ScriptedSequence(
-            string sequenceId,
-            string displayName,
-            params EnemyActionDefinition[] actions)
-        {
-            return new EnemyActionSequence(sequenceId, displayName, actions);
-        }
-
-        private static EnemyActionDefinition DamagePoint(
-            string actionId,
-            string displayName,
-            int timeSincePreviousPoint,
-            double damageMultiplier,
-            DamageResolutionTag damageTags = DamageResolutionTag.None,
-            ActionDisruptionDefinition onHitDisruption = null,
-            ActionDisruptionDefinition onEvadedDisruption = null)
-        {
-            return new EnemyActionDefinition(
-                actionId,
-                displayName,
-                timelineCost: timeSincePreviousPoint,
-                resolutionOffset: timeSincePreviousPoint,
-                damageMultiplier: damageMultiplier,
-                damageTags: damageTags,
-                onHitDisruption: onHitDisruption,
-                disruptionResponseSegments: PauseOnStagger(timeSincePreviousPoint),
-                onEvadedDisruption: onEvadedDisruption);
-        }
-
-        private static EnemyActionDefinition GuardPoint(
-            string actionId,
-            string displayName,
-            int timeSincePreviousPoint)
-        {
-            return new EnemyActionDefinition(
-                actionId,
-                displayName,
-                timelineCost: timeSincePreviousPoint,
-                resolutionOffset: timeSincePreviousPoint,
-                damageMultiplier: 0d,
-                resolutionEffect: ActionResolutionEffect.Guard,
-                disruptionResponseSegments: PauseOnStagger(timeSincePreviousPoint));
-        }
-
-        private static IReadOnlyList<DisruptionResponseSegmentDefinition> PauseOnStagger(
-            int timelineCost)
-        {
-            return new[]
-            {
-                new DisruptionResponseSegmentDefinition(
-                    startOffset: 1,
-                    endOffset: timelineCost,
-                    flinchResponse: ActionDisruptionResponse.Continue,
-                    staggerResponse: ActionDisruptionResponse.PauseAndResume,
-                    knockdownResponse: ActionDisruptionResponse.PauseAndResume)
-            };
-        }
-
-        private static IReadOnlyList<DisruptionResponseSegmentDefinition> RestartOnStagger(
-            int timelineCost)
-        {
-            return new[]
-            {
-                new DisruptionResponseSegmentDefinition(
-                    startOffset: 1,
-                    endOffset: timelineCost,
-                    flinchResponse: ActionDisruptionResponse.Continue,
-                    staggerResponse: ActionDisruptionResponse.RestartAction,
-                    knockdownResponse: ActionDisruptionResponse.RestartAction)
-            };
-        }
-
-        private static IReadOnlyList<DisruptionResponseSegmentDefinition> CancelOnStagger(
-            int timelineCost)
-        {
-            return new[]
-            {
-                new DisruptionResponseSegmentDefinition(
-                    startOffset: 1,
-                    endOffset: timelineCost,
-                    flinchResponse: ActionDisruptionResponse.Continue,
-                    staggerResponse: ActionDisruptionResponse.CancelAction,
-                    knockdownResponse: ActionDisruptionResponse.CancelAction)
-            };
         }
 
         private void BeginTimelinePlayback()
