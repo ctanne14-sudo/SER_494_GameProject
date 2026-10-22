@@ -3,78 +3,92 @@ using System.Collections.Generic;
 
 public class Inventory : MonoBehaviour
 {
-    [SerializeField] private ContentController content;
-    [SerializeField] private HotbarSlot[] slots;
+    [Header("Plyaer Scripts")]
     [SerializeField] private PlayerInteractor interactor;
-
     [SerializeField] private PlayerSpeed ps;
-    [SerializeField] private GameObject spawnPoint;
 
-    public List<Item> inInventory = new List<Item>();
-    private Item slotItem;
+    [Header("Hotbar")]
+    [SerializeField] private HotbarSlot[] hotbarSlots;  //List of slots in hotbar
 
-    private bool openInventory = false;
+    [Header("Hand")]
+    [SerializeField] private GameObject spawnPoint; //Spawn point for held items
+    [Header("Inventory Slot")]
 
-    [HideInInspector] public int gold;
+    [SerializeField] private GameObject invSlotPrefab;  //Prefab for added slots to inventory
 
-    private int selected = -1;
+    [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
+    private List<Item> inInventory = new List<Item>();  //List of items in inventory/hotbar
+    public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
+    private InvSlot prevInvSlot = null;     //Previous selected inventory slot
 
-    private readonly KeyCode[] numKeys = {KeyCode.Alpha1, KeyCode.Alpha2, 
+    private bool openInventory = false;     //True if inventory is opened
+
+    [HideInInspector] public int gold;      //Count of current gold/money
+
+    private int hbSelected = -1;            //Index of the selected hotbar slot
+
+    private readonly KeyCode[] numKeys = {KeyCode.Alpha1, KeyCode.Alpha2,   //Keys for hotbar selection
         KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5};
 
-    void Start()
+    /**
+        Initializes the hotbar and inventory
+    **/
+    void Awake()
     {
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < hotbarSlots.Length; i++)
         {
-            slots[i].setNum(i + 1);
+            hotbarSlots[i].setNum(i + 1);
         }
+        for (int i = 0; i < invSlots.Count; i++)
+            invSlots[i].addInventory(this, i);
+
+        addInvSlot();
     }
+
+
     void Update()
     {
-        for (int i = 0; i < numKeys.Length; i++)
-            if (Input.GetKeyDown(numKeys[i])) select(i);
-        if (Input.GetKeyDown(KeyCode.Alpha0)) select(-1);
 
+        //Gets the selected key (1-5) and sets the hotbar -0 for deselect
+        for (int i = 0; i < numKeys.Length; i++)
+            if (Input.GetKeyDown(numKeys[i])) selectHB(i);
+        if (Input.GetKeyDown(KeyCode.Alpha0)) selectHB(-1);
+
+        //Uses the selected hotbar item
         if (Input.GetMouseButtonUp(0) && !openInventory)
             useItem();
 
-        for (int i = 0; i < inInventory.Count; i++) 
-            if (inInventory[i].usesLeft <= 0) {
-                removeItem(i);
-                i--;
+        //Updates inventory once items have no uses left
+        foreach (Item item in inInventory) 
+            if (item.usesLeft <= 0) {
+                removeItem(item);
             }
         
-
-        if (Input.GetKeyDown(KeyCode.I))
+        //Opens the inventory with Tab
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
-            slotItem = null;
+            prevInvSlot = null;
             openInventory = !openInventory;
+            invSlots[0].transform.root.gameObject.SetActive(openInventory);
             Cursor.lockState = openInventory ? CursorLockMode.None : CursorLockMode.Locked;
-            content.showInventory(openInventory);
             transform.GetComponentInChildren<CameraMovement>().enabled = !openInventory;
-            if (!openInventory) clearSelection();
         }
-    }
-    public void select(int index)
-    {
-        if (slotItem != null) {
-            assignSlot(index);
-            return;
-        }
-        if (openInventory) return;
 
-        if (selected == index) index = -1;
-        selected = index;
-        bool select = selected >= 0 && selected < slots.Length;
-        for (int i = 0; i < slots.Length; i++)
-            slots[i].setSelected(select && i == selected);
-        ps.changeMultiplier(select ? .8f : 1f); 
+        //Swaps the selected item with the clicked item when Left Shift is held
+        if (Input.GetKey(KeyCode.LeftShift) && prevInvSlot != null && selectedInvSlot != null)
+        {
+            swapInvSlots();
+        }
+        prevInvSlot = null;
     }
 
+    /**
+        Uses the item if it has an action and uses left
+    **/
     void useItem()
     {
-        Item item = getSelected();
-        if (item != null) {
+        Item item = getSelectedHotbar();
+        if (item != null && item.usesLeft > 0) {
             Action action = item.prefab.GetComponent<Action>();
             if (action != null) {
                 action.action(interactor);
@@ -83,28 +97,66 @@ public class Inventory : MonoBehaviour
         }
     }
 
-
-    private void assignSlot(int index)
+    /**
+        Selects the hotbar slot (1-5)
+            - Pressing same number deselects the item (ie 1 -> 1)
+    **/
+    public void selectHB(int index)
     {
-        if (index < 0 || index > slots.Length) return;
-
-        int inv = inInventory.IndexOf(slotItem);
-        if (inv < 0)
+        hbSelected = hbSelected == index ? -1 : index;
+        if (openInventory)
         {
-            slotItem = null;
-            return;
-        }
-
-        for (int i = 0; i < slots.Length; i++) 
-            if (slots[i].getInvIndex() == inv) slots[i].clear();
-
-        setItem(index, inv, slotItem);
-        slotItem = null;
-        content.fillSlots();
-        clearSelection();
+            if (selectedInvSlot != null && hbSelected != -1)
+            {
+                swapWithHotbar(selectedInvSlot);
+            } 
+        }        
+        bool select = hbSelected >= 0 && hbSelected < hotbarSlots.Length;
+        for (int i = 0; i < hotbarSlots.Length; i++)
+            hotbarSlots[i].setSelected(select && i == hbSelected);
+        ps.changeMultiplier(select ? .8f : 1f); 
     }
 
 
+    /**
+        Adds item to inventory in the next available slot
+    **/
+    private void addToInvSlot(Item item)
+    {
+        bool added = false;
+        while (!added) {
+            addInvSlot();
+            foreach (InvSlot slot in invSlots)
+            {
+                if (slot.getItem() == null)
+                {
+                    item.setInvSlot(slot);
+                    slot.setItem(item);
+                    added = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+        Adds slots to inventory
+        Keeps at least 1 extra row
+    **/
+    private void addInvSlot()
+    {
+        while (invSlots.Count <= (((inInventory.Count / 6) + 2) * 6 - 1)) {
+            GameObject spawn = Instantiate(invSlotPrefab, invSlots[0].transform.parent, false);
+            InvSlot slot = spawn.GetComponent<InvSlot>();
+            slot.addInventory(this, invSlots.Count);
+            invSlots.Add(slot);
+        }
+    }
+
+    /**
+        Adds item to inventory if there are no matching items
+        Adds uses to matching items
+    **/
     public void addItem(Item item)
     {
         foreach (Item i in inInventory)
@@ -112,54 +164,132 @@ public class Inventory : MonoBehaviour
             if (item.prefab == i.prefab)
             {
                 i.usesLeft += item.usesLeft;
-                content.updateCount();
+                if (i.invSlot == null)
+                {
+                    addToInvSlot(i);
+                } 
+                i.invSlot.setCount();
                 return;
             }
         }
         inInventory.Add(item);
-        content.fillSlots();
+        addToInvSlot(item);
     }
 
-    private void removeItem(int index)
+    /**
+        Removes items from the inventory 
+    **/
+    private void removeItem(Item item)
     {
-        inInventory.RemoveAt(index);
-        for (int i = 0; i < slots.Length; i++)
+        if (item == null) return;
+        inInventory.Remove(item);
+        foreach (HotbarSlot slot in hotbarSlots)
         {
-            slots[i].updateIndex(index);
+            if (slot.getItem() == item)
+            {
+                slot.clear();
+            }
         }
-        content.fillSlots();
+        if (item.invSlot != null) item.invSlot.clear();
     }
 
-    public void clearSelection()
+    /**
+        Swaps the selected inventory item with the selected hotbar slot
+    **/
+    public void swapWithHotbar(InvSlot selectedInvSlot)
     {
-        content.clearSelection();
+        Item hbItem = hotbarSlots[hbSelected].getItem();
+        Item invItem = selectedInvSlot.getItem();
+
+        if (hbItem == null && invItem == null)
+        {
+            selectedInvSlot.clearSelection();
+            this.selectedInvSlot = null;
+            return;
+        }
+
+        if (invItem != null)
+        {
+            Item newItem = hotbarSlots[hbSelected].setItem(invItem, spawnPoint);
+            invItem.setInvSlot(null);
+            if (newItem != null)
+            {
+                selectedInvSlot.setItem(newItem);
+            } else 
+                selectedInvSlot.clear();
+        } else
+        {
+            hotbarSlots[hbSelected].clear();
+            selectedInvSlot.setItem(hbItem);
+        }
+        this.selectedInvSlot = null;
+        clearInvSelection(null);
     }
 
-    public bool isInSlot(int invIndex)
+    /**
+        Swaps the two selected inventory slots
+    **/
+    private void swapInvSlots()
     {
-        for (int i = 0; i < slots.Length; i++) 
-            if (invIndex == slots[i].getInvIndex()) return true;
-        return false;
+            Item temp = prevInvSlot.getItem();
+            if (selectedInvSlot.getItem() == null) prevInvSlot.clear();
+            else prevInvSlot.setItem(selectedInvSlot.getItem());
+
+            if (temp == null) selectedInvSlot.clear();
+            else selectedInvSlot.setItem(temp);
+
+            prevInvSlot = null;
     }
 
-    public void setSlotItem(Item item) => slotItem = item;
+    /**
+        Clears all but the given inventory slot selection
+    **/
+    public void clearInvSelection(InvSlot slot)
+    {
+        foreach (InvSlot s in invSlots)
+        {
+            if (s != slot) s.clearSelection();
+        }
+    }
 
-    public Item getSelected() 
-        => selected >= 0 && selected < slots.Length ? slots[selected].getItem() : null;
+    /**
+        Returns selected hotbar item
+    **/
+    public Item getSelectedHotbar() 
+        => hbSelected >= 0 && hbSelected < hotbarSlots.Length ? hotbarSlots[hbSelected].getItem() : null;
 
-    public void setItem(int index, int invIndex, Item item) 
-        => slots[index].setItem(item, invIndex, spawnPoint);
+    /**
+        Returns true if the a hotbar is selected
+    **/
+    public bool hasHBSelected() => hbSelected >= 0 && hbSelected < hotbarSlots.Length;
 
+    /**
+        Sets the selected and previous inventory slot
+    **/
+    public void setSelectedInvSlot(InvSlot slot)
+    {
+        prevInvSlot = selectedInvSlot;
+        selectedInvSlot = slot;
+
+    }
 }
 
+/**
+    Public class to store an items information
+**/
 public class Item
 {
-    public string id;
-    public GameObject prefab;
-    public Texture texture;
-    public int usesLeft;
-    public string displayName;
+    public string id;   //Id for keys or locks
+    public GameObject prefab;   //Objects prefab model
+    public Texture texture;     //Objects 2-d picture for display
+    public int usesLeft;        //Amount of uses it has
+    public string displayName;  //The name to be displayed
+    public InvSlot invSlot = null;  //Refrence to the slot its stored in
 
+
+    /**
+        Creates the object
+    **/
     public Item(GameObject prefab, Texture texture, int uses, string displayName, string id = null)
     {
         this.id = id;
@@ -168,4 +298,9 @@ public class Item
         usesLeft = uses;
         this.displayName = displayName;
     }
+
+    /**
+        Set the refrence to the inventory
+    **/
+    public void setInvSlot(InvSlot slot) => invSlot = slot;
 }

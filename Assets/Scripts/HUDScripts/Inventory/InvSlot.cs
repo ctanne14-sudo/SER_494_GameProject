@@ -1,86 +1,108 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.InputSystem;
-using System.Threading;
 public class InvSlot : MonoBehaviour
 {
-    [SerializeField] private RawImage icon;
-    [SerializeField] private Image highlight;
-    [SerializeField] private TextMeshProUGUI itemName;
-    [SerializeField] private TextMeshProUGUI usesLeft;
-    private Inventory inventory;
-    private Item item;
-    private bool selected = false;
+    [SerializeField] private RawImage icon;     //Image of the Item
+    [SerializeField] private Image highlight;   //Enable When Selected
+    [SerializeField] private TextMeshProUGUI itemName;  //Text field of the Item
+    [SerializeField] private TextMeshProUGUI usesLeft;  //Text for the number of uses left
+    private Inventory inventory;    //Reference to players inventory
+    private Item item;      //The item held in the slot
+    private bool selected = false;  //True when the item is clicked
 
-    private int invIndex = -1;
-
-
+    /**
+        Inistializes the slots name and uses field
+    **/
     void Awake()
     {
         setName();
         setCount();
     }
 
-    public void addInventory(Inventory inventory)
+    /**
+        Adds the reference to players inventory and slot index
+    **/
+    public void addInventory(Inventory inventory, int invSlotIndex)
     {
         this.inventory = inventory;
-        Button b = GetComponent<Button>();
-        b.onClick.RemoveAllListeners();
-        b.onClick.AddListener(onClick);
     }
 
+    /**
+        Function for when a slot is clicked on
+        Will always highlight the most recent item
+        States:
+            -Hotbar item is selected -> swap with clicked item
+            -Slot is selected and Left Shift is held-> swap with clicked item
+            -Slot is selcted-> 1-5 num key press switches with that hotbar
+    **/
     public void onClick()
     {
-        if (item == null) return;
-        bool temp = selected;
-        inventory.clearSelection();
-        selected = !temp;
+        inventory.clearInvSelection(this);
+
+        if (inventory.hasHBSelected())
+        {
+            inventory.swapWithHotbar(this);
+            inventory.selectHB(-1);
+        }
+        selected = !selected;
         highlight.gameObject.SetActive(selected);
-        if (selected)
-            inventory.setSlotItem(item);
+        inventory.setSelectedInvSlot(selected ? this : null);
     }
 
+    /**
+        Sets the slots item
+    **/
+    public void setItem(Item item)
+    {
+        item.setInvSlot(this); 
+        this.item = item;
+        icon.texture = item.texture;
+        icon.enabled = item.texture != null;
+        if (inventory.selectedInvSlot != this)
+            clearSelection();
+        setName();
+        setCount();
+    }
+
+    /**
+        Helper to clear slots selection
+    **/
     public void clearSelection()
     {
         selected = false;
         highlight.gameObject.SetActive(selected);        
     }
-
-    public void setItem(Item item, int index)
+    
+    /**
+        Clears the slot completly
+    **/
+    public void clear()
     {
-        this.item = item;
-        icon.texture = item.texture;
-        icon.enabled = item.texture != null;
-        invIndex = index;
-        usesLeft.text = item.usesLeft.ToString();
-        setName();
-    }
-
-    public int clear()
-    {
-        int index = invIndex;
         item = null;
         icon.texture = null;
         icon.enabled = false;
-        invIndex = -1;
+        selected = false;
+        if (inventory.selectedInvSlot != this)
+            clearSelection();
         setName();
-        return index;
+        setCount();
     }
 
-    public void updateIndex(int index)
-    {
-        if (invIndex > index) invIndex--;
-    }
-
-    public void setName() 
-    {
+    /**
+        Sets the Name text field
+    **/
+    public void setName() =>
         itemName.text = item != null ? item.displayName : "";
-    }
     
-    
-    public void setCount()
-    {
+    /**
+        Sets the Num uses text field
+    **/
+    public void setCount() =>
         usesLeft.text = item != null ? item.usesLeft.ToString() : "";
-    }
+    
+    /**
+        Returns the currently stored item
+    **/
+    public Item getItem() => item;
 }

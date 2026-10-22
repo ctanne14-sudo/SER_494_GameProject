@@ -65,7 +65,7 @@ public class ChestAction : Action {
 
 	private void checkForKey()
 	{
-		Item item = inventory.getSelected();
+		Item item = inventory.getSelectedHotbar();
 		bool stateChange = item != null && item.id == lockId;
 
 		if (stateChange == hasKey) return;
@@ -104,7 +104,7 @@ public class ChestAction : Action {
 			unlocked = !setLock || isOpen;
 		} else
 		{
-			Item item = inventory.getSelected();
+			Item item = inventory.getSelectedHotbar();
 			if (item != null && item.id == lockId)
 			{
 				item.usesLeft--;

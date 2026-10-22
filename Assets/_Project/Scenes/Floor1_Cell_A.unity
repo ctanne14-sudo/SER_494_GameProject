@@ -138,7 +138,15 @@ PrefabInstance:
     - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
       propertyPath: content
       value: 
-      objectReference: {fileID: 388007083}
+      objectReference: {fileID: 0}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: invSlotPrefab
+      value: 
+      objectReference: {fileID: 5973180802019472500, guid: 240f9a1dbd1a5d142bfbe01c2bd33036, type: 3}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: invSlots.Array.size
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
       propertyPath: 'slots.Array.data[0]'
       value: 
@@ -160,13 +168,41 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1947662602}
     - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: hotbarSlots.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'invSlots.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2030664826}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
       propertyPath: inventoryRows.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'hotbarSlots.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1754730559}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'hotbarSlots.Array.data[1]'
+      value: 
+      objectReference: {fileID: 237099284}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'hotbarSlots.Array.data[2]'
+      value: 
+      objectReference: {fileID: 132128023}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'hotbarSlots.Array.data[3]'
+      value: 
+      objectReference: {fileID: 389533370}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
+      propertyPath: 'hotbarSlots.Array.data[4]'
+      value: 
+      objectReference: {fileID: 1947662602}
+    - target: {fileID: 1476984372760284214, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
       propertyPath: 'inventoryRows.Array.data[0]'
       value: 
-      objectReference: {fileID: 8275655722481366689}
+      objectReference: {fileID: 0}
     - target: {fileID: 1904683203995905773, guid: 010148674ec5b75418a2f7a0fcfbf094, type: 3}
       propertyPath: m_ApplyRootMotion
       value: 0
@@ -6454,17 +6490,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 385446103}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &388007083 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3258864004531953406, guid: c317dd5b96a5b5144a8b1ed8ebe7c7c8, type: 3}
-  m_PrefabInstance: {fileID: 8648484044162442623}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74f67c03fc3478e418cd82128f9597f6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ContentController
 --- !u!114 &389533370 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8306906240664818348, guid: 7e9aa81937cd0b048ad913a2205bc87f, type: 3}
@@ -29554,6 +29579,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2025285179}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2030664826 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1660056830247260150, guid: c317dd5b96a5b5144a8b1ed8ebe7c7c8, type: 3}
+  m_PrefabInstance: {fileID: 8648484044162442623}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 619f10540c8ed054d8d30c96f5c1bc6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvSlot
 --- !u!1 &2031941813
 GameObject:
   m_ObjectHideFlags: 0
@@ -31436,11 +31472,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2146738793}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &8275655722481366689 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7995637518146300303, guid: c317dd5b96a5b5144a8b1ed8ebe7c7c8, type: 3}
-  m_PrefabInstance: {fileID: 8648484044162442623}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8648484044162442623
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31449,10 +31480,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 3258864004531953406, guid: c317dd5b96a5b5144a8b1ed8ebe7c7c8, type: 3}
-      propertyPath: inventory
-      value: 
-      objectReference: {fileID: 1850901623}
     - target: {fileID: 6562509988156811856, guid: c317dd5b96a5b5144a8b1ed8ebe7c7c8, type: 3}
       propertyPath: m_Pivot.x
       value: 0

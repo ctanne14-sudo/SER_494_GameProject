@@ -11,7 +11,6 @@ public class HotbarSlot : MonoBehaviour
     [SerializeField] private TextMeshProUGUI itemName;
     private GameObject spawnPoint;
     private GameObject spawned;
-    private int invIndex = -1;
     private bool isSelected;
 
     void Start()
@@ -19,16 +18,17 @@ public class HotbarSlot : MonoBehaviour
         setName();
     }
 
-    public void setItem(Item item, int index, GameObject spawnPoint)
+    public Item setItem(Item item, GameObject spawnPoint)
     {
+        Item temp = this.item;
         clear();
         this.spawnPoint = spawnPoint;
         this.item = item;
         icon.texture = item.texture;
         icon.enabled = item.texture != null;
-        invIndex = index;
         spawnItem();
         setName();
+        return temp;
     }
 
     public void setSelected(bool selected)
@@ -61,35 +61,19 @@ public class HotbarSlot : MonoBehaviour
         }
     }
 
-    public int clear()
+    public void clear()
     {
-        int index = invIndex;
         item = null;
         icon.texture = null;
         icon.enabled = false;
-        invIndex = -1;
         setName();
         if (spawned != null) Destroy(spawned);
-        return index;
-    }
-    public void updateIndex(int index)
-    {
-        if (index == invIndex) clear();
-        if (invIndex > index) invIndex--;
     }
 
     public Item getItem() => item;
-    public int getInvIndex() => invIndex;
 
     public void setNum(int num) => slotNum.text = num.ToString();
 
-    public void setName()
-    {
-        if (item == null)
-        {
-            itemName.text = "";
-            return;
-        }
-        itemName.text = item.displayName;
-    }
+    public void setName() =>
+        itemName.text = item != null ? item.displayName : "";
 }
