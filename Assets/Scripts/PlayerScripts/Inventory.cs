@@ -3,13 +3,14 @@ using System.Collections.Generic;
 
 public class Inventory : MonoBehaviour
 {
+    [SerializeField] private ContentController content;
     [SerializeField] private HotbarSlot[] slots;
     [SerializeField] private PlayerInteractor interactor;
 
     [SerializeField] private PlayerSpeed ps;
     [SerializeField] private GameObject spawnPoint;
 
-    private List<Item> inInventory = new List<Item>();
+    public   List<Item> inInventory = new List<Item>();
 
     [HideInInspector] public int gold;
 
@@ -34,8 +35,6 @@ public class Inventory : MonoBehaviour
             if (Input.GetKeyDown(numKeys[i])) select(i);
         }
         if (Input.GetKeyDown(KeyCode.Alpha0)) select(-1);
-
-        fillSlots();
 
         if (Input.GetMouseButtonUp(0))
             useItem();
@@ -62,23 +61,7 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    void fillSlots()
-    {
-        if (inInventory.Count > 0)
-        {
-            for (int s = 0; s < slots.Length; s++) {
-                if (slots[s].getItem() != null) continue;
-
-                int i = 0;
-                while (i < inInventory.Count && isInSlot(i)) i++;
-                if (i >= inInventory.Count) break;
-
-                setItem(s, i, inInventory[i]);
-            }
-        }
-    }
-
-    bool isInSlot(int invIndex)
+    public bool isInSlot(int invIndex)
     {
         for (int i = 0; i < slots.Length; i++) 
             if (invIndex == slots[i].getInvIndex()) return true;
@@ -100,7 +83,17 @@ public class Inventory : MonoBehaviour
 
     public void addItem(Item item)
     {
+        foreach (Item i in inInventory)
+        {
+            if (item.prefab == i.prefab)
+            {
+                i.usesLeft += item.usesLeft;
+                content.updateCount();
+                return;
+            }
+        }
         inInventory.Add(item);
+        content.fillSlots();
     }
 
     private void removeItem(int index)
@@ -110,6 +103,7 @@ public class Inventory : MonoBehaviour
         {
             slots[i].updateIndex(index);
         }
+        content.fillSlots();
     }
 
     public void setItem(int index, int invIndex, Item item) 

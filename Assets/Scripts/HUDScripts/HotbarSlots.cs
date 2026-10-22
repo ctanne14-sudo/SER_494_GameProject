@@ -34,6 +34,8 @@ public class HotbarSlot : MonoBehaviour
     {
         isSelected = selected;
         highlight.gameObject.SetActive(isSelected);
+        if (selected) transform.localScale = new Vector2(1.05f, 1.05f);
+        else transform.localScale = new Vector2(1f, 1f);
         spawnItem();
     }
 
