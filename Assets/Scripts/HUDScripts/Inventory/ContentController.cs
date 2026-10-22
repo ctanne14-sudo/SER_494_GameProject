@@ -11,10 +11,19 @@ public class ContentController : MonoBehaviour
     public List<InventoryRow> inventoryRows = new List<InventoryRow>();
 
 
+    void Awake()
+    {
+        foreach (InventoryRow row in inventoryRows)
+            foreach (InvSlot slot in row.slots)
+                slot.addInventory(inventory);
+    }
+
     void addRow()
     {
             GameObject spawn = Instantiate(rowPrefab, verticalLayout.transform, false);
             InventoryRow row = spawn.GetComponent<InventoryRow>();
+            foreach (InvSlot slot in row.slots) 
+                slot.addInventory(inventory);
             inventoryRows.Add(row);
     }
 
@@ -47,19 +56,23 @@ public class ContentController : MonoBehaviour
         }
     }
 
+    public void clearSelection()
+    {
+        foreach (InventoryRow row in inventoryRows)
+            foreach (InvSlot slot in row.slots) 
+                slot.clearSelection();
+        
+    }
+
     public void updateCount()
     {
         foreach (InventoryRow row in inventoryRows)
-        {
             foreach (InvSlot slot in row.slots)
-            {
                 slot.setCount();
-            }
-        }
     }
 
-
-    
-
-    
+    public void showInventory(bool show)
+    {
+        transform.root.gameObject.SetActive(show);
+    }
 }

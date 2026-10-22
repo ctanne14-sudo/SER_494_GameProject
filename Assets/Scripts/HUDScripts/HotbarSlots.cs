@@ -21,6 +21,7 @@ public class HotbarSlot : MonoBehaviour
 
     public void setItem(Item item, int index, GameObject spawnPoint)
     {
+        clear();
         this.spawnPoint = spawnPoint;
         this.item = item;
         icon.texture = item.texture;
