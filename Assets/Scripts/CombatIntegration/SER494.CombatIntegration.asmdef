@@ -1,0 +1,17 @@
+{
+  "name": "SER494.CombatIntegration",
+  "rootNamespace": "SER494.Gameplay.CombatIntegration",
+  "references": [
+    "SER494.Combat",
+    "SER494.PlayerState"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

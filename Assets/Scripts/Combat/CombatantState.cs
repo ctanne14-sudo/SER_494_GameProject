@@ -17,6 +17,21 @@ namespace SER494.Gameplay.Combat
         private readonly ReadOnlyCollection<CombatStatusInstance> _readOnlyActiveStatuses;
 
         public CombatantState(string displayName, CombatantStats stats)
+            : this(
+                displayName,
+                stats,
+                stats?.MaxHealth ?? 0,
+                stats?.MaxMana ?? 0,
+                stats?.MaxStamina ?? 0)
+        {
+        }
+
+        public CombatantState(
+            string displayName,
+            CombatantStats stats,
+            int currentHealth,
+            int currentMana,
+            int currentStamina)
         {
             if (string.IsNullOrWhiteSpace(displayName))
             {
@@ -25,9 +40,18 @@ namespace SER494.Gameplay.Combat
 
             DisplayName = displayName;
             Stats = stats ?? throw new ArgumentNullException(nameof(stats));
-            CurrentHealth = stats.MaxHealth;
-            CurrentMana = stats.MaxMana;
-            CurrentStamina = stats.MaxStamina;
+            CurrentHealth = RequireResourceInRange(
+                currentHealth,
+                stats.MaxHealth,
+                nameof(currentHealth));
+            CurrentMana = RequireResourceInRange(
+                currentMana,
+                stats.MaxMana,
+                nameof(currentMana));
+            CurrentStamina = RequireResourceInRange(
+                currentStamina,
+                stats.MaxStamina,
+                nameof(currentStamina));
             _damageDealtModifiers = new List<DamageModifier>();
             _damageTakenModifiers = new List<DamageModifier>();
             _permanentDamageDealtModifiers = new List<DamageModifier>();
@@ -240,6 +264,22 @@ namespace SER494.Gameplay.Combat
             }
 
             return Math.Min(maximumValue, currentValue + amount);
+        }
+
+        private static int RequireResourceInRange(
+            int value,
+            int maximum,
+            string parameterName)
+        {
+            if (value < 0 || value > maximum)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    value,
+                    $"Value must be between zero and {maximum}.");
+            }
+
+            return value;
         }
 
         private void AdvanceStatuses(int amount, CombatStatusDurationType durationType)

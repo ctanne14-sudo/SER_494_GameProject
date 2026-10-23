@@ -2,6 +2,8 @@
   "name": "SER494.PlayerState.EditModeTests",
   "rootNamespace": "SER494.Gameplay.PlayerState.Tests",
   "references": [
+    "SER494.Combat",
+    "SER494.CombatIntegration",
     "SER494.PlayerState",
     "SER494.PlayerState.Unity"
   ],

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
@@ -361,6 +362,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private readonly int _manaRecoveryPerTurn;
         private readonly int _staminaRecoveryPerTurn;
         private readonly Dictionary<string, int> _itemCounts;
+        private readonly IReadOnlyDictionary<string, int> _readOnlyItemCounts;
         private readonly List<SoloComboActionResolution> _activeResolutions =
             new List<SoloComboActionResolution>();
 
@@ -421,6 +423,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             _combos = CopyAndValidateCombos(combos);
             _cooldowns = new int[_combos.Length];
             _itemCounts = CopyAndValidateItems(startingItems);
+            _readOnlyItemCounts = new ReadOnlyDictionary<string, int>(_itemCounts);
             Outcome = EvaluateOutcome();
             if (Outcome == BattleOutcome.Ongoing)
             {
@@ -439,6 +442,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public InitialTimelineSchedule EnemyIntent { get; private set; }
 
         public BattleOutcome Outcome { get; private set; }
+
+        public IReadOnlyDictionary<string, int> ItemCounts => _readOnlyItemCounts;
 
         public bool IsTimelineResolving => _activeSchedule != null;
 
