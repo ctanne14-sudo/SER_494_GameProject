@@ -6,8 +6,8 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.CombatIntegration.Unity;
-using SER494.Gameplay.PlayerState;
 using UnityEngine;
+using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Tests
 {
@@ -148,7 +148,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         public void BattleAdapter_CreatesBattleFromPersistentPlayerState()
         {
             BattleSessionService service = CreateService("Battle Sessions");
-            var playerState = new PlayerState(120, 40, 30);
+            var playerState = new PersistentPlayerState(120, 40, 30);
             playerState.TakeDamage(35);
             Assert.That(playerState.TrySpendMana(7), Is.True);
             playerState.Inventory.Add("item.potion", 2);
@@ -182,7 +182,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         public void BattleAdapter_CommitsFinalResourcesItemsAndEncounterOutcome()
         {
             BattleSessionService service = CreateService("Battle Sessions");
-            var playerState = new PlayerState(100, 30, 30);
+            var playerState = new PersistentPlayerState(100, 30, 30);
             playerState.Inventory.Add("item.potion", 1);
             SoloComboLoadoutSession loadout = CreatePreparedLoadout(
                 weapon: null,
