@@ -1,0 +1,18 @@
+{
+  "name": "SER494.CombatIntegration.Unity",
+  "rootNamespace": "SER494.Gameplay.CombatIntegration.Unity",
+  "references": [
+    "SER494.Combat",
+    "SER494.Combat.Authoring",
+    "SER494.CombatIntegration"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

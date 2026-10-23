@@ -1,0 +1,23 @@
+{
+  "name": "SER494.CombatIntegration.EditModeTests",
+  "rootNamespace": "SER494.Gameplay.CombatIntegration.Tests",
+  "references": [
+    "SER494.Combat",
+    "SER494.Combat.Authoring",
+    "SER494.CombatIntegration.Unity"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
