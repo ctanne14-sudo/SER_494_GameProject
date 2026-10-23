@@ -1,0 +1,16 @@
+{
+  "name": "SER494.PlayerState.Unity",
+  "rootNamespace": "SER494.Gameplay.PlayerState.Unity",
+  "references": [
+    "SER494.PlayerState"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
