@@ -18,6 +18,9 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         [SerializeField]
         private bool persistAcrossScenes = true;
 
+        private readonly ExplorationPresentationSuspension _explorationPresentation =
+            new ExplorationPresentationSuspension();
+
         private bool _isReturningToSource;
 
         public static BattleSessionService Active => _active;
@@ -56,6 +59,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         private void OnDestroy()
         {
+            _explorationPresentation.Resume();
             CancelPendingReturn();
 
             if (ReferenceEquals(_active, this))
@@ -99,6 +103,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 battleSceneName,
                 returnPosition,
                 returnRotation);
+            if (Application.isPlaying)
+            {
+                TrySuspendExplorationPresentation();
+            }
             SessionStarted?.Invoke(CurrentSession);
             return true;
         }
@@ -227,6 +235,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             CancelPendingReturn();
+            _explorationPresentation.Resume();
             CurrentSession = null;
         }
 
@@ -282,8 +291,36 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 controller.enabled = true;
             }
 
+            _explorationPresentation.Resume();
             CancelPendingReturn();
             CurrentSession = null;
+        }
+
+        private void TrySuspendExplorationPresentation()
+        {
+            GameObject player;
+            try
+            {
+                player = GameObject.FindGameObjectWithTag("Player");
+            }
+            catch (UnityException exception)
+            {
+                Debug.LogWarning(
+                    $"Battle started, but exploration presentation could not be suspended: "
+                    + exception.Message,
+                    this);
+                return;
+            }
+
+            if (player == null)
+            {
+                Debug.LogWarning(
+                    "Battle started, but no active Player object was found to suspend.",
+                    this);
+                return;
+            }
+
+            _explorationPresentation.Suspend(player.transform);
         }
 
         private void CancelPendingReturn()
@@ -353,6 +390,118 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         private static void ResetStatics()
         {
             _active = null;
+        }
+    }
+
+    /// <summary>
+    /// Temporarily suspends exploration-only presentation and input while a battle scene is active.
+    /// The exploration Player and HUD persist across scene loads, so their original enabled states
+    /// must be restored explicitly when returning from combat.
+    /// </summary>
+    internal sealed class ExplorationPresentationSuspension
+    {
+        private readonly List<BehaviourState> _behaviourStates =
+            new List<BehaviourState>();
+
+        private CursorLockMode _cursorLockMode;
+        private bool _cursorVisible;
+        private bool _isSuspended;
+
+        public void Suspend(Transform playerTransform)
+        {
+            if (_isSuspended || playerTransform == null)
+            {
+                return;
+            }
+
+            _behaviourStates.Clear();
+            CapturePlayerBehaviours(playerTransform);
+            CaptureExplorationCanvases();
+
+            _cursorLockMode = Cursor.lockState;
+            _cursorVisible = Cursor.visible;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            _isSuspended = true;
+        }
+
+        public void Resume()
+        {
+            if (!_isSuspended)
+            {
+                return;
+            }
+
+            for (int index = 0; index < _behaviourStates.Count; index++)
+            {
+                BehaviourState state = _behaviourStates[index];
+                if (state.Behaviour != null)
+                {
+                    state.Behaviour.enabled = state.WasEnabled;
+                }
+            }
+
+            _behaviourStates.Clear();
+            Cursor.lockState = _cursorLockMode;
+            Cursor.visible = _cursorVisible;
+            _isSuspended = false;
+        }
+
+        private void CapturePlayerBehaviours(Transform playerTransform)
+        {
+            Behaviour[] behaviours = playerTransform.GetComponentsInChildren<Behaviour>(true);
+            for (int index = 0; index < behaviours.Length; index++)
+            {
+                CaptureAndDisable(behaviours[index]);
+            }
+        }
+
+        private void CaptureExplorationCanvases()
+        {
+            Canvas[] canvases = UnityEngine.Object.FindObjectsByType<Canvas>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+            for (int index = 0; index < canvases.Length; index++)
+            {
+                CaptureAndDisable(canvases[index]);
+            }
+        }
+
+        private void CaptureAndDisable(Behaviour behaviour)
+        {
+            if (behaviour == null || Contains(behaviour))
+            {
+                return;
+            }
+
+            _behaviourStates.Add(new BehaviourState(behaviour, behaviour.enabled));
+            behaviour.enabled = false;
+        }
+
+        private bool Contains(Behaviour behaviour)
+        {
+            for (int index = 0; index < _behaviourStates.Count; index++)
+            {
+                if (ReferenceEquals(_behaviourStates[index].Behaviour, behaviour))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private readonly struct BehaviourState
+        {
+            public BehaviourState(Behaviour behaviour, bool wasEnabled)
+            {
+                Behaviour = behaviour;
+                WasEnabled = wasEnabled;
+            }
+
+            public Behaviour Behaviour { get; }
+
+            public bool WasEnabled { get; }
         }
     }
 }

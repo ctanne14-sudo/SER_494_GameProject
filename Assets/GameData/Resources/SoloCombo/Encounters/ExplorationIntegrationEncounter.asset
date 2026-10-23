@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: ExplorationIntegrationEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: integration.floor1.mock-wanderer
+  displayName: Floor 1 Integration Encounter
+  description: A weak single-enemy encounter used to verify exploration entry, combat,
+    and victory return.
+  enemyDisplayName: Training Wanderer
+  enemyMaximumHealth: 80
+  enemyAttack: 10
+  enemyDefense: 20
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 30
+  startingItems: []
+  scriptedSequences:
+  - sequenceId: integration.floor1.mock-wanderer.poke
+    displayName: Measured Poke
+    actions:
+    - actionId: integration.floor1.mock-wanderer.poke.action
+      displayName: Measured Poke
+      timelineCost: 6
+      resolutionEffect: 1
+      damageMultiplier: 0.2
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 0
+      staggerResponse: 1
+      knockdownResponse: 1

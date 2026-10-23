@@ -34,7 +34,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         private void OnTriggerEnter(Collider other)
         {
-            if (_transitionStarted || !other.CompareTag("Player"))
+            if (_transitionStarted || !TryResolvePlayerTransform(other, out Transform playerTransform))
             {
                 return;
             }
@@ -54,9 +54,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return;
             }
 
-            Transform playerTransform = other.attachedRigidbody != null
-                ? other.attachedRigidbody.transform
-                : other.transform;
             if (!service.TryBeginBattle(
                     encounter,
                     loadoutSession,
@@ -76,6 +73,18 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             SceneManager.LoadScene(battleSceneName);
         }
 
+        public void Configure(
+            SoloComboEncounterDefinitionAsset encounterAsset,
+            SoloComboLoadoutSession runtimeLoadoutSession,
+            string stableEncounterInstanceId,
+            string targetBattleSceneName)
+        {
+            encounter = encounterAsset;
+            loadoutSession = runtimeLoadoutSession;
+            encounterInstanceId = stableEncounterInstanceId ?? string.Empty;
+            battleSceneName = targetBattleSceneName ?? string.Empty;
+        }
+
         private void DisableIfAlreadyDefeated()
         {
             if (BattleSessionService.TryGetActive(out BattleSessionService service)
@@ -83,6 +92,34 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             {
                 gameObject.SetActive(false);
             }
+        }
+
+        private static bool TryResolvePlayerTransform(
+            Collider other,
+            out Transform playerTransform)
+        {
+            playerTransform = null;
+            if (other == null)
+            {
+                return false;
+            }
+
+            Transform candidate = other.attachedRigidbody != null
+                ? other.attachedRigidbody.transform
+                : other.transform;
+            Transform current = candidate;
+            while (current != null)
+            {
+                if (current.CompareTag("Player"))
+                {
+                    playerTransform = current;
+                    return true;
+                }
+
+                current = current.parent;
+            }
+
+            return false;
         }
     }
 }
