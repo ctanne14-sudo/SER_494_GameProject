@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
 {
@@ -17,6 +18,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         [SerializeField]
         private bool persistAcrossScenes = true;
 
+        private bool _isReturningToSource;
+
         public static BattleSessionService Active => _active;
 
         public BattleSession CurrentSession { get; private set; }
@@ -24,6 +27,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public bool IsAuthority => ReferenceEquals(_active, this);
 
         public bool HasActiveSession => CurrentSession != null;
+
+        public bool IsReturningToSource => _isReturningToSource;
 
         public event Action<BattleSession> SessionStarted;
 
@@ -51,6 +56,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         private void OnDestroy()
         {
+            CancelPendingReturn();
+
             if (ReferenceEquals(_active, this))
             {
                 _active = null;
@@ -137,6 +144,67 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             return true;
         }
 
+        public bool CanReturnToExploration(out string validationError)
+        {
+            if (!IsAuthority)
+            {
+                validationError =
+                    "Only the active BattleSessionService can return to exploration.";
+                return false;
+            }
+
+            if (CurrentSession == null)
+            {
+                validationError = "There is no active Battle Session to return from.";
+                return false;
+            }
+
+            if (!CurrentSession.IsComplete)
+            {
+                validationError = "The active battle must be completed before returning.";
+                return false;
+            }
+
+            if (CurrentSession.Outcome != BattleOutcome.PlayerVictory)
+            {
+                validationError =
+                    "Only a player victory can currently return to exploration. "
+                    + "Defeat and Mutual Destruction await the finalized death rules.";
+                return false;
+            }
+
+            if (_isReturningToSource)
+            {
+                validationError = "The return to exploration is already in progress.";
+                return false;
+            }
+
+            validationError = null;
+            return true;
+        }
+
+        public bool TryReturnToSourceScene(out string validationError)
+        {
+            if (!CanReturnToExploration(out validationError))
+            {
+                return false;
+            }
+
+            string sourceSceneName = CurrentSession.SourceSceneName;
+            if (!Application.CanStreamedLevelBeLoaded(sourceSceneName))
+            {
+                validationError =
+                    $"Source scene '{sourceSceneName}' is not available in Build Settings.";
+                return false;
+            }
+
+            _isReturningToSource = true;
+            SceneManager.sceneLoaded += HandleSourceSceneLoaded;
+            SceneManager.LoadScene(sourceSceneName);
+            validationError = null;
+            return true;
+        }
+
         public bool IsEncounterDefeated(string sourceSceneName, string encounterInstanceId)
         {
             if (string.IsNullOrWhiteSpace(sourceSceneName)
@@ -158,7 +226,70 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     "Only the active BattleSessionService can clear the current session.");
             }
 
+            CancelPendingReturn();
             CurrentSession = null;
+        }
+
+        private void HandleSourceSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
+        {
+            if (!_isReturningToSource
+                || CurrentSession == null
+                || !string.Equals(
+                    scene.name,
+                    CurrentSession.SourceSceneName,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            GameObject player;
+            try
+            {
+                player = GameObject.FindGameObjectWithTag("Player");
+            }
+            catch (UnityException exception)
+            {
+                Debug.LogError(
+                    $"Could not restore the player after battle: {exception.Message}",
+                    this);
+                CancelPendingReturn();
+                return;
+            }
+
+            if (player == null)
+            {
+                Debug.LogError(
+                    $"Source scene '{scene.name}' loaded, but no Player object was found. "
+                    + "The completed Battle Session was preserved for recovery.",
+                    this);
+                CancelPendingReturn();
+                return;
+            }
+
+            CharacterController controller = player.GetComponent<CharacterController>();
+            bool controllerWasEnabled = controller != null && controller.enabled;
+            if (controllerWasEnabled)
+            {
+                controller.enabled = false;
+            }
+
+            player.transform.SetPositionAndRotation(
+                CurrentSession.ReturnPosition,
+                CurrentSession.ReturnRotation);
+
+            if (controllerWasEnabled)
+            {
+                controller.enabled = true;
+            }
+
+            CancelPendingReturn();
+            CurrentSession = null;
+        }
+
+        private void CancelPendingReturn()
+        {
+            SceneManager.sceneLoaded -= HandleSourceSceneLoaded;
+            _isReturningToSource = false;
         }
 
         private string ValidateBeginRequest(

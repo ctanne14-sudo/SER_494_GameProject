@@ -133,6 +133,53 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
+        public void CanReturnToExploration_AfterVictory_ReturnsTrue()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            BeginValidBattle(service);
+            Assert.That(
+                service.TryCompleteActiveBattle(
+                    BattleOutcome.PlayerVictory,
+                    out string completionError),
+                Is.True,
+                completionError);
+
+            bool canReturn = service.CanReturnToExploration(out string returnError);
+
+            Assert.That(canReturn, Is.True, returnError);
+            Assert.That(returnError, Is.Null);
+        }
+
+        [TestCase(BattleOutcome.PlayerDefeat)]
+        [TestCase(BattleOutcome.Draw)]
+        public void CanReturnToExploration_WithoutVictory_IsRejected(BattleOutcome outcome)
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            BeginValidBattle(service);
+            Assert.That(
+                service.TryCompleteActiveBattle(outcome, out string completionError),
+                Is.True,
+                completionError);
+
+            bool canReturn = service.CanReturnToExploration(out string returnError);
+
+            Assert.That(canReturn, Is.False);
+            Assert.That(returnError, Does.Contain("Only a player victory"));
+        }
+
+        [Test]
+        public void CanReturnToExploration_DuringBattle_IsRejected()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            BeginValidBattle(service);
+
+            bool canReturn = service.CanReturnToExploration(out string returnError);
+
+            Assert.That(canReturn, Is.False);
+            Assert.That(returnError, Does.Contain("must be completed"));
+        }
+
+        [Test]
         public void DuplicateService_DoesNotReplaceAuthority()
         {
             BattleSessionService first = CreateService("Primary Battle Sessions");

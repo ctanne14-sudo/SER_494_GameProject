@@ -234,10 +234,7 @@ namespace SER494.Gameplay.CombatSandbox
 
             if (_battleSession != null)
             {
-                GUI.enabled = false;
-                GUILayout.Button(
-                    "Return to Exploration — next integration stage",
-                    GUILayout.Height(34f));
+                DrawBattleSessionReturnButton(previousEnabledState);
             }
             else if (GUILayout.Button("Return to Combo Builder", GUILayout.Height(34f)))
             {
@@ -246,6 +243,47 @@ namespace SER494.Gameplay.CombatSandbox
 
             GUI.enabled = previousEnabledState;
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawBattleSessionReturnButton(bool previousEnabledState)
+        {
+            string label;
+            bool canReturn = false;
+
+            if (!_battleSession.IsComplete)
+            {
+                label = "Return to Exploration — finish battle first";
+            }
+            else
+            {
+                switch (_battleSession.Outcome)
+                {
+                    case BattleOutcome.PlayerVictory:
+                        label = _battleSessionService != null
+                            && _battleSessionService.IsReturningToSource
+                            ? "Returning to Exploration..."
+                            : "Return to Exploration";
+                        canReturn = _battleSessionService != null
+                            && !_battleSessionService.IsReturningToSource;
+                        break;
+                    case BattleOutcome.PlayerDefeat:
+                        label = "Defeat Return Flow — pending rules";
+                        break;
+                    case BattleOutcome.Draw:
+                        label = "Mutual Destruction Return Flow — pending rules";
+                        break;
+                    default:
+                        label = "Return to Exploration — unavailable";
+                        break;
+                }
+            }
+
+            GUI.enabled = previousEnabledState && canReturn;
+            if (GUILayout.Button(label, GUILayout.Height(34f))
+                && !_battleSessionService.TryReturnToSourceScene(out string returnError))
+            {
+                AppendLog(returnError, CombatLogTone.Error);
+            }
         }
 
         private void DrawMissingSetup()
