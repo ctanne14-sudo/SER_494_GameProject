@@ -27,7 +27,7 @@ namespace SER494.Gameplay.PlayerState
 
         public int CurrentHealth { get; private set; }
 
-        public int MaximumHealth { get; }
+        public int MaximumHealth { get; private set; }
 
         public int CurrentMana { get; private set; }
 
@@ -67,6 +67,11 @@ namespace SER494.Gameplay.PlayerState
         public void RestoreHealthToMaximum()
         {
             CurrentHealth = MaximumHealth;
+        }
+
+        public void IncreaseMaximumHealth(int amount)
+        {
+            MaximumHealth = checked(MaximumHealth + RequirePositive(amount, nameof(amount)));
         }
 
         public void SetCurrentMana(int value)

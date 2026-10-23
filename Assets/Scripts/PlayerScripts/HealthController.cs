@@ -1,32 +1,33 @@
+using System;
+using SER494.Gameplay.PlayerState;
+using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 public class HealthController : MonoBehaviour {
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private CameraMovement cameraMovement;
     [SerializeField] private GameObject deathPanel;
-    public int maxHP = 200;
-    public int playerHP;
+
+    public int maxHP => State.MaximumHealth;
+    public int playerHP => State.CurrentHealth;
 
 
     void Start() {
-        playerHP = 100;
         deathPanel.SetActive(false);
     }
 
     public void damagePlayer(int damage) {
-        playerHP = Mathf.Max(playerHP - damage, 0);
+        State.TakeDamage(damage);
         if (playerHP <= 0) die();
     }
     public void healPlayer(int heal) {
-        playerHP = Mathf.Min(playerHP + heal, maxHP);
+        State.RestoreHealth(heal);
     }
 
     public void increaseMaxHp(int increase)
     {
-        maxHP += increase;
+        State.IncreaseMaximumHealth(increase);
     }
 
     public void die()
@@ -39,6 +40,21 @@ public class HealthController : MonoBehaviour {
 
     public void reset()
     {
+        State.RestoreHealthToMaximum();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    private static PlayerState State
+    {
+        get
+        {
+            if (!PlayerStateService.TryGetActive(out PlayerStateService service))
+            {
+                throw new InvalidOperationException(
+                    "PlayerStateService must be active before HealthController is used.");
+            }
+
+            return service.State;
+        }
     }
 }

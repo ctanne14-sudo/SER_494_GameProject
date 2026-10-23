@@ -31,6 +31,18 @@ namespace SER494.Gameplay.PlayerState.Tests
         }
 
         [Test]
+        public void IncreaseMaximumHealth_PreservesCurrentHealth()
+        {
+            var state = CreateState();
+            state.TakeDamage(25);
+
+            state.IncreaseMaximumHealth(50);
+
+            Assert.That(state.MaximumHealth, Is.EqualTo(150));
+            Assert.That(state.CurrentHealth, Is.EqualTo(75));
+        }
+
+        [Test]
         public void Inventory_AddsConsumesAndRemovesZeroCountEntries()
         {
             var inventory = CreateState().Inventory;
