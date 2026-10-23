@@ -4,7 +4,9 @@ using NUnit.Framework;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.CombatIntegration.Unity;
+using SER494.Gameplay.PlayerState;
 using UnityEngine;
 
 namespace SER494.Gameplay.CombatIntegration.Tests
@@ -142,11 +144,93 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(duplicate.enabled, Is.False);
         }
 
+        [Test]
+        public void BattleAdapter_CreatesBattleFromPersistentPlayerState()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PlayerState(120, 40, 30);
+            playerState.TakeDamage(35);
+            Assert.That(playerState.TrySpendMana(7), Is.True);
+            playerState.Inventory.Add("item.potion", 2);
+            var weapon = new WeaponDefinition(
+                "weapon.integration-test",
+                "Integration Test Weapon",
+                WeaponType.Greatsword,
+                weaponAttack: 77);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(weapon);
+            BeginBattle(service, CreateValidEncounter(), loadout);
+
+            bool created = BattleSessionBattleAdapter.TryCreateBattle(
+                service.CurrentSession,
+                playerState,
+                out SoloComboBattleState battle,
+                out string error);
+
+            Assert.That(created, Is.True, error);
+            Assert.That(battle.Player.CurrentHealth, Is.EqualTo(85));
+            Assert.That(battle.Player.CurrentMana, Is.EqualTo(33));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(30));
+            Assert.That(battle.Player.Stats.Attack, Is.EqualTo(77));
+            Assert.That(
+                battle.Player.Stats.Defense,
+                Is.EqualTo(BattleSessionBattleAdapter.MvpPlayerDefense));
+            Assert.That(battle.GetItemCount("item.potion"), Is.EqualTo(2));
+            Assert.That(battle.Enemy.DisplayName, Is.EqualTo("Wanderer"));
+        }
+
+        [Test]
+        public void BattleAdapter_CommitsFinalResourcesItemsAndEncounterOutcome()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PlayerState(100, 30, 30);
+            playerState.Inventory.Add("item.potion", 1);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(
+                weapon: null,
+                damageMultiplier: 10d);
+            BeginBattle(service, CreateValidEncounter(enemyMaximumHealth: 1), loadout);
+            Assert.That(
+                BattleSessionBattleAdapter.TryCreateBattle(
+                    service.CurrentSession,
+                    playerState,
+                    out SoloComboBattleState battle,
+                    out string createError),
+                Is.True,
+                createError);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.PlayerVictory));
+            bool committed = BattleSessionBattleAdapter.TryCommitBattleResult(
+                service,
+                service.CurrentSession,
+                playerState,
+                battle,
+                out string commitError);
+
+            Assert.That(committed, Is.True, commitError);
+            Assert.That(service.CurrentSession.Outcome, Is.EqualTo(BattleOutcome.PlayerVictory));
+            Assert.That(
+                service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
+                Is.True);
+            Assert.That(playerState.CurrentHealth, Is.EqualTo(battle.Player.CurrentHealth));
+            Assert.That(playerState.CurrentMana, Is.EqualTo(battle.Player.CurrentMana));
+        }
+
         private void BeginValidBattle(BattleSessionService service)
         {
-            bool began = service.TryBeginBattle(
+            BeginBattle(
+                service,
                 CreateEncounter("enemy.wanderer"),
-                CreatePreparedLoadout(),
+                CreatePreparedLoadout());
+        }
+
+        private static void BeginBattle(
+            BattleSessionService service,
+            SoloComboEncounterDefinitionAsset encounter,
+            SoloComboLoadoutSession loadout)
+        {
+            bool began = service.TryBeginBattle(
+                encounter,
+                loadout,
                 "wanderer-01",
                 "Floor1_Cell_A",
                 "CombatSandbox",
@@ -186,7 +270,40 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             return encounter;
         }
 
-        private SoloComboLoadoutSession CreatePreparedLoadout()
+        private SoloComboEncounterDefinitionAsset CreateValidEncounter(
+            int enemyMaximumHealth = 100)
+        {
+            var encounter = ScriptableObject.CreateInstance<SoloComboEncounterDefinitionAsset>();
+            _createdObjects.Add(encounter);
+            encounter.Configure(
+                "enemy.wanderer",
+                "Wandering Enemy",
+                "Test encounter",
+                "Wanderer",
+                enemyMaximumHealth,
+                1,
+                0,
+                1,
+                30,
+                new EncounterItemAuthoringData[0],
+                new[]
+                {
+                    new EnemySequenceAuthoringData(
+                        "enemy.wait",
+                        "Wait",
+                        new EnemyActionAuthoringData(
+                            "enemy.wait.action",
+                            "Wait",
+                            timelineCost: 1,
+                            resolutionEffect: ActionResolutionEffect.Damage,
+                            damageMultiplier: 0.01f))
+                });
+            return encounter;
+        }
+
+        private SoloComboLoadoutSession CreatePreparedLoadout(
+            WeaponDefinition weapon = null,
+            double damageMultiplier = 0.1d)
         {
             SoloComboLoadoutSession loadout = CreateLoadout();
             var main = new ComboActionDefinition(
@@ -197,11 +314,14 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 manaCost: 0,
                 staminaCost: 0,
                 cooldown: 0,
-                damageMultiplier: 0.1d);
-            loadout.Prepare(new[]
-            {
-                new ComboConfiguration("combo1", null, main, null, null, null)
-            });
+                damageMultiplier: damageMultiplier,
+                resolutionOffset: 1);
+            loadout.Prepare(
+                new[]
+                {
+                    new ComboConfiguration("combo1", null, main, null, null, null)
+                },
+                weapon);
             return loadout;
         }
 

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -102,6 +104,10 @@ namespace SER494.Gameplay.CombatSandbox
         private int _chargeSelectedLevel;
         private int _previewedComboIndex = -1;
         private InitialTimelineSchedule _previewSchedule;
+        private BattleSession _battleSession;
+        private BattleSessionService _battleSessionService;
+        private PlayerStateService _playerStateService;
+        private bool _battleResultCommitted;
 
         public SoloComboLoadoutSession LoadoutSession
         {
@@ -126,7 +132,13 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.BeginArea(new Rect(left, top, width, height), GUI.skin.box);
             GUILayout.Label("Solo Combo Combat Sandbox", _titleStyle);
             GUILayout.Label("Prototype debug UI — preview intent, then resolve both sides on one timeline.");
-            if (loadoutSession != null && loadoutSession.HasPreparedLoadout)
+            if (_battleSession != null)
+            {
+                GUILayout.Label(
+                    $"Encounter: {_battleSession.Encounter.DisplayName} — "
+                    + _battleSession.Encounter.Description);
+            }
+            else if (loadoutSession != null && loadoutSession.HasPreparedLoadout)
             {
                 SoloComboTestScenario scenario = loadoutSession.SelectedTestScenario;
                 GUILayout.Label(
@@ -213,13 +225,21 @@ namespace SER494.Gameplay.CombatSandbox
             GUILayout.Label(_outcomeStatus, _sectionStyle);
             GUILayout.BeginHorizontal();
             bool previousEnabledState = GUI.enabled;
-            GUI.enabled = !_isTimelinePlaying;
+            GUI.enabled = !_isTimelinePlaying
+                && (_battleSession == null || !_battleSession.IsComplete);
             if (GUILayout.Button("Reset Battle", GUILayout.Height(34f)))
             {
                 ResetBattle();
             }
 
-            if (GUILayout.Button("Return to Combo Builder", GUILayout.Height(34f)))
+            if (_battleSession != null)
+            {
+                GUI.enabled = false;
+                GUILayout.Button(
+                    "Return to Exploration — next integration stage",
+                    GUILayout.Height(34f));
+            }
+            else if (GUILayout.Button("Return to Combo Builder", GUILayout.Height(34f)))
             {
                 SceneManager.LoadScene(BuilderSceneName);
             }
@@ -1109,6 +1129,41 @@ namespace SER494.Gameplay.CombatSandbox
             _combatLog.Clear();
             _contentScrollPosition = Vector2.zero;
             _logScrollPosition = Vector2.zero;
+            _battleSession = null;
+            _battleSessionService = null;
+            _playerStateService = null;
+            _battleResultCommitted = false;
+
+            if (BattleSessionService.TryGetActive(out BattleSessionService sessionService)
+                && sessionService.CurrentSession != null)
+            {
+                _battleSessionService = sessionService;
+                _battleSession = sessionService.CurrentSession;
+                loadoutSession = _battleSession.LoadoutSession;
+
+                if (!PlayerStateService.TryGetActive(out _playerStateService))
+                {
+                    _setupError = "Persistent Player State is unavailable.";
+                    return;
+                }
+
+                if (!BattleSessionBattleAdapter.TryCreateBattle(
+                        _battleSession,
+                        _playerStateService.State,
+                        out _battle,
+                        out _setupError))
+                {
+                    return;
+                }
+
+                AppendLog(
+                    $"{_battleSession.Encounter.DisplayName} started from "
+                    + $"{_battleSession.SourceSceneName} against "
+                    + $"{_battle.Enemy.DisplayName}. Persistent HP, Mana, and items loaded.",
+                    CombatLogTone.System);
+                RefreshPresentation();
+                return;
+            }
 
             if (loadoutSession == null)
             {
@@ -1375,6 +1430,7 @@ namespace SER494.Gameplay.CombatSandbox
                     result.Outcome == BattleOutcome.PlayerVictory
                         ? CombatLogTone.Success
                         : CombatLogTone.Error);
+                CommitFormalBattleResult();
             }
             else
             {
@@ -1387,6 +1443,32 @@ namespace SER494.Gameplay.CombatSandbox
             _isTimelinePlaying = false;
             _timelinePlayback = null;
             RefreshPresentation();
+        }
+
+        private void CommitFormalBattleResult()
+        {
+            if (_battleSession == null || _battleResultCommitted)
+            {
+                return;
+            }
+
+            if (!BattleSessionBattleAdapter.TryCommitBattleResult(
+                    _battleSessionService,
+                    _battleSession,
+                    _playerStateService?.State,
+                    _battle,
+                    out string validationError))
+            {
+                AppendLog(
+                    $"Could not commit persistent battle result: {validationError}",
+                    CombatLogTone.Error);
+                return;
+            }
+
+            _battleResultCommitted = true;
+            AppendLog(
+                "Persistent Player State and map encounter result were updated.",
+                CombatLogTone.Success);
         }
 
         private void AppendLog(
