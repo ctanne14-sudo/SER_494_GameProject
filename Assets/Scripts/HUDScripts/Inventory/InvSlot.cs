@@ -1,29 +1,39 @@
+using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TMPro;
-public class InvSlot : MonoBehaviour
+public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private RawImage icon;     //Image of the Item
     [SerializeField] private Image highlight;   //Enable When Selected
-    [SerializeField] private TextMeshProUGUI itemName;  //Text field of the Item
-    [SerializeField] private TextMeshProUGUI usesLeft;  //Text for the number of uses left
+    [SerializeField] private GameObject itemPopUp;   //Enable When Hovered
+    private static float offset = 67.5f;
+
     private Inventory inventory;    //Reference to players inventory
     private Item item;      //The item held in the slot
     private bool selected = false;  //True when the item is clicked
+    private bool hovering = false;
 
-    /**
-        Inistializes the slots name and uses field
-    **/
-    void Awake()
+
+    void Update()
     {
-        setName();
-        setCount();
+        if (hovering)
+        {
+            itemPopUp.GetComponent<ItemPopUp>().setItem(item);
+            ((RectTransform)itemPopUp.transform).position = transform.TransformPoint(new Vector3(offset, 0f, 0f));
+        }
+    }
+
+    void OnDisable()
+    {
+        highlight.gameObject.SetActive(selected);
+        hovering = false;
     }
 
     /**
         Adds the reference to players inventory and slot index
     **/
-    public void addInventory(Inventory inventory, int invSlotIndex)
+    public void addInventory(Inventory inventory)
     {
         this.inventory = inventory;
     }
@@ -46,8 +56,28 @@ public class InvSlot : MonoBehaviour
             inventory.selectHB(-1);
         }
         selected = !selected;
-        highlight.gameObject.SetActive(selected);
+        highlight.gameObject.SetActive(selected || hovering);
         inventory.setSelectedInvSlot(selected ? this : null);
+    }
+
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        hovering = true;
+        itemPopUp.SetActive(true);
+        highlight.gameObject.SetActive(true);
+        transform.localScale = new Vector3(1.05f, 1.05f, 1.05f);
+        itemPopUp.transform.localScale = new Vector2(1.05f, 1.05f); 
+        itemPopUp.GetComponent<ItemPopUp>().setItem(null);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        hovering = false;
+        itemPopUp.SetActive(false);
+        highlight.gameObject.SetActive(selected);
+        itemPopUp.GetComponent<ItemPopUp>().setItem(null);
+        transform.localScale = Vector2.one;
     }
 
     /**
@@ -61,8 +91,6 @@ public class InvSlot : MonoBehaviour
         icon.enabled = item.texture != null;
         if (inventory.selectedInvSlot != this)
             clearSelection();
-        setName();
-        setCount();
     }
 
     /**
@@ -85,22 +113,8 @@ public class InvSlot : MonoBehaviour
         selected = false;
         if (inventory.selectedInvSlot != this)
             clearSelection();
-        setName();
-        setCount();
     }
 
-    /**
-        Sets the Name text field
-    **/
-    public void setName() =>
-        itemName.text = item != null ? item.displayName : "";
-    
-    /**
-        Sets the Num uses text field
-    **/
-    public void setCount() =>
-        usesLeft.text = item != null ? item.usesLeft.ToString() : "";
-    
     /**
         Returns the currently stored item
     **/

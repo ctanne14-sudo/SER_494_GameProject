@@ -14,7 +14,7 @@ public class Inventory : MonoBehaviour
     [SerializeField] private GameObject spawnPoint; //Spawn point for held items
     [Header("Inventory Slot")]
 
-    [SerializeField] private GameObject invSlotPrefab;  //Prefab for added slots to inventory
+    [SerializeField] private GameObject invSlotObject;  //Initial Object to clone for added slots to inventory
 
     [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
     private List<Item> inInventory = new List<Item>();  //List of items in inventory/hotbar
@@ -40,7 +40,7 @@ public class Inventory : MonoBehaviour
             hotbarSlots[i].setNum(i + 1);
         }
         for (int i = 0; i < invSlots.Count; i++)
-            invSlots[i].addInventory(this, i);
+            invSlots[i].addInventory(this);
 
         addInvSlot();
     }
@@ -59,9 +59,10 @@ public class Inventory : MonoBehaviour
             useItem();
 
         //Updates inventory once items have no uses left
-        foreach (Item item in inInventory) 
-            if (item.usesLeft <= 0) {
-                removeItem(item);
+        for (int i = 0; i < inInventory.Count; i++) 
+            if (inInventory[i].usesLeft <= 0) {
+                removeItem(inInventory[i]);
+                i--;
             }
         
         //Opens the inventory with Tab
@@ -145,10 +146,12 @@ public class Inventory : MonoBehaviour
     **/
     private void addInvSlot()
     {
-        while (invSlots.Count <= (((inInventory.Count / 6) + 2) * 6 - 1)) {
-            GameObject spawn = Instantiate(invSlotPrefab, invSlots[0].transform.parent, false);
+        while (invSlots.Count <= (((inInventory.Count / 8) + 2) * 8 - 1)) {
+            GameObject spawn = Instantiate(invSlotObject);
+            spawn.transform.SetParent(invSlotObject.transform.parent);
+            spawn.transform.localScale = Vector3.one;
             InvSlot slot = spawn.GetComponent<InvSlot>();
-            slot.addInventory(this, invSlots.Count);
+            slot.addInventory(this);
             invSlots.Add(slot);
         }
     }
@@ -168,7 +171,6 @@ public class Inventory : MonoBehaviour
                 {
                     addToInvSlot(i);
                 } 
-                i.invSlot.setCount();
                 return;
             }
         }
