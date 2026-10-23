@@ -18,7 +18,7 @@ public class Inventory : MonoBehaviour
 
     [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
     private List<Item> inInventory = new List<Item>();  //List of items in inventory/hotbar
-    public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
+    [HideInInspector] public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
     private InvSlot prevInvSlot = null;     //Previous selected inventory slot
 
     private bool openInventory = false;     //True if inventory is opened
