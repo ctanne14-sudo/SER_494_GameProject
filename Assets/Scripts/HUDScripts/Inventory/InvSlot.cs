@@ -7,7 +7,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private RawImage icon;     //Image of the Item
     [SerializeField] private Image highlight;   //Enable When Selected
     [SerializeField] private GameObject itemPopUp;   //Enable When Hovered
-    private static float offset = 67.5f;
+    private float offset = 71.5f;
 
     private Inventory inventory;    //Reference to players inventory
     private Item item;      //The item held in the slot
@@ -33,9 +33,12 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     /**
         Adds the reference to players inventory and slot index
     **/
-    public void addInventory(Inventory inventory)
+    public void addInventory(Inventory inventory, bool endRow)
     {
         this.inventory = inventory;
+        offset = endRow ? -offset : offset;
+        Debug.Log("Offset: " + offset + " " + endRow);
+
     }
 
     /**
@@ -85,10 +88,15 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     **/
     public void setItem(Item item)
     {
-        item.setInvSlot(this); 
         this.item = item;
-        icon.texture = item.texture;
-        icon.enabled = item.texture != null;
+        if (item != null) {
+            item.setInvSlot(this); 
+            icon.texture = item.texture;
+            icon.enabled = true;    
+        } else
+        {
+            icon.enabled = false;
+        }
         if (inventory.selectedInvSlot != this)
             clearSelection();
     }

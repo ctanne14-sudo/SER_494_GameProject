@@ -40,7 +40,11 @@ public class Inventory : MonoBehaviour
             hotbarSlots[i].setNum(i + 1);
         }
         for (int i = 0; i < invSlots.Count; i++)
-            invSlots[i].addInventory(this);
+        {
+            bool endRow = (i % 8) > 5;
+            Debug.Log("Slot: " + i + " " + endRow);
+            invSlots[i].addInventory(this, endRow);
+        }
 
         addInvSlot();
     }
@@ -151,8 +155,11 @@ public class Inventory : MonoBehaviour
             spawn.transform.SetParent(invSlotObject.transform.parent);
             spawn.transform.localScale = Vector3.one;
             InvSlot slot = spawn.GetComponent<InvSlot>();
-            slot.addInventory(this);
             invSlots.Add(slot);
+            int index = invSlots.IndexOf(slot);
+            bool endRow = (index % 8) > 5;
+            slot.addInventory(this, endRow);
+            slot.setItem(null);
         }
     }
 
