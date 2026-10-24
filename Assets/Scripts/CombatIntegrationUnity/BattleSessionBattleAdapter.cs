@@ -1,20 +1,34 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
+using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
 {
     public static class BattleSessionBattleAdapter
     {
-        public const int MvpPlayerDefense = 50;
-        public const int MvpFallbackWeaponAttack = 50;
+        public static bool TryCreateBattle(
+            BattleSession session,
+            PersistentPlayerState playerState,
+            out SoloComboBattleState battle,
+            out string validationError)
+        {
+            return TryCreateBattle(
+                session,
+                playerState,
+                PlayerEquipmentCatalogAsset.LoadDefault(),
+                out battle,
+                out validationError);
+        }
 
         public static bool TryCreateBattle(
             BattleSession session,
             PersistentPlayerState playerState,
+            PlayerEquipmentCatalogAsset equipmentCatalog,
             out SoloComboBattleState battle,
             out string validationError)
         {
@@ -37,6 +51,13 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
+            if (equipmentCatalog == null)
+            {
+                validationError =
+                    $"Player Equipment Catalog is missing from Resources/{PlayerEquipmentCatalogAsset.DefaultResourcesPath}.asset.";
+                return false;
+            }
+
             if (!session.LoadoutSession.TryGetPreparedLoadout(
                     out IReadOnlyList<ComboConfiguration> combos))
             {
@@ -51,23 +72,33 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            int attack = session.LoadoutSession.EquippedWeapon?.WeaponAttack
-                ?? MvpFallbackWeaponAttack;
+            if (!equipmentCatalog.TryGetWeapon(
+                    playerState.Equipment.EquippedWeaponId,
+                    out WeaponDefinition weapon,
+                    out validationError)
+                || !equipmentCatalog.TryGetTotalDefense(
+                    playerState.Equipment.EquippedArmorBySlot,
+                    out int defense,
+                    out validationError))
+            {
+                return false;
+            }
+
             try
             {
                 battle = new SoloComboBattleState(
                     PlayerBattleStateTransfer.CreateCombatant(
                         playerState,
                         "Player",
-                        attack,
-                        MvpPlayerDefense),
+                        weapon.WeaponAttack,
+                        defense),
                     new CombatantState(
                         encounter.EnemyDisplayName,
                         encounter.EnemyStats),
                     combos,
                     encounter.EnemyBehavior,
                     encounter.ManaRecoveryPerTurn,
-                    encounter.StaminaRecoveryPerTurn,
+                    playerState.BaseStaminaRecoveryPerRound,
                     enemyRandom: new Random(594),
                     startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState));
             }

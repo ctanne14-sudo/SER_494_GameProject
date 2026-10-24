@@ -196,6 +196,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         {
             BattleSessionService service = CreateService("Battle Sessions");
             var playerState = new PersistentPlayerState(120, 40, 30);
+            EquipStartingGear(playerState);
             playerState.TakeDamage(35);
             Assert.That(playerState.TrySpendMana(7), Is.True);
             playerState.Inventory.Add("item.potion", 2);
@@ -217,10 +218,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(85));
             Assert.That(battle.Player.CurrentMana, Is.EqualTo(33));
             Assert.That(battle.Player.CurrentStamina, Is.EqualTo(30));
-            Assert.That(battle.Player.Stats.Attack, Is.EqualTo(77));
-            Assert.That(
-                battle.Player.Stats.Defense,
-                Is.EqualTo(BattleSessionBattleAdapter.MvpPlayerDefense));
+            Assert.That(battle.Player.Stats.Attack, Is.EqualTo(50));
+            Assert.That(battle.Player.Stats.Defense, Is.EqualTo(10));
             Assert.That(battle.GetItemCount("item.potion"), Is.EqualTo(2));
             Assert.That(battle.Enemy.DisplayName, Is.EqualTo("Wanderer"));
         }
@@ -230,6 +229,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         {
             BattleSessionService service = CreateService("Battle Sessions");
             var playerState = new PersistentPlayerState(100, 30, 30);
+            EquipStartingGear(playerState);
             playerState.Inventory.Add("item.potion", 1);
             SoloComboLoadoutSession loadout = CreatePreparedLoadout(
                 weapon: null,
@@ -377,6 +377,29 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             var loadout = ScriptableObject.CreateInstance<SoloComboLoadoutSession>();
             _createdObjects.Add(loadout);
             return loadout;
+        }
+
+        private static void EquipStartingGear(PersistentPlayerState playerState)
+        {
+            playerState.Equipment.Grant(
+                SER494.Gameplay.PlayerState.EquipmentCategory.Weapon,
+                "weapon.greatsword.rusted-iron-sword");
+            playerState.Equipment.EquipWeapon("weapon.greatsword.rusted-iron-sword");
+
+            EquipArmor(playerState, "armor.head", "armor.linen-headpiece");
+            EquipArmor(playerState, "armor.upper-body", "armor.linen-shirt");
+            EquipArmor(playerState, "armor.lower-body", "armor.linen-hose");
+        }
+
+        private static void EquipArmor(
+            PersistentPlayerState playerState,
+            string slotId,
+            string armorId)
+        {
+            playerState.Equipment.Grant(
+                SER494.Gameplay.PlayerState.EquipmentCategory.Armor,
+                armorId);
+            playerState.Equipment.EquipArmor(slotId, armorId);
         }
     }
 }
