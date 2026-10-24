@@ -8,13 +8,17 @@ namespace SER494.Gameplay.PlayerState
             int maximumHealth,
             int maximumMana,
             int maximumCombatStamina,
-            int initiallyUnlockedLoadoutSlots = 1)
+            int initiallyUnlockedLoadoutSlots = 1,
+            int baseStaminaRecoveryPerRound = 10)
         {
             MaximumHealth = RequirePositive(maximumHealth, nameof(maximumHealth));
             MaximumMana = RequireNonNegative(maximumMana, nameof(maximumMana));
             MaximumCombatStamina = RequireNonNegative(
                 maximumCombatStamina,
                 nameof(maximumCombatStamina));
+            BaseStaminaRecoveryPerRound = RequireNonNegative(
+                baseStaminaRecoveryPerRound,
+                nameof(baseStaminaRecoveryPerRound));
             CurrentHealth = MaximumHealth;
             CurrentMana = MaximumMana;
 
@@ -36,6 +40,10 @@ namespace SER494.Gameplay.PlayerState
         // Stamina exists only during combat. A Battle State starts at this value
         // instead of carrying a current Stamina value through exploration.
         public int MaximumCombatStamina { get; }
+
+        // Persistent base value. Equipment and battle statuses can modify the
+        // actual recovery used by an individual battle without mutating this value.
+        public int BaseStaminaRecoveryPerRound { get; }
 
         public PlayerInventoryState Inventory { get; }
 

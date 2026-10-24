@@ -38,8 +38,15 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(PlayerStateService.Active, Is.SameAs(service));
             Assert.That(service.State.CurrentHealth, Is.EqualTo(100));
             Assert.That(service.State.MaximumMana, Is.EqualTo(30));
-            Assert.That(service.State.MaximumCombatStamina, Is.EqualTo(30));
+            Assert.That(service.State.MaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(service.State.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
             Assert.That(service.State.ComboLoadouts.UnlockedSlotCount, Is.EqualTo(1));
+            Assert.That(
+                service.State.Equipment.EquippedWeaponId,
+                Is.EqualTo(PlayerStateInitialValues.InitialWeaponId));
+            Assert.That(
+                service.State.Inventory.GetCount(PlayerStateInitialValues.HealingPotionId),
+                Is.EqualTo(3));
         }
 
         [Test]
@@ -58,8 +65,62 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(service.State.MaximumHealth, Is.EqualTo(150));
             Assert.That(service.State.MaximumMana, Is.EqualTo(40));
             Assert.That(service.State.MaximumCombatStamina, Is.EqualTo(35));
+            Assert.That(service.State.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
             Assert.That(service.State.ComboLoadouts.UnlockedSlotCount, Is.EqualTo(2));
             Assert.That(replacementCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void InitialValues_CreateConfiguredStartingEquipmentActionsItemsAndLoadout()
+        {
+            PlayerState state = new PlayerStateInitialValues().CreateState();
+
+            Assert.That(state.Equipment.EquippedWeaponId,
+                Is.EqualTo(PlayerStateInitialValues.InitialWeaponId));
+            Assert.That(
+                state.Equipment.EquippedArmorBySlot[PlayerStateInitialValues.HeadArmorSlotId],
+                Is.EqualTo(PlayerStateInitialValues.LinenHeadpieceId));
+            Assert.That(
+                state.Equipment.EquippedArmorBySlot[PlayerStateInitialValues.UpperBodyArmorSlotId],
+                Is.EqualTo(PlayerStateInitialValues.LinenShirtId));
+            Assert.That(
+                state.Equipment.EquippedArmorBySlot[PlayerStateInitialValues.LowerBodyArmorSlotId],
+                Is.EqualTo(PlayerStateInitialValues.LinenHoseId));
+
+            Assert.That(state.Inventory.GetCount(PlayerStateInitialValues.HealingPotionId),
+                Is.EqualTo(3));
+            Assert.That(state.Inventory.GetCount(PlayerStateInitialValues.GreaterHealingPotionId),
+                Is.EqualTo(1));
+            Assert.That(state.Inventory.GetCount(PlayerStateInitialValues.VitalityTonicId),
+                Is.EqualTo(3));
+
+            Assert.That(state.ActionLibrary.OwnedActionIds, Has.Count.EqualTo(21));
+            Assert.That(state.ActionLibrary.Owns("greatsword.main.charged-slash"), Is.True);
+            Assert.That(state.ActionLibrary.Owns("common.opening.prepare"), Is.True);
+            Assert.That(state.ActionLibrary.Owns("common.main.focused-guard-1"), Is.True);
+            Assert.That(state.ActionLibrary.Owns("common.closing.breather-1"), Is.True);
+            Assert.That(state.ActionLibrary.Owns("common.linked.use-healing-potion"), Is.True);
+            Assert.That(state.ActionLibrary.Owns("common.linked.use-vitality-tonic"), Is.True);
+
+            PlayerComboLoadoutState loadout = state.ComboLoadouts.ActiveLoadout;
+            Assert.That(loadout.Name, Is.EqualTo("Greatsword Loadout"));
+            Assert.That(loadout.Combos, Has.Count.EqualTo(4));
+
+            var assignedActions = new HashSet<string>(StringComparer.Ordinal);
+            for (int comboIndex = 0; comboIndex < loadout.Combos.Count; comboIndex++)
+            {
+                IReadOnlyList<string> comboActions =
+                    loadout.Combos[comboIndex].GetAssignedActionIds();
+                Assert.That(comboActions, Has.Count.EqualTo(4));
+                for (int actionIndex = 0; actionIndex < comboActions.Count; actionIndex++)
+                {
+                    Assert.That(
+                        assignedActions.Add(comboActions[actionIndex]),
+                        Is.True,
+                        $"Starting Action '{comboActions[actionIndex]}' is assigned to more than one Combo.");
+                    Assert.That(state.ActionLibrary.Owns(comboActions[actionIndex]), Is.True);
+                }
+            }
         }
 
         [Test]

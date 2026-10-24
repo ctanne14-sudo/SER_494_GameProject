@@ -26,7 +26,11 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 
             var definitions = new[]
             {
-                new SampleWeapon("Greatsword", "weapon.greatsword", "Greatsword", WeaponType.Greatsword),
+                new SampleWeapon(
+                    "Greatsword",
+                    "weapon.greatsword.rusted-iron-sword",
+                    "鏽蝕鐵劍",
+                    WeaponType.Greatsword),
                 new SampleWeapon("SwordAndShield", "weapon.sword-and-shield", "Sword and Shield", WeaponType.SwordAndShield),
                 new SampleWeapon("GlaiveAndShield", "weapon.glaive-and-shield", "Glaive and Shield", WeaponType.GlaiveAndShield),
                 new SampleWeapon("Bow", "weapon.bow", "Bow", WeaponType.Bow),

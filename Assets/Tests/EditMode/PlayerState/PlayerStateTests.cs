@@ -13,6 +13,7 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(state.CurrentHealth, Is.EqualTo(100));
             Assert.That(state.CurrentMana, Is.EqualTo(30));
             Assert.That(state.MaximumCombatStamina, Is.EqualTo(30));
+            Assert.That(state.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
         }
 
         [Test]

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36a42b920b7394c4582f69857d395ed7, type: 3}
   m_Name: Greatsword
   m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.Weapons.WeaponDefinitionAsset
-  weaponId: weapon.greatsword
-  displayName: Greatsword
+  weaponId: weapon.greatsword.rusted-iron-sword
+  displayName: 鏽蝕鐵劍
   weaponType: 0
   weaponAttack: 50
