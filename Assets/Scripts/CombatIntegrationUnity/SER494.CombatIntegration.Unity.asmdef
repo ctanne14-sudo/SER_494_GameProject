@@ -5,7 +5,8 @@
     "SER494.Combat",
     "SER494.Combat.Authoring",
     "SER494.CombatIntegration",
-    "SER494.PlayerState"
+    "SER494.PlayerState",
+    "SER494.PlayerState.Unity"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

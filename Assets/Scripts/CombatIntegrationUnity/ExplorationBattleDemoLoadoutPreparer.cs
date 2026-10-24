@@ -4,6 +4,7 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Authoring.Weapons;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
+using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
@@ -143,6 +144,15 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             {
                 validationError = "A runtime Loadout Session is required.";
                 return false;
+            }
+
+            if (PlayerStateService.TryGetActive(out PlayerStateService playerStateService))
+            {
+                return PlayerStateLoadoutSessionBuilder.TryPrepare(
+                    playerStateService.State,
+                    loadoutSession,
+                    testScenario,
+                    out validationError);
             }
 
             if (equippedWeapon == null)

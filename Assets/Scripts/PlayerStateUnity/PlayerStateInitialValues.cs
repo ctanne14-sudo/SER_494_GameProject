@@ -140,25 +140,29 @@ namespace SER494.Gameplay.PlayerState.Unity
                 "greatsword.opening.quick-draw-slash",
                 "greatsword.main.charged-slash",
                 "greatsword.closing.empowered-sheathe",
-                "greatsword.linked.shoulder-tackle"));
+                "greatsword.linked.shoulder-tackle",
+                PreparedLinkedActionPlacement.AfterMain));
             loadout.SetCombo(1, CreateCombo(
                 "Clash and Guard",
                 "greatsword.opening.leaping-sweep",
                 "greatsword.main.clash-slash",
                 "greatsword.closing.sidestep-sheathe",
-                "greatsword.linked.guarding-charge"));
+                "greatsword.linked.guarding-charge",
+                PreparedLinkedActionPlacement.AfterMain));
             loadout.SetCombo(2, CreateCombo(
                 "Armor and Recovery",
                 "greatsword.opening.sweeping-slash",
                 "greatsword.main.strong-charged-slash",
                 "greatsword.closing.steadfast-slash",
-                "common.linked.use-healing-potion"));
+                "common.linked.use-healing-potion",
+                PreparedLinkedActionPlacement.AfterClosing));
             loadout.SetCombo(3, CreateCombo(
                 "Split Damage",
                 "greatsword.opening.draw-slash",
                 "greatsword.main.vertical-slash",
                 "greatsword.closing.double-sweep",
-                "greatsword.linked.vertical-slash"));
+                "greatsword.linked.vertical-slash",
+                PreparedLinkedActionPlacement.AfterMain));
         }
 
         private static PreparedComboState CreateCombo(
@@ -166,7 +170,8 @@ namespace SER494.Gameplay.PlayerState.Unity
             string openingActionId,
             string mainActionId,
             string closingActionId,
-            string linkedActionId)
+            string linkedActionId,
+            PreparedLinkedActionPlacement linkedPlacement)
         {
             return new PreparedComboState(
                 name,
@@ -174,7 +179,7 @@ namespace SER494.Gameplay.PlayerState.Unity
                 mainActionId,
                 closingActionId,
                 linkedActionId,
-                PreparedLinkedActionPlacement.AfterClosing);
+                linkedPlacement);
         }
 
         private static void LearnAll(PlayerState state, string[] actionIds)

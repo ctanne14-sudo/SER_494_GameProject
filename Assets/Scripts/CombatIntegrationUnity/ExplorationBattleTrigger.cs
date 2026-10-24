@@ -1,4 +1,5 @@
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -40,6 +41,19 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             string sourceSceneName = gameObject.scene.name;
+            if (PlayerStateService.TryGetActive(out PlayerStateService playerStateService)
+                && !PlayerStateLoadoutSessionBuilder.TryPrepare(
+                    playerStateService.State,
+                    loadoutSession,
+                    SoloComboTestScenario.GreatswordTrial,
+                    out string loadoutError))
+            {
+                Debug.LogWarning(
+                    $"Battle entry could not prepare the active Player Loadout: {loadoutError}",
+                    this);
+                return;
+            }
+
             if (!Application.CanStreamedLevelBeLoaded(battleSceneName))
             {
                 Debug.LogError(
