@@ -84,14 +84,27 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
+            if (!PlayerEquipmentDerivedStats.TryResolve(
+                    playerState,
+                    equipmentCatalog,
+                    out PlayerEquipmentDerivedStats derivedStats,
+                    out validationError))
+            {
+                return false;
+            }
+
+            derivedStats.ApplyPersistentMaximumHealth(playerState);
+
             try
             {
-                battle = new SoloComboBattleState(
-                    PlayerBattleStateTransfer.CreateCombatant(
+                CombatantState playerCombatant = PlayerBattleStateTransfer.CreateCombatant(
                         playerState,
                         "Player",
                         weapon.WeaponAttack,
-                        defense),
+                        defense);
+                derivedStats.ApplyCombatModifiers(playerCombatant);
+                battle = new SoloComboBattleState(
+                    playerCombatant,
                     new CombatantState(
                         encounter.EnemyDisplayName,
                         encounter.EnemyStats),

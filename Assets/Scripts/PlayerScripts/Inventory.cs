@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 public class Inventory : MonoBehaviour
 {
@@ -48,6 +49,10 @@ public class Inventory : MonoBehaviour
 
     void Update()
     {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            return;
+        }
 
         //Gets the selected key (1-5) and sets the hotbar -0 for deselect
         for (int i = 0; i < numKeys.Length; i++)

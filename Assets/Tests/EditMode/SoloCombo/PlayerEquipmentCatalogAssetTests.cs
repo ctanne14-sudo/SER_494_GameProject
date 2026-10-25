@@ -57,5 +57,43 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(succeeded, Is.False);
             Assert.That(validationError, Does.Contain("not 'armor.head'"));
         }
+
+        [Test]
+        public void DefaultCatalog_ContainsMenuTestEquipment()
+        {
+            PlayerEquipmentCatalogAsset catalog = PlayerEquipmentCatalogAsset.LoadDefault();
+
+            Assert.That(
+                catalog.TryGetWeapon(
+                    "weapon.greatsword.cast-iron-greatsword",
+                    out WeaponDefinition weapon,
+                    out string weaponError),
+                Is.True,
+                weaponError);
+            Assert.That(weapon.WeaponType, Is.EqualTo(WeaponType.Greatsword));
+            Assert.That(weapon.WeaponAttack, Is.EqualTo(60));
+
+            Assert.That(
+                catalog.TryGetAccessory(
+                    "accessory.rust-ring",
+                    out AccessoryDefinitionAsset rustRing,
+                    out string rustError),
+                Is.True,
+                rustError);
+            Assert.That(rustRing.EffectType, Is.EqualTo(AccessoryEffectType.MaximumHealthFlat));
+            Assert.That(rustRing.EffectAmount, Is.EqualTo(20f));
+
+            Assert.That(
+                catalog.TryGetAccessory(
+                    "accessory.ruby-ring",
+                    out AccessoryDefinitionAsset rubyRing,
+                    out string rubyError),
+                Is.True,
+                rubyError);
+            Assert.That(
+                rubyRing.EffectType,
+                Is.EqualTo(AccessoryEffectType.AllDamageDealtMultiplier));
+            Assert.That(rubyRing.EffectAmount, Is.EqualTo(0.05f).Within(0.0001f));
+        }
     }
 }

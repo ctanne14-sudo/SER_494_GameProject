@@ -1,0 +1,321 @@
+.menu-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(8, 10, 12, 0.82);
+    color: rgb(226, 216, 190);
+}
+
+.menu-frame {
+    width: 90%;
+    height: 88%;
+    min-width: 820px;
+    min-height: 520px;
+    padding: 22px;
+    background-color: rgb(29, 27, 24);
+    background-image: url("project://database/Assets/ThirdParty/Kenney/FantasyUIBorders/PNG/Default/Panel/panel-000.png");
+    -unity-slice-left: 16;
+    -unity-slice-top: 16;
+    -unity-slice-right: 16;
+    -unity-slice-bottom: 16;
+    -unity-slice-scale: 1;
+    -unity-background-image-tint-color: rgb(139, 110, 70);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(139, 110, 70);
+    border-right-color: rgb(139, 110, 70);
+    border-top-color: rgb(174, 143, 91);
+    border-bottom-color: rgb(91, 69, 43);
+}
+
+.menu-header {
+    height: 74px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(124, 102, 68);
+    background-color: rgb(37, 33, 27);
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
+.menu-title {
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: rgb(241, 223, 176);
+}
+
+.menu-kicker {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgb(164, 145, 112);
+}
+
+.menu-body {
+    flex-grow: 1;
+    flex-direction: row;
+    padding-top: 18px;
+    padding-bottom: 12px;
+}
+
+.menu-navigation {
+    width: 250px;
+    padding-right: 18px;
+    border-right-width: 1px;
+    border-right-color: rgb(89, 76, 57);
+    background-color: rgb(34, 31, 27);
+    padding-left: 10px;
+    padding-top: 10px;
+}
+
+.nav-button,
+.tab-button,
+.equip-button,
+.equipment-cancel-button,
+.equipment-slot-button,
+.equipment-candidate-button {
+    height: 46px;
+    margin-bottom: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+    background-color: rgb(50, 50, 47);
+    color: rgb(221, 209, 179);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(94, 82, 62);
+    border-right-color: rgb(94, 82, 62);
+    border-top-color: rgb(111, 95, 69);
+    border-bottom-color: rgb(69, 59, 46);
+    -unity-text-align: middle-left;
+}
+
+.nav-button:hover,
+.nav-button:focus,
+.tab-button:hover,
+.tab-button:focus,
+.equip-button:hover,
+.equip-button:focus,
+.equipment-cancel-button:hover,
+.equipment-cancel-button:focus,
+.equipment-slot-button:hover,
+.equipment-slot-button:focus,
+.equipment-candidate-button:hover,
+.equipment-candidate-button:focus {
+    background-color: rgb(65, 58, 47);
+    color: rgb(255, 235, 184);
+    border-left-color: rgb(170, 136, 82);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
+}
+
+.equipment-slot-button.equipment-slot-selected,
+.equipment-slot-button.equipment-slot-selected:hover,
+.equipment-slot-button.equipment-slot-selected:focus,
+.nav-button.nav-selected,
+.nav-button.nav-selected:hover,
+.nav-button.nav-selected:focus {
+    background-color: rgb(89, 71, 45);
+    color: rgb(255, 235, 184);
+    border-left-color: rgb(219, 175, 99);
+    border-right-color: rgb(219, 175, 99);
+    border-top-color: rgb(219, 175, 99);
+    border-bottom-color: rgb(219, 175, 99);
+}
+
+.danger-button {
+    color: rgb(210, 160, 145);
+}
+
+.nav-spacer {
+    flex-grow: 1;
+}
+
+.menu-content-shell {
+    flex-grow: 1;
+    padding-left: 26px;
+    padding-right: 18px;
+    background-color: rgb(25, 24, 22);
+}
+
+.page-title {
+    height: 56px;
+    font-size: 25px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+}
+
+.page-scroll {
+    flex-grow: 1;
+}
+
+.page-content {
+    padding-right: 14px;
+    padding-bottom: 12px;
+}
+
+.value-row,
+.equipment-entry {
+    min-height: 64px;
+    margin-bottom: 10px;
+    padding: 14px 18px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(18, 20, 21, 0.7);
+    border-left-width: 3px;
+    border-left-color: rgb(143, 110, 65);
+}
+
+.value-key {
+    color: rgb(174, 158, 128);
+}
+
+.value-value {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(240, 226, 193);
+}
+
+.section-heading,
+.card-title {
+    margin-top: 12px;
+    margin-bottom: 10px;
+    font-size: 19px;
+    -unity-font-style: bold;
+    color: rgb(210, 179, 118);
+}
+
+.loadout-card {
+    margin-bottom: 14px;
+    padding: 12px 18px;
+    background-color: rgba(18, 20, 21, 0.7);
+}
+
+.active-badge {
+    margin-top: 8px;
+    color: rgb(148, 197, 139);
+    -unity-font-style: bold;
+}
+
+.page-note,
+.muted-text {
+    white-space: normal;
+    margin-bottom: 18px;
+    color: rgb(175, 167, 146);
+}
+
+.equipment-layout {
+    flex-direction: row;
+    min-height: 520px;
+}
+
+.equipped-slots-panel,
+.warehouse-panel {
+    padding: 18px;
+    background-color: rgb(34, 32, 28);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(84, 70, 51);
+    border-right-color: rgb(84, 70, 51);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.equipped-slots-panel {
+    width: 43%;
+    margin-right: 16px;
+}
+
+.warehouse-panel {
+    flex-grow: 1;
+}
+
+.equipment-pane-title {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(112, 91, 61);
+}
+
+.slot-group-title {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    color: rgb(174, 158, 128);
+    -unity-font-style: bold;
+}
+
+.equipment-slot-button,
+.equipment-candidate-button {
+    height: auto;
+    min-height: 62px;
+    margin-bottom: 8px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
+
+.equipment-cancel-button {
+    height: 44px;
+    margin-bottom: 12px;
+    -unity-text-align: middle-left;
+    color: rgb(210, 184, 145);
+}
+
+.equipment-candidate-button:disabled {
+    opacity: 0.55;
+}
+
+.summary-stat-row {
+    min-height: 58px;
+    margin-bottom: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgb(27, 26, 23);
+    border-left-width: 3px;
+    border-left-color: rgb(143, 110, 65);
+}
+
+.summary-stat-value {
+    font-size: 21px;
+    -unity-font-style: bold;
+    color: rgb(240, 226, 193);
+}
+
+.summary-effects-title {
+    margin-top: 18px;
+    margin-bottom: 10px;
+    color: rgb(210, 179, 118);
+    -unity-font-style: bold;
+}
+
+.summary-effect {
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    white-space: normal;
+    background-color: rgb(27, 26, 23);
+    color: rgb(226, 216, 190);
+}
+
+.menu-footer {
+    height: 28px;
+    -unity-text-align: middle-right;
+    font-size: 12px;
+    color: rgb(143, 134, 116);
+}

@@ -19,6 +19,15 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         [SerializeField]
         private ArmorDefinitionAsset[] armor = Array.Empty<ArmorDefinitionAsset>();
 
+        [SerializeField]
+        private AccessoryDefinitionAsset[] accessories = Array.Empty<AccessoryDefinitionAsset>();
+
+        public IReadOnlyList<WeaponDefinitionAsset> Weapons => weapons;
+
+        public IReadOnlyList<ArmorDefinitionAsset> Armor => armor;
+
+        public IReadOnlyList<AccessoryDefinitionAsset> Accessories => accessories;
+
         public static PlayerEquipmentCatalogAsset LoadDefault()
         {
             return Resources.Load<PlayerEquipmentCatalogAsset>(DefaultResourcesPath);
@@ -93,6 +102,37 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
             return true;
         }
 
+        public bool TryGetArmor(
+            string armorId,
+            out ArmorDefinitionAsset definition,
+            out string validationError)
+        {
+            definition = FindArmor(armorId);
+            if (definition == null)
+            {
+                validationError = $"Armor '{armorId}' is missing from the equipment catalog.";
+                return false;
+            }
+
+            return definition.TryValidate(out validationError);
+        }
+
+        public bool TryGetAccessory(
+            string accessoryId,
+            out AccessoryDefinitionAsset definition,
+            out string validationError)
+        {
+            definition = FindAccessory(accessoryId);
+            if (definition == null)
+            {
+                validationError =
+                    $"Accessory '{accessoryId}' is missing from the equipment catalog.";
+                return false;
+            }
+
+            return definition.TryValidate(out validationError);
+        }
+
         private ArmorDefinitionAsset FindArmor(string armorId)
         {
             for (int index = 0; index < armor.Length; index++)
@@ -101,6 +141,23 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
                 if (asset != null && string.Equals(
                         asset.ArmorId,
                         armorId,
+                        StringComparison.Ordinal))
+                {
+                    return asset;
+                }
+            }
+
+            return null;
+        }
+
+        private AccessoryDefinitionAsset FindAccessory(string accessoryId)
+        {
+            for (int index = 0; index < accessories.Length; index++)
+            {
+                AccessoryDefinitionAsset asset = accessories[index];
+                if (asset != null && string.Equals(
+                        asset.AccessoryId,
+                        accessoryId,
                         StringComparison.Ordinal))
                 {
                     return asset;

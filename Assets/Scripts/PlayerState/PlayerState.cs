@@ -11,7 +11,7 @@ namespace SER494.Gameplay.PlayerState
             int initiallyUnlockedLoadoutSlots = 1,
             int baseStaminaRecoveryPerRound = 10)
         {
-            MaximumHealth = RequirePositive(maximumHealth, nameof(maximumHealth));
+            BaseMaximumHealth = RequirePositive(maximumHealth, nameof(maximumHealth));
             MaximumMana = RequireNonNegative(maximumMana, nameof(maximumMana));
             MaximumCombatStamina = RequireNonNegative(
                 maximumCombatStamina,
@@ -31,7 +31,11 @@ namespace SER494.Gameplay.PlayerState
 
         public int CurrentHealth { get; private set; }
 
-        public int MaximumHealth { get; private set; }
+        public int BaseMaximumHealth { get; private set; }
+
+        public int EquipmentMaximumHealthBonus { get; private set; }
+
+        public int MaximumHealth => checked(BaseMaximumHealth + EquipmentMaximumHealthBonus);
 
         public int CurrentMana { get; private set; }
 
@@ -79,7 +83,14 @@ namespace SER494.Gameplay.PlayerState
 
         public void IncreaseMaximumHealth(int amount)
         {
-            MaximumHealth = checked(MaximumHealth + RequirePositive(amount, nameof(amount)));
+            BaseMaximumHealth = checked(
+                BaseMaximumHealth + RequirePositive(amount, nameof(amount)));
+        }
+
+        public void SetEquipmentMaximumHealthBonus(int amount)
+        {
+            EquipmentMaximumHealthBonus = RequireNonNegative(amount, nameof(amount));
+            CurrentHealth = Clamp(CurrentHealth, 0, MaximumHealth);
         }
 
         public void SetCurrentMana(int value)

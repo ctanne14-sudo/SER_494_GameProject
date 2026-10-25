@@ -1,4 +1,5 @@
 using UnityEngine;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 public class PlayerSpeed : MonoBehaviour {
     [SerializeField] private float runSpeed;
@@ -14,6 +15,12 @@ public class PlayerSpeed : MonoBehaviour {
 
     void Update()
     {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            sprinting = false;
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.LeftShift)) run = !run;
         else if (Input.GetKey(KeyCode.S)) run = false;
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -19,6 +20,13 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void Update() {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            animator.SetBool("isWalking", false);
+            animator.SetBool("isRunning", false);
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.K))
         {
             GetComponent<HealthController>().damagePlayer(50);

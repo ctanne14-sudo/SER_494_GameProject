@@ -1,0 +1,28 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="ExplorationMenu.uss" />
+    <ui:VisualElement name="menuOverlay" class="menu-overlay">
+        <ui:VisualElement class="menu-frame">
+            <ui:VisualElement class="menu-header">
+                <ui:Label name="menuTitle" class="menu-title" />
+                <ui:Label text="PLAYER RECORD" class="menu-kicker" />
+            </ui:VisualElement>
+            <ui:VisualElement class="menu-body">
+                <ui:VisualElement class="menu-navigation">
+                    <ui:Button name="statusButton" class="nav-button" />
+                    <ui:Button name="comboButton" class="nav-button" />
+                    <ui:Button name="inventoryButton" class="nav-button" />
+                    <ui:Button name="equipmentButton" class="nav-button" />
+                    <ui:VisualElement class="nav-spacer" />
+                    <ui:Button name="returnToTitleButton" class="nav-button danger-button" />
+                </ui:VisualElement>
+                <ui:VisualElement class="menu-content-shell">
+                    <ui:Label name="pageTitle" class="page-title" />
+                    <ui:ScrollView name="pageScroll" class="page-scroll">
+                        <ui:VisualElement name="pageContent" class="page-content" />
+                    </ui:ScrollView>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="footerLabel" class="menu-footer" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

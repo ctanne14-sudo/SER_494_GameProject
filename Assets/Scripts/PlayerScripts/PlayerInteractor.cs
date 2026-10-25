@@ -1,4 +1,5 @@
 using UnityEngine;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 public class PlayerInteractor : MonoBehaviour
 {
@@ -13,6 +14,17 @@ public class PlayerInteractor : MonoBehaviour
 
     void Update()
     {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            if (prevObj != null)
+            {
+                prevObj.showUI(false);
+                prevObj = null;
+            }
+
+            return;
+        }
+
         Vector3 origin = transform.position;
         Action closet = null;
         float distance = Mathf.Infinity;

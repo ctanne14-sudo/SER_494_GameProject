@@ -1,4 +1,5 @@
 using UnityEngine;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 public class CameraMovement : MonoBehaviour
 {
@@ -23,6 +24,11 @@ public class CameraMovement : MonoBehaviour
 
     void LateUpdate()
     {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            return;
+        }
+
         if (target == null) 
         {
             Debug.Log("Target is null");

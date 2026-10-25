@@ -14,7 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.Equipment.PlayerEquipmentCatalogAsset
   weapons:
   - {fileID: 11400000, guid: 3d79693e9eb03d447bdbec0e7f4dc450, type: 2}
+  - {fileID: 11400000, guid: 13b1dc5d1d3f4a6ca1aec146d0f180e1, type: 2}
   armor:
   - {fileID: 11400000, guid: 4d8c4a24decd4eada9d6616e03e0e695, type: 2}
   - {fileID: 11400000, guid: b2d9c768a3644f0c96e2eba19fc673b7, type: 2}
   - {fileID: 11400000, guid: 43005d02af16415191f9ce5d4c46ec3e, type: 2}
+  - {fileID: 11400000, guid: 2f7c3306c3984c79a5fb85415f0cf5a0, type: 2}
+  - {fileID: 11400000, guid: 932a783272c04b8bab445c17efe713a2, type: 2}
+  - {fileID: 11400000, guid: 6be92925d6194f429fc4a119db1c84cd, type: 2}
+  accessories:
+  - {fileID: 11400000, guid: 47896ac5c8884304bb591920ea9ac94b, type: 2}
+  - {fileID: 11400000, guid: e9f9012d12784dcb881ebf1800bfd3d5, type: 2}
