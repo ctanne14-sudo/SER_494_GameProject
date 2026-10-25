@@ -201,6 +201,246 @@
     background-color: rgba(18, 20, 21, 0.7);
 }
 
+.loadout-card-button,
+.combo-card-button,
+.combo-back-button {
+    height: auto;
+    margin-bottom: 12px;
+    padding: 14px 18px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+    background-color: rgba(18, 20, 21, 0.78);
+    color: rgb(221, 209, 179);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(84, 70, 51);
+    border-right-color: rgb(84, 70, 51);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.loadout-card-button:hover,
+.loadout-card-button:focus,
+.combo-card-button:hover,
+.combo-card-button:focus,
+.combo-back-button:hover,
+.combo-back-button:focus {
+    background-color: rgb(65, 58, 47);
+    color: rgb(255, 235, 184);
+    border-left-color: rgb(170, 136, 82);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
+}
+
+.loadout-card-title,
+.combo-card-title {
+    margin-bottom: 7px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+}
+
+.loadout-combo-name,
+.combo-card-sequence {
+    margin-bottom: 4px;
+    white-space: normal;
+    color: rgb(210, 200, 174);
+}
+
+.loadout-combo-preview-row {
+    min-height: 31px;
+    margin-bottom: 4px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.loadout-combo-name {
+    width: 185px;
+    margin-bottom: 0;
+    -unity-font-style: bold;
+}
+
+.loadout-combo-timeline {
+    flex-grow: 1;
+    color: rgb(180, 169, 142);
+    white-space: normal;
+}
+
+.combo-card-costs,
+.action-detail-costs {
+    margin-top: 5px;
+    color: rgb(167, 153, 126);
+}
+
+.combo-back-button {
+    min-height: 42px;
+    color: rgb(210, 184, 145);
+}
+
+.combo-status-valid,
+.combo-status-neutral,
+.combo-status-invalid {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    white-space: normal;
+    background-color: rgb(27, 26, 23);
+    border-left-width: 3px;
+}
+
+.combo-status-valid {
+    color: rgb(148, 197, 139);
+    border-left-color: rgb(94, 151, 89);
+}
+
+.combo-status-neutral {
+    color: rgb(190, 179, 151);
+    border-left-color: rgb(124, 102, 68);
+}
+
+.combo-status-invalid {
+    color: rgb(222, 142, 126);
+    border-left-color: rgb(169, 77, 62);
+}
+
+.timeline-scale-row {
+    margin-bottom: 4px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.timeline-scale {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.timeline-scale-label {
+    min-width: 10px;
+    margin-right: 7px;
+    flex-basis: 0;
+    flex-grow: 1;
+    font-size: 11px;
+    color: rgb(143, 134, 116);
+    -unity-text-align: middle-center;
+}
+
+.timeline-row {
+    min-height: 34px;
+    margin-bottom: 5px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.timeline-action-name,
+.timeline-action-spacer {
+    width: 190px;
+    padding-right: 10px;
+}
+
+.timeline-action-name {
+    color: rgb(218, 204, 173);
+    white-space: normal;
+}
+
+.timeline-track {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.timeline-cell {
+    min-width: 10px;
+    margin-right: 7px;
+    height: 28px;
+    flex-basis: 0;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(27, 27, 25);
+    border-left-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(58, 54, 47);
+    border-bottom-color: rgb(58, 54, 47);
+    overflow: hidden;
+}
+
+.timeline-cell-marker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    font-size: 10px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.timeline-cell-active {
+    background-color: rgb(72, 65, 52);
+}
+
+.timeline-resolution-window {
+    background-color: rgb(18, 18, 17);
+}
+
+.timeline-marker-damage {
+    background-color: rgb(145, 62, 52);
+}
+
+.timeline-marker-guard {
+    background-color: rgb(52, 91, 139);
+}
+
+.timeline-marker-evade {
+    background-color: rgb(43, 126, 130);
+}
+
+.timeline-marker-status {
+    background-color: rgb(112, 74, 137);
+}
+
+.timeline-marker-heal {
+    background-color: rgb(57, 119, 76);
+}
+
+.timeline-marker-stamina {
+    background-color: rgb(145, 119, 45);
+}
+
+.timeline-marker-other {
+    background-color: rgb(94, 85, 69);
+}
+
+.timeline-legend {
+    margin-top: 5px;
+    margin-bottom: 18px;
+    color: rgb(167, 153, 126);
+    white-space: normal;
+}
+
+.action-detail-card {
+    margin-bottom: 10px;
+    padding: 13px 16px;
+    background-color: rgb(34, 32, 28);
+    border-left-width: 3px;
+    border-left-color: rgb(143, 110, 65);
+}
+
+.action-detail-title {
+    margin-bottom: 4px;
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+}
+
+.action-resolution-line {
+    margin-top: 5px;
+    color: rgb(210, 200, 174);
+    white-space: normal;
+}
+
 .active-badge {
     margin-top: 8px;
     color: rgb(148, 197, 139);

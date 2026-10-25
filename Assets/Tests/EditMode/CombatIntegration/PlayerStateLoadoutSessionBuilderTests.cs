@@ -108,5 +108,57 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             Assert.That(configurations[0].OpeningAction.ActionId,
                 Is.EqualTo(incompatibleOpeningId));
         }
+
+        [Test]
+        public void TryBuildLoadout_UnlockedNonActiveLoadout_UsesRequestedPage()
+        {
+            PersistentPlayerState state = new PlayerStateInitialValues().CreateState();
+            PlayerComboLoadoutState source = state.ComboLoadouts.ActiveLoadout;
+            PlayerComboLoadoutState second = state.ComboLoadouts.UnlockNext();
+            second.Rename("Second Greatsword Page");
+            for (int index = 0; index < PlayerComboLoadoutState.ComboCount; index++)
+            {
+                second.SetCombo(index, source.Combos[index]);
+            }
+
+            bool succeeded = PlayerStateComboConfigurationBuilder.TryBuildLoadout(
+                second,
+                state,
+                ComboActionCatalogAsset.LoadDefault(),
+                out var configurations,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            Assert.That(configurations.Count, Is.EqualTo(PlayerComboLoadoutState.ComboCount));
+            Assert.That(configurations[0].Name, Is.EqualTo("Charge Timing"));
+            Assert.That(state.ComboLoadouts.ActiveLoadoutId, Is.Not.EqualTo(second.LoadoutId));
+        }
+
+        [Test]
+        public void TryBuildCombo_ActionOutsideOwnedSet_ReturnsErrorWithoutChangingState()
+        {
+            PersistentPlayerState state = new PlayerStateInitialValues().CreateState();
+            PreparedComboState original = state.ComboLoadouts.ActiveLoadout.Combos[0];
+            var draft = new PreparedComboState(
+                original.Name,
+                "common.opening.roll",
+                original.MainActionId,
+                original.ClosingActionId,
+                original.LinkedActionId,
+                original.LinkedPlacement);
+
+            bool succeeded = PlayerStateComboConfigurationBuilder.TryBuildCombo(
+                draft,
+                state,
+                ComboActionCatalogAsset.LoadDefault(),
+                out _,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(validationError, Does.Contain("not in the player's Action Set"));
+            Assert.That(
+                state.ComboLoadouts.ActiveLoadout.Combos[0].OpeningActionId,
+                Is.EqualTo(original.OpeningActionId));
+        }
     }
 }

@@ -11,7 +11,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 {
     public static class PlayerStateLoadoutSessionBuilder
     {
-        private const int MaximumTimelineCost = 30;
+        public const int MaximumTimelineCost = 30;
 
         public static bool TryPrepare(
             PersistentPlayerState playerState,
@@ -77,23 +77,14 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            var configurations = new List<ComboConfiguration>(
-                activeLoadout.Combos.Count);
-            for (int index = 0; index < activeLoadout.Combos.Count; index++)
+            if (!PlayerStateComboConfigurationBuilder.TryBuildLoadout(
+                    activeLoadout,
+                    playerState,
+                    actionCatalog,
+                    out var configurations,
+                    out validationError))
             {
-                if (!TryCreateConfiguration(
-                        activeLoadout.Combos[index],
-                        playerState,
-                        actionCatalog,
-                        out ComboConfiguration configuration,
-                        out validationError))
-                {
-                    validationError =
-                        $"Loadout '{activeLoadout.Name}', Combo {index + 1}: {validationError}";
-                    return false;
-                }
-
-                configurations.Add(configuration);
+                return false;
             }
 
             // Weapon compatibility is intentionally omitted here. It is a warning
@@ -120,7 +111,48 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             return true;
         }
 
-        private static bool TryCreateConfiguration(
+    }
+
+    public static class PlayerStateComboConfigurationBuilder
+    {
+        public static bool TryBuildLoadout(
+            PlayerComboLoadoutState loadout,
+            PersistentPlayerState playerState,
+            ComboActionCatalogAsset actionCatalog,
+            out IReadOnlyList<ComboConfiguration> configurations,
+            out string validationError)
+        {
+            configurations = null;
+            if (loadout == null)
+            {
+                validationError = "A Combo Loadout is required.";
+                return false;
+            }
+
+            var created = new List<ComboConfiguration>(loadout.Combos.Count);
+            for (int index = 0; index < loadout.Combos.Count; index++)
+            {
+                if (!TryBuildCombo(
+                        loadout.Combos[index],
+                        playerState,
+                        actionCatalog,
+                        out ComboConfiguration configuration,
+                        out validationError))
+                {
+                    validationError =
+                        $"Loadout '{loadout.Name}', Combo {index + 1}: {validationError}";
+                    return false;
+                }
+
+                created.Add(configuration);
+            }
+
+            configurations = created;
+            validationError = null;
+            return true;
+        }
+
+        public static bool TryBuildCombo(
             PreparedComboState prepared,
             PersistentPlayerState playerState,
             ComboActionCatalogAsset actionCatalog,
@@ -131,6 +163,19 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             if (prepared == null)
             {
                 validationError = "Prepared Combo data is missing.";
+                return false;
+            }
+
+            if (playerState == null)
+            {
+                validationError = "Persistent Player State is unavailable.";
+                return false;
+            }
+
+            if (actionCatalog == null)
+            {
+                validationError =
+                    $"Combo Action Catalog is missing from Resources/{ComboActionCatalogAsset.DefaultResourcesPath}.asset.";
                 return false;
             }
 
