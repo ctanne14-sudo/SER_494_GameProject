@@ -59,6 +59,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             inventory.selectHB(-1);
         }
         selected = !selected;
+        transform.localScale = selected || hovering ? new Vector2(1.05f, 1.05f) : Vector2.one;
         highlight.gameObject.SetActive(selected || hovering);
         inventory.setSelectedInvSlot(selected ? this : null);
     }
@@ -69,7 +70,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         hovering = true;
         itemPopUp.SetActive(true);
         highlight.gameObject.SetActive(true);
-        transform.localScale = new Vector3(1.05f, 1.05f, 1.05f);
+        transform.localScale = new Vector2(1.05f, 1.05f);
         itemPopUp.transform.localScale = new Vector2(1.05f, 1.05f); 
         itemPopUp.GetComponent<ItemPopUp>().setItem(null);
     }
@@ -80,7 +81,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         itemPopUp.SetActive(false);
         highlight.gameObject.SetActive(selected);
         itemPopUp.GetComponent<ItemPopUp>().setItem(null);
-        transform.localScale = Vector2.one;
+        transform.localScale = selected ? new Vector2(1.05f, 1.05f) : Vector2.one;
     }
 
     /**
@@ -108,6 +109,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         selected = false;
         highlight.gameObject.SetActive(selected);        
+        transform.localScale = selected ? new Vector2(1.05f, 1.05f) : Vector2.one;
     }
     
     /**

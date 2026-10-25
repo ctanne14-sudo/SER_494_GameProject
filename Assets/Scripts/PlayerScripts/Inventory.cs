@@ -9,6 +9,7 @@ public class Inventory : MonoBehaviour
 
     [Header("Hotbar")]
     [SerializeField] private HotbarSlot[] hotbarSlots;  //List of slots in hotbar
+    public int rowCount;
 
     [Header("Hand")]
     [SerializeField] private GameObject spawnPoint; //Spawn point for held items
@@ -161,6 +162,9 @@ public class Inventory : MonoBehaviour
             slot.addInventory(this, endRow);
             slot.setItem(null);
         }
+        rowCount = (int)Mathf.Ceil(invSlots.Count / 8);
+        RectTransform rect = (RectTransform)invSlots[0].transform.parent.transform;
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 44 + rowCount * 35 + ((rowCount -1) * 25) );
     }
 
     /**
