@@ -29,6 +29,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.invalid": return "Loadout configuration is invalid.";
                 case "combos.timeline": return "Timeline Preview";
                 case "combos.timeline-legend": return "D Damage    G Guard    E Evade    B Buff / Debuff    H Heal    S Stamina    Diagonal stripes Resolution Window";
+                case "combos.charge-level": return "Preview Charge Level";
                 case "combos.actions": return "Action Details";
                 case "combos.editor-next": return "Action replacement, draft validation, activation prompts, and Revert Changes are added in the next Combo Configuration stage.";
                 case "inventory.heading": return "Inventory";

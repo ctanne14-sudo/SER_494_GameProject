@@ -316,6 +316,24 @@
     flex-direction: row;
 }
 
+.timeline-scroll {
+    height: 205px;
+    margin-bottom: 5px;
+}
+
+.timeline-canvas {
+    min-width: 100%;
+}
+
+.timeline-canvas-overflow {
+    align-self: flex-start;
+}
+
+.timeline-canvas-overflow .timeline-scale,
+.timeline-canvas-overflow .timeline-track {
+    flex-grow: 0;
+}
+
 .timeline-scale-label {
     min-width: 10px;
     margin-right: 7px;
@@ -382,7 +400,87 @@
 }
 
 .timeline-resolution-window {
-    background-color: rgb(18, 18, 17);
+    background-color: rgb(72, 65, 52);
+}
+
+.timeline-cell-overflow {
+    width: 36px;
+    min-width: 36px;
+    flex-grow: 0;
+}
+
+.timeline-action-button {
+    height: 30px;
+    padding-left: 0;
+    padding-right: 6px;
+    background-color: rgba(0, 0, 0, 0);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(143, 110, 65, 0);
+    border-right-color: rgba(143, 110, 65, 0);
+    border-top-color: rgba(143, 110, 65, 0);
+    border-bottom-color: rgba(143, 110, 65, 0);
+    -unity-text-align: middle-left;
+}
+
+.timeline-action-button:hover,
+.timeline-action-button:focus {
+    background-color: rgb(52, 46, 37);
+    border-left-color: rgb(174, 133, 73);
+    border-right-color: rgb(174, 133, 73);
+    border-top-color: rgb(174, 133, 73);
+    border-bottom-color: rgb(174, 133, 73);
+}
+
+.charge-level-panel {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgb(42, 38, 31);
+    border-left-width: 2px;
+    border-left-color: rgb(174, 133, 73);
+}
+
+.charge-level-panel-hidden {
+    display: none;
+}
+
+.charge-level-title {
+    min-width: 310px;
+    color: rgb(218, 204, 173);
+}
+
+.charge-level-choices {
+    flex-direction: row;
+}
+
+.charge-level-button {
+    min-width: 72px;
+    margin-right: 8px;
+    color: rgb(218, 204, 173);
+    background-color: rgb(49, 47, 42);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(92, 79, 59);
+    border-right-color: rgb(92, 79, 59);
+    border-top-color: rgb(92, 79, 59);
+    border-bottom-color: rgb(92, 79, 59);
+}
+
+.charge-level-button:hover,
+.charge-level-button:focus,
+.charge-level-selected {
+    color: rgb(255, 239, 195);
+    background-color: rgb(96, 72, 40);
+    border-left-color: rgb(202, 160, 78);
+    border-right-color: rgb(202, 160, 78);
+    border-top-color: rgb(202, 160, 78);
+    border-bottom-color: rgb(202, 160, 78);
 }
 
 .timeline-marker-damage {

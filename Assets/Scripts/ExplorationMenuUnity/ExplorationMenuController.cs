@@ -48,11 +48,17 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private readonly List<Button> _equipmentSlotButtonOrder = new List<Button>();
         private readonly List<Button> _equipmentWarehouseButtons = new List<Button>();
         private readonly List<Button> _comboPageButtons = new List<Button>();
+        private readonly List<Button> _chargeLevelButtons = new List<Button>();
         private readonly Dictionary<Button, Action> _buttonActions =
             new Dictionary<Button, Action>();
+        private readonly Dictionary<string, int> _previewChargeLevels =
+            new Dictionary<string, int>(StringComparer.Ordinal);
         private ComboMenuLevel _comboMenuLevel;
         private PlayerComboLoadoutState _selectedLoadout;
         private int _selectedComboIndex = -1;
+        private ScrollView _timelineScroll;
+        private VisualElement _chargeLevelPanel;
+        private Button _chargeActionButton;
 
         private void OnEnable()
         {
@@ -167,8 +173,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _comboMenuLevel = ComboMenuLevel.None;
             _selectedLoadout = null;
             _selectedComboIndex = -1;
+            _previewChargeLevels.Clear();
 
             GrantEditorTestEquipment();
+            GrantEditorComboPreviewLoadouts();
             ShowStatus();
             _root.schedule.Execute(() => _statusButton.Focus()).ExecuteLater(1);
         }
@@ -188,6 +196,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         {
             if (_currentPage == MenuPage.Combos)
             {
+                if (_comboMenuLevel == ComboMenuLevel.ComboDetails
+                    && _chargeLevelPanel != null
+                    && !_chargeLevelPanel.ClassListContains("charge-level-panel-hidden"))
+                {
+                    HideChargeLevelChoices();
+                    return;
+                }
+
                 if (_comboMenuLevel == ComboMenuLevel.ComboDetails && _selectedLoadout != null)
                 {
                     ShowLoadoutDetails(_selectedLoadout);
@@ -223,6 +239,31 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             {
                 ActivateFocusedButton();
+                return;
+            }
+
+            bool moveLeft = Keyboard.current != null
+                && (Keyboard.current.leftArrowKey.wasPressedThisFrame
+                    || Keyboard.current.aKey.wasPressedThisFrame);
+            bool moveRight = Keyboard.current != null
+                && (Keyboard.current.rightArrowKey.wasPressedThisFrame
+                    || Keyboard.current.dKey.wasPressedThisFrame);
+            moveLeft |= Gamepad.current != null
+                && Gamepad.current.dpad.left.wasPressedThisFrame;
+            moveRight |= Gamepad.current != null
+                && Gamepad.current.dpad.right.wasPressedThisFrame;
+            if (moveLeft || moveRight)
+            {
+                Button focused = GetFocusedButton();
+                if (focused != null && _chargeLevelButtons.Contains(focused))
+                {
+                    MoveFocus(moveRight ? 1 : -1);
+                }
+                else if (_comboMenuLevel == ComboMenuLevel.ComboDetails)
+                {
+                    PanTimeline(moveRight ? 1 : -1);
+                }
+
                 return;
             }
 
@@ -450,6 +491,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
+            bool changedCombo = _comboMenuLevel != ComboMenuLevel.ComboDetails
+                || _selectedLoadout != loadout
+                || _selectedComboIndex != comboIndex;
+            if (changedCombo)
+            {
+                _previewChargeLevels.Clear();
+            }
+
             _currentPage = MenuPage.Combos;
             _comboMenuLevel = ComboMenuLevel.ComboDetails;
             _selectedLoadout = loadout;
@@ -480,13 +529,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             AddSectionHeading(ExplorationMenuText.Get("combos.timeline"));
             AddTimelinePreview(configuration);
+            AddChargeLevelPanel();
             AddTimelineLegend();
             AddSectionHeading(ExplorationMenuText.Get("combos.actions"));
 
             IReadOnlyList<ComboActionDefinition> executionOrder = configuration.BuildExecutionOrder();
             for (int index = 0; index < executionOrder.Count; index++)
             {
-                AddActionDetail(executionOrder[index]);
+                ComboActionDefinition action = executionOrder[index];
+                AddActionDetail(action, GetPreviewChargeLevel(action));
             }
 
             AddBodyText(ExplorationMenuText.Get("combos.editor-next"), "page-note");
@@ -505,6 +556,36 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void AddTimelinePreview(ComboConfiguration configuration)
         {
+            IReadOnlyList<ComboActionDefinition> actions = configuration.BuildExecutionOrder();
+            int totalTimelineCost = 0;
+            for (int index = 0; index < actions.Count; index++)
+            {
+                totalTimelineCost += GetPreviewTimelineCost(
+                    actions[index],
+                    GetPreviewChargeLevel(actions[index]));
+            }
+
+            int displayedTimeSteps = Mathf.Max(
+                PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
+                totalTimelineCost);
+            bool overflowsBaseTimeline = displayedTimeSteps
+                > PlayerStateLoadoutSessionBuilder.MaximumTimelineCost;
+
+            _timelineScroll = new ScrollView(ScrollViewMode.Horizontal);
+            _timelineScroll.AddToClassList("timeline-scroll");
+            _timelineScroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
+            _timelineScroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            var canvas = new VisualElement();
+            canvas.AddToClassList("timeline-canvas");
+            if (overflowsBaseTimeline)
+            {
+                canvas.AddToClassList("timeline-canvas-overflow");
+                const float actionNameWidth = 190f;
+                const float overflowCellWidthWithMargin = 43f;
+                canvas.style.width = actionNameWidth
+                    + displayedTimeSteps * overflowCellWidthWithMargin;
+            }
+
             var scaleRow = new VisualElement();
             scaleRow.AddToClassList("timeline-scale-row");
             var scaleSpacer = new VisualElement();
@@ -514,63 +595,102 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             var scale = new VisualElement();
             scale.AddToClassList("timeline-scale");
             for (int timeStep = 1;
-                 timeStep <= PlayerStateLoadoutSessionBuilder.MaximumTimelineCost;
+                 timeStep <= displayedTimeSteps;
                  timeStep++)
             {
                 var tick = new Label(timeStep % 5 == 0
                     ? timeStep.ToString()
                     : string.Empty);
                 tick.AddToClassList("timeline-scale-label");
+                if (overflowsBaseTimeline)
+                {
+                    tick.AddToClassList("timeline-cell-overflow");
+                }
                 scale.Add(tick);
             }
 
             scaleRow.Add(scale);
-            _content.Add(scaleRow);
+            canvas.Add(scaleRow);
 
             int actionStart = 0;
-            IReadOnlyList<ComboActionDefinition> actions = configuration.BuildExecutionOrder();
             for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
             {
                 ComboActionDefinition action = actions[actionIndex];
+                int chargeLevel = GetPreviewChargeLevel(action);
+                int previewTimelineCost = GetPreviewTimelineCost(action, chargeLevel);
                 var row = new VisualElement();
                 row.AddToClassList("timeline-row");
-                var name = new Label(action.DisplayName);
-                name.AddToClassList("timeline-action-name");
-                row.Add(name);
+                if (action.IsChargeable)
+                {
+                    var actionButton = new Button(
+                        () => ShowChargeLevelChoices(action));
+                    actionButton.text = $"{action.DisplayName}  |  Charge Lv.{chargeLevel}";
+                    actionButton.AddToClassList("timeline-action-name");
+                    actionButton.AddToClassList("timeline-action-button");
+                    row.Add(actionButton);
+                    _comboPageButtons.Add(actionButton);
+                    RegisterButtonAction(
+                        actionButton,
+                        () => ShowChargeLevelChoices(action));
+                }
+                else
+                {
+                    var name = new Label(action.DisplayName);
+                    name.AddToClassList("timeline-action-name");
+                    row.Add(name);
+                }
 
                 var track = new VisualElement();
                 track.AddToClassList("timeline-track");
                 for (int timeStep = 1;
-                     timeStep <= PlayerStateLoadoutSessionBuilder.MaximumTimelineCost;
+                     timeStep <= displayedTimeSteps;
                      timeStep++)
                 {
                     var cell = new TimelineResolutionCell();
                     if (timeStep > actionStart
-                        && timeStep <= actionStart + action.TimelineCost)
+                        && timeStep <= actionStart + previewTimelineCost)
                     {
                         cell.AddToClassList("timeline-cell-active");
                     }
 
-                    ApplyResolutionMarker(cell, action, timeStep - actionStart);
+                    if (overflowsBaseTimeline)
+                    {
+                        cell.AddToClassList("timeline-cell-overflow");
+                    }
+
+                    ApplyResolutionMarker(
+                        cell,
+                        action,
+                        timeStep - actionStart,
+                        chargeLevel);
                     track.Add(cell);
                 }
 
                 row.Add(track);
-                _content.Add(row);
-                actionStart += action.TimelineCost;
+                canvas.Add(row);
+                actionStart += previewTimelineCost;
             }
+
+            _timelineScroll.Add(canvas);
+            _content.Add(_timelineScroll);
         }
 
         private static void ApplyResolutionMarker(
             TimelineResolutionCell cell,
             ComboActionDefinition action,
-            int localTime)
+            int localTime,
+            int chargeLevel)
         {
             string combinedMarkerText = string.Empty;
             string firstMarkerClass = null;
             Color? windowStripeColor = null;
-            bool isChargeWindow = IsChargeResolutionPoint(action, localTime);
-            if (isChargeWindow)
+            int chargeTimelineExtension = GetChargeTimelineExtension(action, chargeLevel);
+            int chargeResolutionOffset = action.ResolutionOffset + chargeTimelineExtension;
+
+            bool isInsideActionWindow = action.HasResolutionWindow
+                && localTime >= action.ResolutionWindowStart.Value
+                && localTime <= action.ResolutionWindowEnd.Value;
+            if (isInsideActionWindow)
             {
                 combinedMarkerText = ResolutionMarkerText(action.ResolutionEffect);
                 windowStripeColor = ResolutionMarkerColor(action.ResolutionEffect);
@@ -579,10 +699,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             for (int index = 0; index < action.ResolutionEvents.Count; index++)
             {
                 ActionResolutionDefinition resolution = action.ResolutionEvents[index];
-                if (isChargeWindow && resolution.Offset == action.ResolutionOffset)
+                if (isInsideActionWindow && index == 0)
                 {
                     continue;
                 }
+
+                int resolutionOffset = action.IsChargeable && index == 0
+                    ? chargeResolutionOffset
+                    : resolution.Offset;
 
                 if (resolution.HasResolutionWindow
                     && localTime >= resolution.ResolutionWindowStart.Value
@@ -593,7 +717,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     continue;
                 }
 
-                if (resolution.Offset != localTime)
+                if (resolutionOffset != localTime)
                 {
                     continue;
                 }
@@ -617,30 +741,32 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private static bool IsChargeResolutionPoint(
-            ComboActionDefinition action,
-            int localTime)
+        private int GetPreviewChargeLevel(ComboActionDefinition action)
         {
-            if (!action.IsChargeable)
+            if (action == null || !action.IsChargeable)
             {
-                return false;
+                return 0;
             }
 
-            if (localTime == action.ResolutionOffset)
-            {
-                return true;
-            }
+            return _previewChargeLevels.TryGetValue(action.ActionId, out int level)
+                ? Mathf.Clamp(level, 0, action.ChargeLevels.Count)
+                : 0;
+        }
 
-            for (int index = 0; index < action.ChargeLevels.Count; index++)
-            {
-                if (localTime == action.ResolutionOffset
-                    + action.ChargeLevels[index].AdditionalTimelineCost)
-                {
-                    return true;
-                }
-            }
+        private static int GetPreviewTimelineCost(
+            ComboActionDefinition action,
+            int chargeLevel)
+        {
+            return action.TimelineCost + GetChargeTimelineExtension(action, chargeLevel);
+        }
 
-            return false;
+        private static int GetChargeTimelineExtension(
+            ComboActionDefinition action,
+            int chargeLevel)
+        {
+            return action != null && action.IsChargeable && chargeLevel > 0
+                ? action.ChargeLevels[chargeLevel - 1].AdditionalTimelineCost
+                : 0;
         }
 
         private static string ResolutionMarkerText(ActionResolutionEffect effect)
@@ -696,7 +822,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _content.Add(legend);
         }
 
-        private void AddActionDetail(ComboActionDefinition action)
+        private void AddActionDetail(ComboActionDefinition action, int chargeLevel)
         {
             var card = new VisualElement();
             card.AddToClassList("action-detail-card");
@@ -704,8 +830,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             title.AddToClassList("action-detail-title");
             card.Add(title);
 
+            int previewTimelineCost = GetPreviewTimelineCost(action, chargeLevel);
             var costs = new Label(
-                $"Timeline {action.TimelineCost}    Stamina {action.StaminaCost}"
+                $"Timeline {previewTimelineCost}    Stamina {action.StaminaCost}"
                 + $"    Mana {action.ManaCost}    Cooldown {action.Cooldown}");
             costs.AddToClassList("action-detail-costs");
             card.Add(costs);
@@ -713,18 +840,17 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             for (int index = 0; index < action.ResolutionEvents.Count; index++)
             {
                 ActionResolutionDefinition resolution = action.ResolutionEvents[index];
-                string timing = $"T{resolution.Offset}";
+                int resolutionOffset = action.IsChargeable && index == 0
+                    ? action.ResolutionOffset + GetChargeTimelineExtension(action, chargeLevel)
+                    : resolution.Offset;
+                string timing = $"T{resolutionOffset}";
                 if (action.IsChargeable && resolution.Offset == action.ResolutionOffset)
                 {
-                    timing = $"T{resolution.Offset}";
-                    for (int levelIndex = 0;
-                         levelIndex < action.ChargeLevels.Count;
-                         levelIndex++)
-                    {
-                        timing += $" / T{resolution.Offset + action.ChargeLevels[levelIndex].AdditionalTimelineCost}";
-                    }
-
-                    timing += " Charge Window";
+                    timing += $" (Charge Lv.{chargeLevel} Preview)";
+                }
+                else if (index == 0 && action.HasResolutionWindow)
+                {
+                    timing = $"T{action.ResolutionWindowStart.Value}–T{action.ResolutionWindowEnd.Value} Resolution Window";
                 }
                 else if (resolution.HasResolutionWindow)
                 {
@@ -738,8 +864,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     for (int componentIndex = 0; componentIndex < components.Count; componentIndex++)
                     {
                         detail += componentIndex == 0 ? " — " : ", ";
+                        double multiplier = components[componentIndex].ActionMultiplier;
+                        if (action.IsChargeable && index == 0 && chargeLevel > 0)
+                        {
+                            multiplier *= action.ChargeLevels[chargeLevel - 1]
+                                .DamageMultiplierScale;
+                        }
+
                         detail += $"{components[componentIndex].Type} "
-                            + $"{components[componentIndex].ActionMultiplier * 100d:0}%";
+                            + $"{multiplier * 100d:0}%";
                     }
                 }
 
@@ -749,6 +882,99 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
 
             _content.Add(card);
+        }
+
+        private void AddChargeLevelPanel()
+        {
+            _chargeLevelPanel = new VisualElement();
+            _chargeLevelPanel.AddToClassList("charge-level-panel");
+            _chargeLevelPanel.AddToClassList("charge-level-panel-hidden");
+            _content.Add(_chargeLevelPanel);
+        }
+
+        private void ShowChargeLevelChoices(ComboActionDefinition action)
+        {
+            if (action == null || !action.IsChargeable || _chargeLevelPanel == null)
+            {
+                return;
+            }
+
+            foreach (Button button in _chargeLevelButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _chargeLevelButtons.Clear();
+            _chargeLevelPanel.Clear();
+            _chargeLevelPanel.RemoveFromClassList("charge-level-panel-hidden");
+            _chargeActionButton = GetFocusedButton();
+
+            var title = new Label(
+                $"{ExplorationMenuText.Get("combos.charge-level")} — {action.DisplayName}");
+            title.AddToClassList("charge-level-title");
+            _chargeLevelPanel.Add(title);
+
+            var choices = new VisualElement();
+            choices.AddToClassList("charge-level-choices");
+            int selectedLevel = GetPreviewChargeLevel(action);
+            for (int level = 0; level <= action.ChargeLevels.Count; level++)
+            {
+                int capturedLevel = level;
+                var button = new Button(
+                    () => SelectPreviewChargeLevel(action, capturedLevel))
+                {
+                    text = $"Lv.{level}"
+                };
+                button.AddToClassList("charge-level-button");
+                button.EnableInClassList("charge-level-selected", level == selectedLevel);
+                choices.Add(button);
+                _chargeLevelButtons.Add(button);
+                RegisterButtonAction(
+                    button,
+                    () => SelectPreviewChargeLevel(action, capturedLevel));
+            }
+
+            _chargeLevelPanel.Add(choices);
+            _root.schedule.Execute(
+                () => _chargeLevelButtons[selectedLevel].Focus()).ExecuteLater(1);
+        }
+
+        private void HideChargeLevelChoices()
+        {
+            foreach (Button button in _chargeLevelButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _chargeLevelButtons.Clear();
+            _chargeLevelPanel.Clear();
+            _chargeLevelPanel.AddToClassList("charge-level-panel-hidden");
+            Button actionButton = _chargeActionButton;
+            _chargeActionButton = null;
+            if (actionButton != null)
+            {
+                _root.schedule.Execute(() => actionButton.Focus()).ExecuteLater(1);
+            }
+        }
+
+        private void SelectPreviewChargeLevel(
+            ComboActionDefinition action,
+            int chargeLevel)
+        {
+            _previewChargeLevels[action.ActionId] = chargeLevel;
+            ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+        }
+
+        private void PanTimeline(int direction)
+        {
+            if (_timelineScroll == null || direction == 0)
+            {
+                return;
+            }
+
+            Vector2 offset = _timelineScroll.scrollOffset;
+            offset.x = Mathf.Max(0f, offset.x + direction * 180f);
+            _timelineScroll.scrollOffset = offset;
         }
 
         private void AddComboError(string message)
@@ -1304,6 +1530,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private List<Button> GetFocusScope(Button focusedButton)
         {
+            if (focusedButton != null && _chargeLevelButtons.Contains(focusedButton))
+            {
+                return _chargeLevelButtons;
+            }
+
             if (focusedButton != null && _comboPageButtons.Contains(focusedButton))
             {
                 return _comboPageButtons;
@@ -1357,6 +1588,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
 
             _comboPageButtons.Clear();
+            foreach (Button button in _chargeLevelButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _chargeLevelButtons.Clear();
+            _timelineScroll = null;
+            _chargeLevelPanel = null;
+            _chargeActionButton = null;
             if (_currentPage != MenuPage.Combos)
             {
                 _comboMenuLevel = ComboMenuLevel.None;
@@ -1555,6 +1795,145 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             equipment.Grant(EquipmentCategory.Armor, LeatherHoseId);
             equipment.Grant(EquipmentCategory.Accessory, RustRingId);
             equipment.Grant(EquipmentCategory.Accessory, RubyRingId);
+        }
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        private static void GrantEditorComboPreviewLoadouts()
+        {
+            if (!PlayerStateService.TryGetActive(out PlayerStateService service))
+            {
+                return;
+            }
+
+            PersistentPlayerState state = service.State;
+            PlayerComboLoadoutState glaiveLoadout = GetOrUnlockPreviewLoadout(
+                state,
+                2,
+                "Glaive Preview Loadout");
+            LearnAndConfigureGlaivePreview(state, glaiveLoadout);
+
+            PlayerComboLoadoutState commonLoadout = GetOrUnlockPreviewLoadout(
+                state,
+                3,
+                "Common Preview Loadout");
+            LearnAndConfigureCommonPreview(state, commonLoadout);
+        }
+
+        private static PlayerComboLoadoutState GetOrUnlockPreviewLoadout(
+            PersistentPlayerState state,
+            int oneBasedSlot,
+            string name)
+        {
+            while (state.ComboLoadouts.UnlockedSlotCount < oneBasedSlot)
+            {
+                state.ComboLoadouts.UnlockNext();
+            }
+
+            PlayerComboLoadoutState loadout = state.ComboLoadouts.Loadouts[oneBasedSlot - 1];
+            loadout.Rename(name);
+            return loadout;
+        }
+
+        private static void LearnAndConfigureGlaivePreview(
+            PersistentPlayerState state,
+            PlayerComboLoadoutState loadout)
+        {
+            string[] actionIds =
+            {
+                "glaive-and-shield.opening.restraining-slash",
+                "glaive-and-shield.main.diagonal-slash",
+                "glaive-and-shield.closing.turning-back-thrust",
+                "glaive-and-shield.linked.counter-thrust",
+                "glaive-and-shield.opening.guarded-thrust",
+                "glaive-and-shield.main.flying-round-slash",
+                "glaive-and-shield.closing.flying-round-slash",
+                "glaive-and-shield.linked.bash",
+                "glaive-and-shield.opening.leaping-slash",
+                "glaive-and-shield.main.rising-slash-chain",
+                "glaive-and-shield.closing.rising-slash-chain",
+                "glaive-and-shield.linked.double-slash",
+                "glaive-and-shield.opening.bash",
+                "glaive-and-shield.main.guarded-chain-slash",
+                "glaive-and-shield.closing.empowered-double-slash",
+                "glaive-and-shield.linked.restraining-slash"
+            };
+            LearnActions(state, actionIds);
+
+            loadout.SetCombo(0, CreatePreviewCombo(
+                "Counter Resolution Window",
+                actionIds[0], actionIds[1], actionIds[2], actionIds[3]));
+            loadout.SetCombo(1, CreatePreviewCombo(
+                "Guarded Advance",
+                actionIds[4], actionIds[5], actionIds[6], actionIds[7]));
+            loadout.SetCombo(2, CreatePreviewCombo(
+                "Rising Chain",
+                actionIds[8], actionIds[9], actionIds[10], actionIds[11]));
+            loadout.SetCombo(3, CreatePreviewCombo(
+                "Guarded Chain",
+                actionIds[12], actionIds[13], actionIds[14], actionIds[15]));
+        }
+
+        private static void LearnAndConfigureCommonPreview(
+            PersistentPlayerState state,
+            PlayerComboLoadoutState loadout)
+        {
+            string[] actionIds =
+            {
+                "common.opening.roll",
+                "common.main.focused-guard-1",
+                "common.closing.breather-2",
+                "common.linked.focused-guard",
+                "common.opening.defensive-stance",
+                "common.main.focused-guard-2",
+                "common.closing.roll",
+                "common.linked.jump",
+                "common.opening.use-healing-potion",
+                "common.main.use-healing-potion",
+                "common.closing.use-healing-potion",
+                "common.linked.breather-1",
+                "common.opening.use-vitality-tonic",
+                "common.main.use-vitality-tonic",
+                "common.closing.use-vitality-tonic",
+                "common.linked.use-vitality-tonic"
+            };
+            LearnActions(state, actionIds);
+
+            loadout.SetCombo(0, CreatePreviewCombo(
+                "Double Guard Window",
+                actionIds[0], actionIds[1], actionIds[2], actionIds[3]));
+            loadout.SetCombo(1, CreatePreviewCombo(
+                "Shifted Guard Window",
+                actionIds[4], actionIds[5], actionIds[6], actionIds[7]));
+            loadout.SetCombo(2, CreatePreviewCombo(
+                "Healing Sequence",
+                actionIds[8], actionIds[9], actionIds[10], actionIds[11]));
+            loadout.SetCombo(3, CreatePreviewCombo(
+                "Vitality Sequence",
+                actionIds[12], actionIds[13], actionIds[14], actionIds[15]));
+        }
+
+        private static PreparedComboState CreatePreviewCombo(
+            string name,
+            string openingActionId,
+            string mainActionId,
+            string closingActionId,
+            string linkedActionId)
+        {
+            return new PreparedComboState(
+                name,
+                openingActionId,
+                mainActionId,
+                closingActionId,
+                linkedActionId,
+                PreparedLinkedActionPlacement.AfterMain);
+        }
+
+        private static void LearnActions(PersistentPlayerState state, string[] actionIds)
+        {
+            for (int index = 0; index < actionIds.Length; index++)
+            {
+                state.ActionLibrary.Learn(actionIds[index]);
+            }
         }
 
         private sealed class TimelineResolutionCell : VisualElement
