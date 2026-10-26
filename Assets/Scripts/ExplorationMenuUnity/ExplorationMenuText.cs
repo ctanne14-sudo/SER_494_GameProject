@@ -50,7 +50,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.configure-actions": return "Configure Actions";
                 case "combos.assigned-actions": return "Assigned Actions";
                 case "combos.action-details": return "Action Details";
-                case "combos.action-library": return "Owned Action Library";
+                case "combos.action-library": return "Actions";
+                case "combos.action-filter-shortcut": return "Q / X: Focus filters";
                 case "combos.empty-slot": return "Empty";
                 case "combos.clear-slot": return "Clear This Optional Slot";
                 case "combos.current": return "Current";

@@ -899,6 +899,12 @@
     margin-bottom: 10px;
 }
 
+.combo-action-filter-hint {
+    margin-bottom: 7px;
+    color: rgb(174, 158, 128);
+    font-size: 12px;
+}
+
 .combo-action-filter-button {
     height: 36px;
     margin-right: 7px;
@@ -984,6 +990,20 @@
     border-right-color: rgb(202, 160, 78);
     border-top-color: rgb(202, 160, 78);
     border-bottom-color: rgb(202, 160, 78);
+}
+
+.combo-linked-placement-button:hover,
+.combo-linked-placement-button:focus {
+    color: rgb(255, 239, 195);
+    background-color: rgb(119, 86, 43);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(244, 196, 96);
+    border-right-color: rgb(244, 196, 96);
+    border-top-color: rgb(244, 196, 96);
+    border-bottom-color: rgb(244, 196, 96);
 }
 
 .page-note,
