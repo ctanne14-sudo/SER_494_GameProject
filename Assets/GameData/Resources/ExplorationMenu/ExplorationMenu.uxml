@@ -1,7 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <ui:Style src="ExplorationMenu.uss" />
     <ui:VisualElement name="menuOverlay" class="menu-overlay">
-        <ui:VisualElement class="menu-frame">
+        <ui:VisualElement name="menuFrame" class="menu-frame">
             <ui:VisualElement class="menu-header">
                 <ui:Label name="menuTitle" class="menu-title" />
                 <ui:Label text="PLAYER RECORD" class="menu-kicker" />

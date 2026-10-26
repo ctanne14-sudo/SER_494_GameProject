@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.Authoring.Weapons;
@@ -28,6 +29,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private UIDocument _document;
         private VisualElement _root;
+        private VisualElement _menuFrame;
         private VisualElement _content;
         private Label _pageTitle;
         private Label _pageHeaderStatus;
@@ -53,6 +55,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private readonly List<Button> _comboPageButtons = new List<Button>();
         private readonly List<Button> _comboEditorButtons = new List<Button>();
         private readonly List<Button> _chargeLevelButtons = new List<Button>();
+        private readonly List<Button> _unsavedDialogButtons = new List<Button>();
+        private readonly List<Button> _timelineGuideButtons = new List<Button>();
         private readonly Dictionary<Button, Action> _buttonActions =
             new Dictionary<Button, Action>();
         private readonly Dictionary<string, int> _previewChargeLevels =
@@ -68,11 +72,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private VisualElement _chargeLevelPanel;
         private Button _chargeActionButton;
         private VisualElement _renameEditor;
+        private VisualElement _unsavedDialog;
+        private VisualElement _timelineGuideDialog;
+        private CompatibleWeaponTypes _actionLibraryFilter = CompatibleWeaponTypes.All;
+        private bool _actionLibraryFilterInitialized;
 
         private void OnEnable()
         {
             _document = GetComponent<UIDocument>();
             _root = _document.rootVisualElement;
+            _menuFrame = _root.Q<VisualElement>("menuFrame");
             _content = _root.Q<VisualElement>("pageContent");
             _pageTitle = _root.Q<Label>("pageTitle");
             _pageHeaderStatus = _root.Q<Label>("pageHeaderStatus");
@@ -83,7 +92,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _equipmentButton = _root.Q<Button>("equipmentButton");
             _returnToTitleButton = _root.Q<Button>("returnToTitleButton");
 
-            if (_content == null || _pageTitle == null || _pageHeaderStatus == null
+            if (_menuFrame == null || _content == null || _pageTitle == null || _pageHeaderStatus == null
                 || _pageHeaderActions == null || _statusButton == null
                 || _comboButton == null || _inventoryButton == null
                 || _equipmentButton == null || _returnToTitleButton == null)
@@ -186,6 +195,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _selectedComboIndex = -1;
             _editingActionSlot = null;
             _previewChargeLevels.Clear();
+            _actionLibraryFilterInitialized = false;
 
             GrantEditorTestEquipment();
             GrantEditorComboPreviewLoadouts();
@@ -195,6 +205,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void CloseMenu()
         {
+            CloseUnsavedChangesDialog();
+            CloseTimelineGuideDialog();
             _root.style.display = DisplayStyle.None;
             _isOpen = false;
             _isInsideEquipmentPage = false;
@@ -206,6 +218,18 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void HandleBack()
         {
+            if (_timelineGuideDialog != null)
+            {
+                CloseTimelineGuideDialog();
+                return;
+            }
+
+            if (_unsavedDialog != null)
+            {
+                CloseUnsavedChangesDialog();
+                return;
+            }
+
             if (_renameEditor != null)
             {
                 RefreshCurrentComboPage();
@@ -369,7 +393,26 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 ExplorationMenuText.Get("combos.compact-timeline-legend"),
                 "compact-timeline-legend");
             ComboActionCatalogAsset actionCatalog = ComboActionCatalogAsset.LoadDefault();
+            var orderedLoadouts = new List<PlayerComboLoadoutState>();
+            PlayerComboLoadoutState activeLoadout = state.ComboLoadouts.ActiveLoadout;
+            if (activeLoadout != null)
+            {
+                orderedLoadouts.Add(activeLoadout);
+            }
+
             foreach (PlayerComboLoadoutState loadout in state.ComboLoadouts.Loadouts)
+            {
+                if (activeLoadout == null
+                    || !string.Equals(
+                        loadout.LoadoutId,
+                        activeLoadout.LoadoutId,
+                        StringComparison.Ordinal))
+                {
+                    orderedLoadouts.Add(loadout);
+                }
+            }
+
+            foreach (PlayerComboLoadoutState loadout in orderedLoadouts)
             {
                 PlayerComboLoadoutState capturedLoadout = loadout;
                 var card = new Button(() => ShowLoadoutDetails(capturedLoadout));
@@ -538,6 +581,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (changedCombo)
             {
                 _previewChargeLevels.Clear();
+                _actionLibraryFilterInitialized = false;
             }
 
             _currentPage = MenuPage.Combos;
@@ -559,6 +603,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             PreparedComboDraft draftCombo = _selectedLoadoutDraft.Combos[comboIndex];
             PreparedComboState prepared = draftCombo.CreatePreparedState();
             ConfigurePageHeader(draftCombo.Name);
+            AddPageHeaderButton(
+                ExplorationMenuText.Get("combos.timeline-guide"),
+                ShowTimelineGuideDialog,
+                "page-header-guide-button");
             AddPageHeaderButton(
                 ExplorationMenuText.Get("combos.rename-combo"),
                 ShowComboRenameEditor,
@@ -583,10 +631,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            AddSectionHeading(ExplorationMenuText.Get("combos.timeline"));
             AddTimelinePreview(configuration);
             AddChargeLevelPanel();
-            AddTimelineLegend();
             AddComboActionEditor(draftCombo, configuration, state);
             AddDraftEditorControls(state);
             SetSelectedNavigation(_comboButton);
@@ -650,25 +696,26 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             var controls = new VisualElement();
             controls.AddToClassList("combo-editor-controls");
-            var apply = new Button(ApplyDraftAndRefresh)
+            bool hasComboChanges = _selectedLoadoutDraft.HasComboChanges(_selectedComboIndex);
+            var apply = new Button(ApplyCurrentComboAndRefresh)
             {
                 text = ExplorationMenuText.Get("combos.apply")
             };
             apply.AddToClassList("combo-editor-control-button");
-            apply.SetEnabled(isValid && _selectedLoadoutDraft.HasChanges);
+            apply.SetEnabled(isValid && hasComboChanges);
             controls.Add(apply);
             _comboEditorButtons.Add(apply);
-            RegisterButtonAction(apply, ApplyDraftAndRefresh);
+            RegisterButtonAction(apply, ApplyCurrentComboAndRefresh);
 
-            var revert = new Button(RevertDraftAndRefresh)
+            var revert = new Button(RevertCurrentComboAndRefresh)
             {
                 text = ExplorationMenuText.Get("combos.revert")
             };
             revert.AddToClassList("combo-editor-control-button");
-            revert.SetEnabled(_selectedLoadoutDraft.HasChanges);
+            revert.SetEnabled(hasComboChanges);
             controls.Add(revert);
             _comboEditorButtons.Add(revert);
-            RegisterButtonAction(revert, RevertDraftAndRefresh);
+            RegisterButtonAction(revert, RevertCurrentComboAndRefresh);
             _content.Add(controls);
         }
 
@@ -695,25 +742,33 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             var library = new VisualElement();
             library.AddToClassList("combo-action-library");
+            var libraryScroll = new ScrollView(ScrollViewMode.Vertical);
+            libraryScroll.AddToClassList("combo-action-library-scroll");
             layout.Add(assigned);
             layout.Add(library);
             _content.Add(layout);
 
             if (_editingActionSlot.HasValue)
             {
-                PopulateActionLibrary(library, draftCombo, state, _editingActionSlot.Value);
+                PopulateActionLibrary(
+                    library,
+                    libraryScroll,
+                    draftCombo,
+                    state,
+                    _editingActionSlot.Value);
             }
             else
             {
                 var heading = new Label(ExplorationMenuText.Get("combos.action-details"));
                 heading.AddToClassList("combo-editor-pane-title");
                 library.Add(heading);
+                library.Add(libraryScroll);
                 IReadOnlyList<ComboActionDefinition> executionOrder =
                     configuration.BuildExecutionOrder();
                 for (int index = 0; index < executionOrder.Count; index++)
                 {
                     ComboActionDefinition action = executionOrder[index];
-                    AddActionDetail(library, action, GetPreviewChargeLevel(action));
+                    AddActionDetail(libraryScroll, action, GetPreviewChargeLevel(action));
                 }
             }
 
@@ -803,6 +858,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void PopulateActionLibrary(
             VisualElement library,
+            VisualElement libraryBody,
             PreparedComboDraft draftCombo,
             PersistentPlayerState state,
             PreparedComboActionSlot slot)
@@ -822,9 +878,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 var error = new Label(catalogError ?? "The Action Catalog is unavailable.");
                 error.AddToClassList("combo-status-invalid");
-                library.Add(error);
+                libraryBody.Add(error);
                 return;
             }
+
+            ComboActionCategory category = ToActionCategory(slot);
+            AddActionLibraryFilters(library, definitions, category, state);
+            library.Add(libraryBody);
 
             if (slot != PreparedComboActionSlot.Main)
             {
@@ -833,21 +893,18 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     text = ExplorationMenuText.Get("combos.clear-slot")
                 };
                 clear.AddToClassList("combo-action-candidate-button");
-                library.Add(clear);
+                libraryBody.Add(clear);
                 _firstActionLibraryButton ??= clear;
                 _comboEditorButtons.Add(clear);
                 RegisterButtonAction(clear, () => ReplaceDraftAction(slot, null));
             }
 
-            ComboActionCategory category = ToActionCategory(slot);
-            bool hasEquippedWeaponType = TryGetEquippedWeaponType(
-                state,
-                out WeaponType equippedWeaponType);
             bool found = false;
             for (int index = 0; index < definitions.Count; index++)
             {
                 ComboActionDefinition definition = definitions[index];
-                if (definition.Category != category)
+                if (definition.Category != category
+                    || !MatchesActionLibraryFilter(definition, _actionLibraryFilter))
                 {
                     continue;
                 }
@@ -857,13 +914,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     definition.ActionId,
                     _selectedComboIndex,
                     slot);
-                bool compatible = !hasEquippedWeaponType
-                    || definition.IsCompatibleWith(equippedWeaponType);
                 string suffix = usedElsewhere
                     ? $"\n{ExplorationMenuText.Get("combos.used-elsewhere")}"
-                    : compatible
-                        ? string.Empty
-                        : $"\n{ExplorationMenuText.Get("combos.weapon-warning")}";
+                    : string.Empty;
                 string current = string.Equals(
                     draftCombo.GetActionId(slot),
                     definition.ActionId,
@@ -874,12 +927,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 {
                     text = $"{definition.DisplayName}{current}\n"
                         + $"Timeline {definition.TimelineCost}  |  Stamina {definition.StaminaCost}"
-                        + $"  |  Mana {definition.ManaCost}{suffix}"
+                        + $"  |  Mana {definition.ManaCost}\n"
+                        + $"{FormatActionLibrarySummary(definition)}{suffix}"
                 };
                 button.AddToClassList("combo-action-candidate-button");
-                button.EnableInClassList("combo-action-incompatible", !compatible);
                 button.SetEnabled(!usedElsewhere);
-                library.Add(button);
+                libraryBody.Add(button);
                 _firstActionLibraryButton ??= button;
                 _comboEditorButtons.Add(button);
                 RegisterButtonAction(
@@ -891,7 +944,141 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 var empty = new Label(ExplorationMenuText.Get("combos.no-owned-actions"));
                 empty.AddToClassList("muted-text");
-                library.Add(empty);
+                libraryBody.Add(empty);
+            }
+        }
+
+        private void AddActionLibraryFilters(
+            VisualElement parent,
+            IReadOnlyList<ComboActionDefinition> definitions,
+            ComboActionCategory category,
+            PersistentPlayerState state)
+        {
+            var available = new List<CompatibleWeaponTypes>();
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.All);
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.Greatsword);
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.SwordAndShield);
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.GlaiveAndShield);
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.Bow);
+            AddAvailableActionFilter(
+                available,
+                definitions,
+                category,
+                CompatibleWeaponTypes.Bladeguard);
+
+            CompatibleWeaponTypes equippedFilter = CompatibleWeaponTypes.None;
+            if (TryGetEquippedWeaponType(state, out WeaponType equippedWeaponType))
+            {
+                equippedFilter = WeaponCompatibility.ToCompatibilityFlag(equippedWeaponType);
+            }
+
+            if (!_actionLibraryFilterInitialized)
+            {
+                _actionLibraryFilter = available.Contains(equippedFilter)
+                    ? equippedFilter
+                    : available.Count > 0
+                        ? available[0]
+                        : CompatibleWeaponTypes.All;
+                _actionLibraryFilterInitialized = true;
+            }
+            else if (!available.Contains(_actionLibraryFilter) && available.Count > 0)
+            {
+                _actionLibraryFilter = available[0];
+            }
+
+            var row = new VisualElement();
+            row.AddToClassList("combo-action-filter-row");
+            for (int index = 0; index < available.Count; index++)
+            {
+                CompatibleWeaponTypes filter = available[index];
+                string equipped = filter == equippedFilter
+                    ? $" • {ExplorationMenuText.Get("combos.equipped-filter")}"
+                    : string.Empty;
+                var button = new Button(() => SetActionLibraryFilter(filter))
+                {
+                    text = FormatActionLibraryFilter(filter) + equipped
+                };
+                button.AddToClassList("combo-action-filter-button");
+                button.EnableInClassList(
+                    "combo-action-filter-selected",
+                    filter == _actionLibraryFilter);
+                row.Add(button);
+                _comboEditorButtons.Add(button);
+                RegisterButtonAction(button, () => SetActionLibraryFilter(filter));
+            }
+
+            parent.Add(row);
+        }
+
+        private static void AddAvailableActionFilter(
+            List<CompatibleWeaponTypes> available,
+            IReadOnlyList<ComboActionDefinition> definitions,
+            ComboActionCategory category,
+            CompatibleWeaponTypes filter)
+        {
+            for (int index = 0; index < definitions.Count; index++)
+            {
+                ComboActionDefinition definition = definitions[index];
+                if (definition.Category == category
+                    && MatchesActionLibraryFilter(definition, filter))
+                {
+                    available.Add(filter);
+                    return;
+                }
+            }
+        }
+
+        private static bool MatchesActionLibraryFilter(
+            ComboActionDefinition definition,
+            CompatibleWeaponTypes filter)
+        {
+            if (filter == CompatibleWeaponTypes.All)
+            {
+                return definition.CompatibleWeaponTypes == CompatibleWeaponTypes.All;
+            }
+
+            return definition.CompatibleWeaponTypes != CompatibleWeaponTypes.All
+                && (definition.CompatibleWeaponTypes & filter) != 0;
+        }
+
+        private void SetActionLibraryFilter(CompatibleWeaponTypes filter)
+        {
+            _actionLibraryFilter = filter;
+            _actionLibraryFilterInitialized = true;
+            ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+        }
+
+        private static string FormatActionLibraryFilter(CompatibleWeaponTypes filter)
+        {
+            switch (filter)
+            {
+                case CompatibleWeaponTypes.All: return "Common";
+                case CompatibleWeaponTypes.Greatsword: return "Greatsword";
+                case CompatibleWeaponTypes.SwordAndShield: return "Sword & Shield";
+                case CompatibleWeaponTypes.GlaiveAndShield: return "Glaive & Shield";
+                case CompatibleWeaponTypes.Bow: return "Bow";
+                case CompatibleWeaponTypes.Bladeguard: return "Bladeguard";
+                default: return filter.ToString();
             }
         }
 
@@ -928,16 +1115,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void TryReturnToLoadoutDetails()
         {
-            if (!TryValidateSelectedDraft(out _, out string validationError))
+            TryExitCurrentCombo(() =>
             {
-                ShowComboEditorMessage(
-                    $"{ExplorationMenuText.Get("combos.fix-before-leaving")} {validationError}",
-                    isError: true);
-                return;
-            }
-
-            _editingActionSlot = null;
-            ShowLoadoutDetails(_selectedLoadout);
+                _editingActionSlot = null;
+                ShowLoadoutDetails(_selectedLoadout);
+            });
         }
 
         private void TryLeaveLoadoutEditor()
@@ -947,20 +1129,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void TryLeaveLoadoutEditor(MenuPage destinationPage)
         {
-            if (!TryValidateSelectedDraft(out _, out string validationError))
-            {
-                ShowComboEditorMessage(
-                    $"{ExplorationMenuText.Get("combos.fix-before-leaving")} {validationError}",
-                    isError: true);
-                return;
-            }
-
-            if (_selectedLoadoutDraft.HasChanges)
-            {
-                _selectedLoadoutDraft.Apply();
-                _selectedLoadoutDraft = new PlayerComboLoadoutDraft(_selectedLoadout);
-            }
-
             if (destinationPage == MenuPage.None || destinationPage == MenuPage.Combos)
             {
                 ShowCombos();
@@ -971,24 +1139,258 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private void ApplyDraftAndRefresh()
+        private void ApplyCurrentComboAndRefresh()
         {
-            if (!TryValidateSelectedDraft(out _, out string validationError))
+            if (!TryApplyCurrentCombo(out string validationError))
             {
                 ShowComboEditorMessage(validationError, isError: true);
                 return;
             }
 
-            _selectedLoadoutDraft.Apply();
-            _selectedLoadoutDraft = new PlayerComboLoadoutDraft(_selectedLoadout);
             ShowComboDetails(_selectedLoadout, _selectedComboIndex);
         }
 
-        private void RevertDraftAndRefresh()
+        private void RevertCurrentComboAndRefresh()
         {
-            _selectedLoadoutDraft = new PlayerComboLoadoutDraft(_selectedLoadout);
+            _selectedLoadoutDraft.RevertCombo(_selectedComboIndex);
             _previewChargeLevels.Clear();
             ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+        }
+
+        private bool TryApplyCurrentCombo(out string validationError)
+        {
+            if (!TryValidateSelectedDraft(out _, out validationError))
+            {
+                return false;
+            }
+
+            _selectedLoadoutDraft.ApplyCombo(_selectedComboIndex);
+            return true;
+        }
+
+        private void TryExitCurrentCombo(Action continuation)
+        {
+            if (_selectedLoadoutDraft == null
+                || _selectedComboIndex < 0
+                || !_selectedLoadoutDraft.HasComboChanges(_selectedComboIndex))
+            {
+                continuation();
+                return;
+            }
+
+            ShowUnsavedChangesDialog(continuation);
+        }
+
+        private void ShowUnsavedChangesDialog(Action continuation)
+        {
+            CloseUnsavedChangesDialog();
+
+            var overlay = new VisualElement();
+            overlay.AddToClassList("unsaved-dialog-overlay");
+            var dialog = new VisualElement();
+            dialog.AddToClassList("unsaved-dialog");
+            overlay.Add(dialog);
+
+            var heading = new Label(ExplorationMenuText.Get("combos.unsaved-heading"));
+            heading.AddToClassList("unsaved-dialog-heading");
+            dialog.Add(heading);
+            var prompt = new Label(ExplorationMenuText.Get("combos.unsaved-prompt"));
+            prompt.AddToClassList("unsaved-dialog-prompt");
+            dialog.Add(prompt);
+
+            var actions = new VisualElement();
+            actions.AddToClassList("unsaved-dialog-actions");
+            dialog.Add(actions);
+
+            void Finish(Action result)
+            {
+                CloseUnsavedChangesDialog();
+                result();
+            }
+
+            void Save()
+            {
+                if (!TryApplyCurrentCombo(out string validationError))
+                {
+                    prompt.text = validationError;
+                    prompt.AddToClassList("unsaved-dialog-error");
+                    return;
+                }
+
+                Finish(continuation);
+            }
+
+            var save = new Button(Save)
+            {
+                text = ExplorationMenuText.Get("combos.unsaved-save")
+            };
+            save.AddToClassList("unsaved-dialog-button");
+            actions.Add(save);
+            RegisterUnsavedDialogButton(save, Save);
+
+            void Discard()
+            {
+                _selectedLoadoutDraft.RevertCombo(_selectedComboIndex);
+                _previewChargeLevels.Clear();
+                Finish(continuation);
+            }
+
+            var discard = new Button(Discard)
+            {
+                text = ExplorationMenuText.Get("combos.unsaved-discard")
+            };
+            discard.AddToClassList("unsaved-dialog-button");
+            actions.Add(discard);
+            RegisterUnsavedDialogButton(discard, Discard);
+
+            var cancel = new Button(CloseUnsavedChangesDialog)
+            {
+                text = ExplorationMenuText.Get("combos.unsaved-cancel")
+            };
+            cancel.AddToClassList("unsaved-dialog-button");
+            actions.Add(cancel);
+            RegisterUnsavedDialogButton(cancel, CloseUnsavedChangesDialog);
+
+            _unsavedDialog = overlay;
+            _menuFrame.Add(overlay);
+            _root.schedule.Execute(() => save.Focus()).ExecuteLater(1);
+        }
+
+        private void RegisterUnsavedDialogButton(Button button, Action action)
+        {
+            _unsavedDialogButtons.Add(button);
+            RegisterButtonAction(button, action);
+        }
+
+        private void CloseUnsavedChangesDialog()
+        {
+            foreach (Button button in _unsavedDialogButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _unsavedDialogButtons.Clear();
+            _unsavedDialog?.RemoveFromHierarchy();
+            _unsavedDialog = null;
+        }
+
+        private void ShowTimelineGuideDialog()
+        {
+            CloseTimelineGuideDialog();
+
+            var overlay = new VisualElement();
+            overlay.AddToClassList("unsaved-dialog-overlay");
+            var dialog = new VisualElement();
+            dialog.AddToClassList("unsaved-dialog");
+            dialog.AddToClassList("timeline-guide-dialog");
+            overlay.Add(dialog);
+
+            var heading = new Label(
+                ExplorationMenuText.Get("combos.timeline-guide-heading"));
+            heading.AddToClassList("unsaved-dialog-heading");
+            dialog.Add(heading);
+
+            var introduction = new Label(
+                ExplorationMenuText.Get("combos.timeline-guide-base"));
+            introduction.AddToClassList("timeline-guide-body");
+            dialog.Add(introduction);
+
+            AddTimelineGuideEntry(
+                dialog,
+                "D",
+                "timeline-marker-damage",
+                ExplorationMenuText.Get("combos.timeline-guide-damage"));
+            AddTimelineGuideEntry(
+                dialog,
+                "G",
+                "timeline-marker-guard",
+                ExplorationMenuText.Get("combos.timeline-guide-guard"));
+            AddTimelineGuideEntry(
+                dialog,
+                "E",
+                "timeline-marker-evade",
+                ExplorationMenuText.Get("combos.timeline-guide-evade"));
+            AddTimelineGuideEntry(
+                dialog,
+                "B",
+                "timeline-marker-buff",
+                ExplorationMenuText.Get("combos.timeline-guide-status"));
+            AddTimelineGuideEntry(
+                dialog,
+                "H",
+                "timeline-marker-heal",
+                ExplorationMenuText.Get("combos.timeline-guide-heal"));
+            AddTimelineGuideEntry(
+                dialog,
+                "S",
+                "timeline-marker-stamina",
+                ExplorationMenuText.Get("combos.timeline-guide-stamina"));
+
+            var windowRow = new VisualElement();
+            windowRow.AddToClassList("timeline-guide-row");
+            var windowCell = new TimelineResolutionCell();
+            windowCell.AddToClassList("timeline-guide-swatch");
+            windowCell.SetMarkerText("G");
+            windowCell.SetResolutionWindow(
+                ResolutionMarkerColor(ActionResolutionEffect.Guard));
+            windowRow.Add(windowCell);
+            var windowDescription = new Label(
+                ExplorationMenuText.Get("combos.timeline-guide-window"));
+            windowDescription.AddToClassList("timeline-guide-description");
+            windowRow.Add(windowDescription);
+            dialog.Add(windowRow);
+
+            var charge = new Label(
+                ExplorationMenuText.Get("combos.timeline-guide-charge"));
+            charge.AddToClassList("timeline-guide-body");
+            dialog.Add(charge);
+
+            var actions = new VisualElement();
+            actions.AddToClassList("unsaved-dialog-actions");
+            dialog.Add(actions);
+            var close = new Button(CloseTimelineGuideDialog)
+            {
+                text = ExplorationMenuText.Get("combos.timeline-guide-close")
+            };
+            close.AddToClassList("unsaved-dialog-button");
+            actions.Add(close);
+            _timelineGuideButtons.Add(close);
+            RegisterButtonAction(close, CloseTimelineGuideDialog);
+
+            _timelineGuideDialog = overlay;
+            _menuFrame.Add(overlay);
+            _root.schedule.Execute(() => close.Focus()).ExecuteLater(1);
+        }
+
+        private static void AddTimelineGuideEntry(
+            VisualElement parent,
+            string marker,
+            string markerClass,
+            string description)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("timeline-guide-row");
+            var cell = new TimelineResolutionCell();
+            cell.AddToClassList("timeline-guide-swatch");
+            cell.AddToClassList(markerClass);
+            cell.SetMarkerText(marker);
+            row.Add(cell);
+            var label = new Label(description);
+            label.AddToClassList("timeline-guide-description");
+            row.Add(label);
+            parent.Add(row);
+        }
+
+        private void CloseTimelineGuideDialog()
+        {
+            foreach (Button button in _timelineGuideButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _timelineGuideButtons.Clear();
+            _timelineGuideDialog?.RemoveFromHierarchy();
+            _timelineGuideDialog = null;
         }
 
         private void ActivateSelectedLoadout()
@@ -997,11 +1399,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 ShowComboEditorMessage(validationError, isError: true);
                 return;
-            }
-
-            if (_selectedLoadoutDraft.HasChanges)
-            {
-                _selectedLoadoutDraft.Apply();
             }
 
             if (PlayerStateService.TryGetActive(out PlayerStateService service))
@@ -1165,6 +1562,143 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case PreparedComboActionSlot.Closing: return "Closing [C]";
                 case PreparedComboActionSlot.Linked: return "Linked [L]";
                 default: return slot.ToString();
+            }
+        }
+
+        private static string FormatActionLibrarySummary(ComboActionDefinition action)
+        {
+            var lines = new List<string>();
+            for (int index = 0; index < action.ResolutionEvents.Count; index++)
+            {
+                ActionResolutionDefinition resolution = action.ResolutionEvents[index];
+                if (resolution.Effect == ActionResolutionEffect.None
+                    && resolution.ItemCost == null)
+                {
+                    continue;
+                }
+
+                string timing;
+                if (resolution.HasResolutionWindow)
+                {
+                    timing = $"T{resolution.ResolutionWindowStart.Value}–T{resolution.ResolutionWindowEnd.Value}";
+                }
+                else if (action.IsChargeable
+                    && index == 0
+                    && resolution.Offset == action.ResolutionOffset)
+                {
+                    timing = $"T{resolution.Offset}";
+                    for (int level = 0; level < action.ChargeLevels.Count; level++)
+                    {
+                        timing += $"/T{resolution.Offset + action.ChargeLevels[level].AdditionalTimelineCost}";
+                    }
+                }
+                else
+                {
+                    timing = $"T{resolution.Offset}";
+                }
+
+                string detail = FormatResolutionSummary(resolution);
+                lines.Add($"{timing} {detail}");
+            }
+
+            if (action.IsChargeable)
+            {
+                lines.Add($"Charge Levels 0–{action.ChargeLevels.Count}; later levels extend the Timeline");
+            }
+
+            for (int index = 0; index < action.ActiveWindows.Count; index++)
+            {
+                ActionActiveWindowDefinition window = action.ActiveWindows[index];
+                string effect = window.Effect == ActiveWindowEffect.SuperArmor
+                    ? $"Super Armor {ToRomanNumeral(window.SuperArmorLevel)}"
+                    : $"Damage Taken -{window.DamageReduction * 100d:0}%";
+                lines.Add($"T{window.StartOffset}–T{window.EndOffset} {effect}");
+            }
+
+            if (action.SustainedAttack != null)
+            {
+                lines.Add(
+                    $"Sustained Attack T{action.SustainedAttack.WindowStartOffset}–T{action.SustainedAttack.WindowEndOffset}"
+                    + $"; every {action.SustainedAttack.HitInterval} Time Steps"
+                    + $"; up to {action.SustainedAttack.MaximumHitCount} hits");
+            }
+
+            if (action.PreviousActionStatusRequirement != null)
+            {
+                lines.Add(
+                    $"Requires previous Action: {action.PreviousActionStatusRequirement.DisplayName}");
+            }
+
+            return lines.Count == 0 ? "No Resolution Events" : string.Join("\n", lines);
+        }
+
+        private static string FormatResolutionSummary(ActionResolutionDefinition resolution)
+        {
+            string result = resolution.HasResolutionWindow
+                ? $"{resolution.Effect} Resolution Window"
+                : resolution.Effect.ToString();
+            if (resolution.DamageEffect != null)
+            {
+                result = "Damage: ";
+                for (int index = 0; index < resolution.DamageEffect.Components.Count; index++)
+                {
+                    if (index > 0)
+                    {
+                        result += ", ";
+                    }
+
+                    var component = resolution.DamageEffect.Components[index];
+                    result += $"{component.Type} {component.ActionMultiplier * 100d:0}%";
+                }
+
+                if (resolution.DamageTags != DamageResolutionTag.None)
+                {
+                    result += $" [{resolution.DamageTags}]";
+                }
+
+                if (resolution.OnHitDisruption != null)
+                {
+                    result += $"; {resolution.OnHitDisruption.Type} {resolution.OnHitDisruption.Duration}";
+                }
+            }
+            else if (resolution.Healing != null)
+            {
+                result = resolution.Healing.Type == ActionHealingType.FlatAmount
+                    ? $"Heal {resolution.Healing.Value:0} HP"
+                    : $"Heal {resolution.Healing.Value * 100d:0}% Max HP";
+            }
+            else if (resolution.StaminaRecovery > 0)
+            {
+                result = $"Restore {resolution.StaminaRecovery} Stamina";
+            }
+            else if (resolution.StatusEffect != null)
+            {
+                string target = resolution.StatusTarget == ActionStatusTarget.Self
+                    ? "Self" : "Opponent";
+                string durationUnit = resolution.StatusEffect.DurationType
+                    == CombatStatusDurationType.Rounds ? "Rounds" : "Time Steps";
+                result = $"{resolution.Effect}: {resolution.StatusEffect.DisplayName} ({target})"
+                    + $" for {resolution.StatusEffect.Duration} {durationUnit}";
+            }
+
+            if (resolution.ItemCost != null)
+            {
+                result += $"; consumes {resolution.ItemCost.Amount} {resolution.ItemCost.DisplayName}";
+            }
+
+            return result;
+        }
+
+        private static string ToRomanNumeral(int value)
+        {
+            switch (value)
+            {
+                case 1: return "I";
+                case 2: return "II";
+                case 3: return "III";
+                case 4: return "IV";
+                case 5: return "V";
+                default: return value.ToString();
             }
         }
 
@@ -2326,8 +2860,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             if (_currentPage == MenuPage.Combos
                 && _selectedLoadoutDraft != null
-                && (_comboMenuLevel == ComboMenuLevel.ComboDetails
-                    || _comboMenuLevel == ComboMenuLevel.LoadoutDetails))
+                && _comboMenuLevel == ComboMenuLevel.ComboDetails)
+            {
+                TryExitCurrentCombo(() => ShowPageDirect(page));
+                return;
+            }
+
+            if (_currentPage == MenuPage.Combos
+                && _selectedLoadoutDraft != null
+                && _comboMenuLevel == ComboMenuLevel.LoadoutDetails)
             {
                 TryLeaveLoadoutEditor(page);
                 return;
@@ -2392,6 +2933,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private List<Button> GetFocusScope(Button focusedButton)
         {
+            if (_timelineGuideDialog != null)
+            {
+                return _timelineGuideButtons;
+            }
+
+            if (_unsavedDialog != null)
+            {
+                return _unsavedDialogButtons;
+            }
+
             if (focusedButton != null && _chargeLevelButtons.Contains(focusedButton))
             {
                 return _chargeLevelButtons;

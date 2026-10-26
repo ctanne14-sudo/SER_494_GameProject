@@ -258,6 +258,25 @@ namespace SER494.Gameplay.PlayerState
             }
         }
 
+        public bool HasComboChanges(int index)
+        {
+            ValidateComboIndex(index);
+            return !_combos[index].Matches(_source.Combos[index]);
+        }
+
+        public void ApplyCombo(int index)
+        {
+            ValidateComboIndex(index);
+            _source.SetCombo(index, _combos[index].CreatePreparedState());
+            _combos[index] = new PreparedComboDraft(_source.Combos[index]);
+        }
+
+        public void RevertCombo(int index)
+        {
+            ValidateComboIndex(index);
+            _combos[index] = new PreparedComboDraft(_source.Combos[index]);
+        }
+
         public void Apply()
         {
             var prepared = new PreparedComboState[_combos.Length];
@@ -270,6 +289,14 @@ namespace SER494.Gameplay.PlayerState
             for (int index = 0; index < prepared.Length; index++)
             {
                 _source.SetCombo(index, prepared[index]);
+            }
+        }
+
+        private void ValidateComboIndex(int index)
+        {
+            if (index < 0 || index >= _combos.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
             }
         }
     }

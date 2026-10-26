@@ -85,6 +85,54 @@ namespace SER494.Gameplay.PlayerState.Tests
                 Is.EqualTo(PreparedLinkedActionPlacement.AfterOpening));
         }
 
+        [Test]
+        public void ApplyCombo_CommitsOnlySelectedCombo()
+        {
+            PlayerComboLoadoutState source = CreateLoadout();
+            source.SetCombo(1, new PreparedComboState(
+                "Second Combo",
+                "action.opening.second",
+                "action.main.second",
+                closingActionId: null,
+                linkedActionId: null,
+                linkedPlacement: null));
+            var draft = new PlayerComboLoadoutDraft(source);
+
+            draft.Combos[0].SetAction(PreparedComboActionSlot.Main, "action.main.first-new");
+            draft.Combos[1].SetAction(PreparedComboActionSlot.Main, "action.main.second-new");
+
+            draft.ApplyCombo(0);
+
+            Assert.That(source.Combos[0].MainActionId, Is.EqualTo("action.main.first-new"));
+            Assert.That(source.Combos[1].MainActionId, Is.EqualTo("action.main.second"));
+            Assert.That(draft.HasComboChanges(0), Is.False);
+            Assert.That(draft.HasComboChanges(1), Is.True);
+        }
+
+        [Test]
+        public void RevertCombo_DiscardsOnlySelectedCombo()
+        {
+            PlayerComboLoadoutState source = CreateLoadout();
+            source.SetCombo(1, new PreparedComboState(
+                "Second Combo",
+                "action.opening.second",
+                "action.main.second",
+                closingActionId: null,
+                linkedActionId: null,
+                linkedPlacement: null));
+            var draft = new PlayerComboLoadoutDraft(source);
+
+            draft.Combos[0].SetAction(PreparedComboActionSlot.Main, "action.main.first-new");
+            draft.Combos[1].SetAction(PreparedComboActionSlot.Main, "action.main.second-new");
+
+            draft.RevertCombo(0);
+
+            Assert.That(draft.Combos[0].MainActionId, Is.EqualTo("action.main.original"));
+            Assert.That(draft.Combos[1].MainActionId, Is.EqualTo("action.main.second-new"));
+            Assert.That(draft.HasComboChanges(0), Is.False);
+            Assert.That(draft.HasComboChanges(1), Is.True);
+        }
+
         private static PlayerComboLoadoutState CreateLoadout()
         {
             var loadout = new PlayerComboLoadoutState("loadout.test", "Test Loadout");

@@ -349,14 +349,16 @@
     color: rgb(167, 153, 126);
 }
 
-.page-scroll .unity-scroller--vertical {
+.page-scroll .unity-scroller--vertical,
+.combo-action-library-scroll .unity-scroller--vertical {
     width: 17px;
     background-color: rgb(25, 24, 21);
     border-left-width: 1px;
     border-left-color: rgb(101, 81, 54);
 }
 
-.page-scroll .unity-base-slider__tracker {
+.page-scroll .unity-base-slider__tracker,
+.combo-action-library-scroll .unity-base-slider__tracker {
     background-color: rgb(35, 32, 27);
     border-left-width: 1px;
     border-right-width: 1px;
@@ -364,7 +366,8 @@
     border-right-color: rgb(67, 56, 43);
 }
 
-.page-scroll .unity-base-slider__dragger {
+.page-scroll .unity-base-slider__dragger,
+.combo-action-library-scroll .unity-base-slider__dragger {
     background-color: rgb(126, 99, 61);
     border-left-width: 1px;
     border-right-width: 1px;
@@ -377,7 +380,9 @@
 }
 
 .page-scroll .unity-scroller__low-button,
-.page-scroll .unity-scroller__high-button {
+.page-scroll .unity-scroller__high-button,
+.combo-action-library-scroll .unity-scroller__low-button,
+.combo-action-library-scroll .unity-scroller__high-button {
     background-color: rgb(45, 39, 31);
     -unity-background-image-tint-color: rgb(214, 184, 126);
     border-left-width: 1px;
@@ -706,10 +711,14 @@
     min-width: 300px;
     margin-right: 10px;
     flex-grow: 1;
+    color: rgb(244, 232, 201);
+    background-color: rgb(22, 22, 20);
 }
 
-.combo-rename-field > .unity-text-input {
-    color: rgb(236, 218, 174);
+.combo-rename-field > .unity-text-input,
+.combo-rename-field .unity-base-text-field__input,
+.combo-rename-field .unity-text-field__input {
+    color: rgb(244, 232, 201);
     background-color: rgb(22, 22, 20);
     border-left-width: 1px;
     border-right-width: 1px;
@@ -739,6 +748,7 @@
 }
 
 .combo-action-editor-layout {
+    height: 430px;
     min-height: 430px;
     margin-bottom: 14px;
     flex-direction: row;
@@ -765,6 +775,112 @@
 
 .combo-action-library {
     flex-grow: 1;
+    height: 430px;
+}
+
+.combo-action-library-scroll {
+    flex-grow: 1;
+    min-height: 0;
+    background-color: rgb(28, 27, 24);
+}
+
+.unsaved-dialog-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(7, 7, 6, 0.78);
+}
+
+.unsaved-dialog {
+    width: 560px;
+    padding: 24px;
+    background-color: rgb(34, 31, 27);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(139, 110, 70);
+    border-right-color: rgb(139, 110, 70);
+    border-top-color: rgb(184, 148, 88);
+    border-bottom-color: rgb(91, 69, 43);
+}
+
+.unsaved-dialog-heading {
+    margin-bottom: 12px;
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(241, 223, 176);
+}
+
+.unsaved-dialog-prompt {
+    margin-bottom: 20px;
+    color: rgb(218, 204, 173);
+    white-space: normal;
+}
+
+.unsaved-dialog-error {
+    color: rgb(222, 142, 126);
+}
+
+.unsaved-dialog-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.unsaved-dialog-button {
+    min-width: 140px;
+    min-height: 42px;
+    margin-left: 10px;
+    color: rgb(222, 207, 175);
+    background-color: rgb(52, 47, 39);
+    border-left-color: rgb(122, 96, 60);
+    border-right-color: rgb(122, 96, 60);
+    border-top-color: rgb(122, 96, 60);
+    border-bottom-color: rgb(122, 96, 60);
+}
+
+.unsaved-dialog-button:focus,
+.unsaved-dialog-button:hover {
+    color: rgb(255, 239, 195);
+    background-color: rgb(91, 69, 40);
+    border-left-color: rgb(202, 160, 78);
+    border-right-color: rgb(202, 160, 78);
+    border-top-color: rgb(202, 160, 78);
+    border-bottom-color: rgb(202, 160, 78);
+}
+
+.timeline-guide-dialog {
+    width: 680px;
+}
+
+.timeline-guide-body {
+    color: rgb(222, 211, 180);
+    font-size: 15px;
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
+.timeline-guide-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.timeline-guide-swatch {
+    width: 36px;
+    min-width: 36px;
+    flex-grow: 0;
+    margin-right: 12px;
+}
+
+.timeline-guide-description {
+    color: rgb(222, 211, 180);
+    font-size: 14px;
+    flex-grow: 1;
 }
 
 .combo-editor-pane-title {
@@ -775,6 +891,37 @@
     color: rgb(236, 218, 174);
     border-bottom-width: 1px;
     border-bottom-color: rgb(112, 91, 61);
+}
+
+.combo-action-filter-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.combo-action-filter-button {
+    height: 36px;
+    margin-right: 7px;
+    margin-bottom: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+    color: rgb(190, 180, 153);
+    background-color: rgb(38, 36, 32);
+    border-left-color: rgb(102, 84, 59);
+    border-right-color: rgb(102, 84, 59);
+    border-top-color: rgb(102, 84, 59);
+    border-bottom-color: rgb(102, 84, 59);
+}
+
+.combo-action-filter-button:hover,
+.combo-action-filter-button:focus,
+.combo-action-filter-selected {
+    color: rgb(255, 239, 195);
+    background-color: rgb(91, 69, 40);
+    border-left-color: rgb(202, 160, 78);
+    border-right-color: rgb(202, 160, 78);
+    border-top-color: rgb(202, 160, 78);
+    border-bottom-color: rgb(202, 160, 78);
 }
 
 .combo-assigned-action-button,
@@ -806,11 +953,6 @@
 .combo-action-candidate-button {
     color: rgb(216, 205, 178);
     background-color: rgb(43, 41, 36);
-}
-
-.combo-action-incompatible {
-    color: rgb(224, 177, 112);
-    border-left-color: rgb(171, 112, 49);
 }
 
 .combo-action-candidate-button:disabled {
