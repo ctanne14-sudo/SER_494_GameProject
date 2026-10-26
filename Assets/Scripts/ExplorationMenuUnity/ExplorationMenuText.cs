@@ -61,6 +61,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.linked-placement": return "Linked Action Placement";
                 case "combos.apply": return "Apply Changes  [X]";
                 case "combos.revert": return "Revert Changes  [Y]";
+                case "combos.unsaved-status": return "UNSAVED COMBO CHANGES";
+                case "combos.saved-status": return "No unapplied Combo changes";
                 case "combos.unsaved-heading": return "Unsaved Combo Changes";
                 case "combos.unsaved-prompt": return "This Combo has unapplied changes. Save them before leaving?";
                 case "combos.unsaved-save": return "Save Changes";

@@ -80,6 +80,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private ScrollView _timelineScroll;
         private VisualElement _chargeLevelPanel;
         private Button _chargeActionButton;
+        private VisualElement _comboActionHeadingActions;
         private VisualElement _renameEditor;
         private VisualElement _unsavedDialog;
         private VisualElement _timelineGuideDialog;
@@ -111,7 +112,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             if (_menuFrame == null || _menuNavigation == null || _content == null
                 || _pageTitle == null || _pageHeaderStatus == null
-                || _pageHeaderActions == null || _pageScroll == null || _statusButton == null
+                || _pageHeaderActions == null
+                || _pageScroll == null || _statusButton == null
                 || _comboButton == null || _inventoryButton == null
                 || _equipmentButton == null || _returnToTitleButton == null)
             {
@@ -1111,17 +1113,24 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 : null;
             bool isValid = validation != null && validation.IsValid;
 
-            var controls = new VisualElement();
-            controls.AddToClassList("combo-editor-controls");
             bool hasComboChanges = _selectedLoadoutDraft.HasComboChanges(_selectedComboIndex);
+            EnsureComboActionHeading();
+            _comboActionHeadingActions.Clear();
+
+            var status = new Label(ExplorationMenuText.Get(
+                hasComboChanges ? "combos.unsaved-status" : "combos.saved-status"));
+            status.AddToClassList("combo-action-heading-status");
+            status.EnableInClassList("combo-action-heading-status-dirty", hasComboChanges);
+            _comboActionHeadingActions.Add(status);
+
             var apply = new Button(ApplyCurrentComboAndRefresh)
             {
                 text = ExplorationMenuText.Get("combos.apply")
             };
-            apply.AddToClassList("combo-editor-control-button");
+            apply.AddToClassList("combo-action-heading-button");
             apply.focusable = false;
             apply.SetEnabled(isValid && hasComboChanges);
-            controls.Add(apply);
+            _comboActionHeadingActions.Add(apply);
             _comboEditorButtons.Add(apply);
             RegisterButtonAction(apply, ApplyCurrentComboAndRefresh);
 
@@ -1129,13 +1138,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 text = ExplorationMenuText.Get("combos.revert")
             };
-            revert.AddToClassList("combo-editor-control-button");
+            revert.AddToClassList("combo-action-heading-button");
             revert.focusable = false;
             revert.SetEnabled(hasComboChanges);
-            controls.Add(revert);
+            _comboActionHeadingActions.Add(revert);
             _comboEditorButtons.Add(revert);
             RegisterButtonAction(revert, RevertCurrentComboAndRefresh);
-            _content.Add(controls);
         }
 
         private void AddComboActionEditor(
@@ -1143,7 +1151,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             ComboConfiguration configuration,
             PersistentPlayerState state)
         {
-            AddSectionHeading(ExplorationMenuText.Get("combos.configure-actions"));
+            EnsureComboActionHeading();
             var layout = new VisualElement();
             layout.AddToClassList("combo-action-editor-layout");
 
@@ -1398,6 +1406,31 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 _firstActionLibraryButton = _actionLibraryCandidateButtons[0];
             }
+        }
+
+        private void EnsureComboActionHeading()
+        {
+            if (_comboActionHeadingActions != null)
+            {
+                return;
+            }
+
+            var row = new VisualElement();
+            row.AddToClassList("combo-action-heading-row");
+
+            var heading = new Label(ExplorationMenuText.Get("combos.configure-actions"));
+            heading.AddToClassList("section-heading");
+            heading.AddToClassList("combo-action-heading-title");
+            row.Add(heading);
+
+            var spacer = new VisualElement();
+            spacer.AddToClassList("combo-action-heading-spacer");
+            row.Add(spacer);
+
+            _comboActionHeadingActions = new VisualElement();
+            _comboActionHeadingActions.AddToClassList("combo-action-heading-actions");
+            row.Add(_comboActionHeadingActions);
+            _content.Add(row);
         }
 
         private void AddActionLibraryFilters(
@@ -3797,6 +3830,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _timelineScroll = null;
             _chargeLevelPanel = null;
             _chargeActionButton = null;
+            _comboActionHeadingActions = null;
             _comboEditorMessage = null;
             _firstActionLibraryButton = null;
             _selectedActionLibraryFilterButton = null;

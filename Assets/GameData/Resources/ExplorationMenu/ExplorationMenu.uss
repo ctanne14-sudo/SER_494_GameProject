@@ -11,8 +11,8 @@
 }
 
 .menu-frame {
-    width: 90%;
-    height: 88%;
+    width: 96%;
+    height: 94%;
     min-width: 820px;
     min-height: 520px;
     padding: 22px;
@@ -756,6 +756,69 @@
     min-height: 430px;
     margin-bottom: 14px;
     flex-direction: row;
+}
+
+.combo-action-heading-row {
+    min-height: 44px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combo-action-heading-title {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.combo-action-heading-spacer {
+    flex-grow: 1;
+}
+
+.combo-action-heading-actions {
+    flex-direction: row;
+    align-items: center;
+}
+
+.combo-action-heading-status {
+    margin-right: 8px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(161, 151, 130);
+}
+
+.combo-action-heading-status-dirty {
+    color: rgb(236, 190, 104);
+}
+
+.combo-action-heading-button {
+    min-width: 155px;
+    min-height: 34px;
+    margin-left: 8px;
+    color: rgb(230, 216, 184);
+    background-color: rgb(55, 49, 40);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(139, 110, 70);
+    border-right-color: rgb(139, 110, 70);
+    border-top-color: rgb(174, 143, 91);
+    border-bottom-color: rgb(91, 69, 43);
+}
+
+.combo-action-heading-button:hover,
+.combo-action-heading-button:focus {
+    color: rgb(255, 235, 184);
+    background-color: rgb(72, 61, 46);
+    border-left-color: rgb(207, 164, 92);
+    border-right-color: rgb(207, 164, 92);
+    border-top-color: rgb(207, 164, 92);
+    border-bottom-color: rgb(207, 164, 92);
+}
+
+.combo-action-heading-button:disabled {
+    opacity: 0.45;
 }
 
 .combo-assigned-actions,
