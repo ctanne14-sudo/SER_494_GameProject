@@ -172,6 +172,23 @@ namespace SER494.Gameplay.PlayerState
             _combos[zeroBasedIndex] = combo ?? throw new ArgumentNullException(nameof(combo));
         }
 
+        public void RenameCombo(int zeroBasedIndex, string name)
+        {
+            if (zeroBasedIndex < 0 || zeroBasedIndex >= ComboCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(zeroBasedIndex));
+            }
+
+            PreparedComboState combo = _combos[zeroBasedIndex];
+            _combos[zeroBasedIndex] = new PreparedComboState(
+                name,
+                combo.OpeningActionId,
+                combo.MainActionId,
+                combo.ClosingActionId,
+                combo.LinkedActionId,
+                combo.LinkedPlacement);
+        }
+
         private static string RequireName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))

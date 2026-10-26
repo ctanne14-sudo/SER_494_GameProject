@@ -51,6 +51,40 @@ namespace SER494.Gameplay.PlayerState.Tests
                 Is.EqualTo(PreparedLinkedActionPlacement.AfterOpening));
         }
 
+        [Test]
+        public void RenamingDraft_IsTrackedAndAppliedWithComboName()
+        {
+            PlayerComboLoadoutState source = CreateLoadout();
+            var draft = new PlayerComboLoadoutDraft(source);
+
+            draft.Rename("Renamed Loadout");
+            draft.Combos[0].Rename("Renamed Combo");
+
+            Assert.That(draft.HasChanges, Is.True);
+            Assert.That(source.Name, Is.EqualTo("Test Loadout"));
+            Assert.That(source.Combos[0].Name, Is.EqualTo("Test Combo"));
+
+            draft.Apply();
+
+            Assert.That(source.Name, Is.EqualTo("Renamed Loadout"));
+            Assert.That(source.Combos[0].Name, Is.EqualTo("Renamed Combo"));
+            Assert.That(draft.HasChanges, Is.False);
+        }
+
+        [Test]
+        public void RenameCombo_PreservesAssignedActions()
+        {
+            PlayerComboLoadoutState source = CreateLoadout();
+
+            source.RenameCombo(0, "Immediate Rename");
+
+            Assert.That(source.Combos[0].Name, Is.EqualTo("Immediate Rename"));
+            Assert.That(source.Combos[0].MainActionId, Is.EqualTo("action.main.original"));
+            Assert.That(
+                source.Combos[0].LinkedPlacement,
+                Is.EqualTo(PreparedLinkedActionPlacement.AfterOpening));
+        }
+
         private static PlayerComboLoadoutState CreateLoadout()
         {
             var loadout = new PlayerComboLoadoutState("loadout.test", "Test Loadout");

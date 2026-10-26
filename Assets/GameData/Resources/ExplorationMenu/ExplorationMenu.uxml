@@ -16,7 +16,12 @@
                     <ui:Button name="returnToTitleButton" class="nav-button danger-button" />
                 </ui:VisualElement>
                 <ui:VisualElement class="menu-content-shell">
-                    <ui:Label name="pageTitle" class="page-title" />
+                    <ui:VisualElement class="page-heading-row">
+                        <ui:Label name="pageTitle" class="page-title" />
+                        <ui:Label name="pageHeaderStatus" class="page-header-status" />
+                        <ui:VisualElement class="page-heading-spacer" />
+                        <ui:VisualElement name="pageHeaderActions" class="page-header-actions" />
+                    </ui:VisualElement>
                     <ui:ScrollView name="pageScroll" class="page-scroll">
                         <ui:VisualElement name="pageContent" class="page-content" />
                     </ui:ScrollView>

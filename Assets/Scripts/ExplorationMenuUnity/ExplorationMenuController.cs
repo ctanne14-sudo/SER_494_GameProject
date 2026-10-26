@@ -30,6 +30,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private VisualElement _root;
         private VisualElement _content;
         private Label _pageTitle;
+        private Label _pageHeaderStatus;
+        private VisualElement _pageHeaderActions;
         private Button _statusButton;
         private Button _comboButton;
         private Button _inventoryButton;
@@ -65,6 +67,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private ScrollView _timelineScroll;
         private VisualElement _chargeLevelPanel;
         private Button _chargeActionButton;
+        private VisualElement _renameEditor;
 
         private void OnEnable()
         {
@@ -72,13 +75,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _root = _document.rootVisualElement;
             _content = _root.Q<VisualElement>("pageContent");
             _pageTitle = _root.Q<Label>("pageTitle");
+            _pageHeaderStatus = _root.Q<Label>("pageHeaderStatus");
+            _pageHeaderActions = _root.Q<VisualElement>("pageHeaderActions");
             _statusButton = _root.Q<Button>("statusButton");
             _comboButton = _root.Q<Button>("comboButton");
             _inventoryButton = _root.Q<Button>("inventoryButton");
             _equipmentButton = _root.Q<Button>("equipmentButton");
             _returnToTitleButton = _root.Q<Button>("returnToTitleButton");
 
-            if (_content == null || _pageTitle == null || _statusButton == null
+            if (_content == null || _pageTitle == null || _pageHeaderStatus == null
+                || _pageHeaderActions == null || _statusButton == null
                 || _comboButton == null || _inventoryButton == null
                 || _equipmentButton == null || _returnToTitleButton == null)
             {
@@ -200,6 +206,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void HandleBack()
         {
+            if (_renameEditor != null)
+            {
+                RefreshCurrentComboPage();
+                return;
+            }
+
             if (_currentPage == MenuPage.Combos)
             {
                 if (_comboMenuLevel == ComboMenuLevel.ComboDetails
@@ -243,6 +255,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void HandleAdditionalMenuInput()
         {
+            if (_root?.panel?.focusController?.focusedElement is TextField)
+            {
+                return;
+            }
+
             if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             {
                 ActivateFocusedButton();
@@ -301,7 +318,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
             ClearComboControls();
-            _pageTitle.text = ExplorationMenuText.Get("status.heading");
+            ConfigurePageHeader(ExplorationMenuText.Get("status.heading"));
             _content.Clear();
             AddValueRow(ExplorationMenuText.Get("status.hp"),
                 $"{state.CurrentHealth} / {state.MaximumHealth}");
@@ -336,7 +353,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            _pageTitle.text = ExplorationMenuText.Get("combos.heading");
             _currentPage = MenuPage.Combos;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
@@ -346,8 +362,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _selectedComboIndex = -1;
             _editingActionSlot = null;
             ClearComboControls();
+            ConfigurePageHeader(ExplorationMenuText.Get("combos.heading"));
             _content.Clear();
             AddBodyText(ExplorationMenuText.Get("combos.note"), "page-note");
+            AddBodyText(
+                ExplorationMenuText.Get("combos.compact-timeline-legend"),
+                "compact-timeline-legend");
             ComboActionCatalogAsset actionCatalog = ComboActionCatalogAsset.LoadDefault();
             foreach (PlayerComboLoadoutState loadout in state.ComboLoadouts.Loadouts)
             {
@@ -376,9 +396,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     previewRow.Add(comboName);
                     if (built)
                     {
-                        var timeline = new Label(FormatCompactTimeline(configurations[index]));
-                        timeline.AddToClassList("loadout-combo-timeline");
-                        previewRow.Add(timeline);
+                        AddCompactTimelinePreview(previewRow, configurations[index]);
                     }
 
                     card.Add(previewRow);
@@ -419,21 +437,24 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
             _selectedComboIndex = -1;
             _editingActionSlot = null;
-            _pageTitle.text =
-                $"{ExplorationMenuText.Get("combos.single-heading")} / {loadout.Name}";
             ClearComboControls();
+            ConfigurePageHeader(_selectedLoadoutDraft.Name);
             _content.Clear();
 
-            AddComboBackButton(
-                ExplorationMenuText.Get("combos.back-loadouts"),
-                TryLeaveLoadoutEditor);
-
             bool isActive = loadout.LoadoutId == state.ComboLoadouts.ActiveLoadoutId;
-            var status = new Label(isActive
-                ? ExplorationMenuText.Get("combos.active")
-                : ExplorationMenuText.Get("combos.inactive"));
-            status.AddToClassList(isActive ? "combo-status-valid" : "combo-status-neutral");
-            _content.Add(status);
+            if (isActive)
+            {
+                SetPageHeaderStatus(ExplorationMenuText.Get("combos.active"));
+            }
+
+            AddPageHeaderButton(
+                ExplorationMenuText.Get("combos.rename-loadout"),
+                ShowLoadoutRenameEditor,
+                "page-header-rename-button");
+            AddPageHeaderButton(
+                ExplorationMenuText.Get("combos.back-loadouts"),
+                TryLeaveLoadoutEditor,
+                "page-header-back-button");
 
             ComboActionCatalogAsset actionCatalog = ComboActionCatalogAsset.LoadDefault();
             bool built = TryBuildDraftLoadout(
@@ -495,7 +516,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 _content.Add(validationLabel);
             }
 
-            AddLoadoutEditorControls(built, configurations, state);
+            AddLoadoutActivationControl(built, configurations, state);
 
             SetSelectedNavigation(_comboButton);
             FocusFirstComboPageButton();
@@ -537,11 +558,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             PreparedComboDraft draftCombo = _selectedLoadoutDraft.Combos[comboIndex];
             PreparedComboState prepared = draftCombo.CreatePreparedState();
-            _pageTitle.text =
-                $"{ExplorationMenuText.Get("combos.actions-heading")} / {prepared.Name}";
-            AddComboBackButton(
+            ConfigurePageHeader(draftCombo.Name);
+            AddPageHeaderButton(
+                ExplorationMenuText.Get("combos.rename-combo"),
+                ShowComboRenameEditor,
+                "page-header-rename-button");
+            AddPageHeaderButton(
                 ExplorationMenuText.Get("combos.back-combos"),
-                TryReturnToLoadoutDetails);
+                TryReturnToLoadoutDetails,
+                "page-header-back-button");
 
             ComboActionCatalogAsset actionCatalog = ComboActionCatalogAsset.LoadDefault();
             if (!PlayerStateComboConfigurationBuilder.TryBuildCombo(
@@ -552,6 +577,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     out string validationError))
             {
                 AddComboError(validationError);
+                AddDraftEditorControls(state);
                 SetSelectedNavigation(_comboButton);
                 FocusFirstComboPageButton();
                 return;
@@ -562,11 +588,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             AddChargeLevelPanel();
             AddTimelineLegend();
             AddComboActionEditor(draftCombo, configuration, state);
+            AddDraftEditorControls(state);
             SetSelectedNavigation(_comboButton);
             FocusFirstComboPageButton();
         }
 
-        private void AddLoadoutEditorControls(
+        private void AddLoadoutActivationControl(
             bool built,
             IReadOnlyList<ComboConfiguration> configurations,
             PersistentPlayerState state)
@@ -584,6 +611,45 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             var controls = new VisualElement();
             controls.AddToClassList("combo-editor-controls");
 
+            if (_selectedLoadout.LoadoutId != state.ComboLoadouts.ActiveLoadoutId)
+            {
+                var activate = new Button(ActivateSelectedLoadout)
+                {
+                    text = ExplorationMenuText.Get("combos.activate")
+                };
+                activate.AddToClassList("combo-editor-control-button");
+                activate.SetEnabled(isValid);
+                controls.Add(activate);
+                _comboEditorButtons.Add(activate);
+                RegisterButtonAction(activate, ActivateSelectedLoadout);
+            }
+
+            if (controls.childCount > 0)
+            {
+                _content.Add(controls);
+            }
+        }
+
+        private void AddDraftEditorControls(PersistentPlayerState state)
+        {
+            bool built = TryBuildDraftLoadout(
+                _selectedLoadoutDraft,
+                state,
+                ComboActionCatalogAsset.LoadDefault(),
+                out IReadOnlyList<ComboConfiguration> configurations,
+                out _);
+            ComboValidationResult validation = built
+                ? ComboLoadoutValidator.Validate(
+                    configurations,
+                    new ComboValidationLimits(
+                        PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
+                        state.MaximumMana,
+                        state.MaximumCombatStamina))
+                : null;
+            bool isValid = validation != null && validation.IsValid;
+
+            var controls = new VisualElement();
+            controls.AddToClassList("combo-editor-controls");
             var apply = new Button(ApplyDraftAndRefresh)
             {
                 text = ExplorationMenuText.Get("combos.apply")
@@ -603,24 +669,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             controls.Add(revert);
             _comboEditorButtons.Add(revert);
             RegisterButtonAction(revert, RevertDraftAndRefresh);
-
-            if (_selectedLoadout.LoadoutId != state.ComboLoadouts.ActiveLoadoutId)
-            {
-                var activate = new Button(ActivateSelectedLoadout)
-                {
-                    text = ExplorationMenuText.Get("combos.activate")
-                };
-                activate.AddToClassList("combo-editor-control-button");
-                activate.SetEnabled(isValid);
-                controls.Add(activate);
-                _comboEditorButtons.Add(activate);
-                RegisterButtonAction(activate, ActivateSelectedLoadout);
-            }
-
             _content.Add(controls);
-            _comboEditorMessage = new Label();
-            _comboEditorMessage.AddToClassList("combo-editor-message");
-            _content.Add(_comboEditorMessage);
         }
 
         private void AddComboActionEditor(
@@ -932,14 +981,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             _selectedLoadoutDraft.Apply();
             _selectedLoadoutDraft = new PlayerComboLoadoutDraft(_selectedLoadout);
-            ShowLoadoutDetails(_selectedLoadout);
+            ShowComboDetails(_selectedLoadout, _selectedComboIndex);
         }
 
         private void RevertDraftAndRefresh()
         {
             _selectedLoadoutDraft = new PlayerComboLoadoutDraft(_selectedLoadout);
             _previewChargeLevels.Clear();
-            ShowLoadoutDetails(_selectedLoadout);
+            ShowComboDetails(_selectedLoadout, _selectedComboIndex);
         }
 
         private void ActivateSelectedLoadout()
@@ -1130,13 +1179,143 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private void AddComboBackButton(string text, Action action)
+        private void ConfigurePageHeader(string title)
+        {
+            _pageTitle.text = title;
+            _pageHeaderStatus.text = string.Empty;
+            _pageHeaderStatus.RemoveFromClassList("page-header-status-active");
+            _pageHeaderActions.Clear();
+            _renameEditor = null;
+        }
+
+        private void SetPageHeaderStatus(string text)
+        {
+            _pageHeaderStatus.text = text;
+            _pageHeaderStatus.AddToClassList("page-header-status-active");
+        }
+
+        private void AddPageHeaderButton(string text, Action action, string className)
         {
             var button = new Button(action) { text = text };
-            button.AddToClassList("combo-back-button");
-            _content.Add(button);
+            button.AddToClassList("page-header-button");
+            button.AddToClassList(className);
+            _pageHeaderActions.Add(button);
             _comboPageButtons.Add(button);
             RegisterButtonAction(button, action);
+        }
+
+        private void ShowLoadoutRenameEditor()
+        {
+            ShowRenameEditor(
+                ExplorationMenuText.Get("combos.rename-loadout"),
+                _selectedLoadoutDraft.Name,
+                CommitLoadoutRename);
+        }
+
+        private void ShowComboRenameEditor()
+        {
+            ShowRenameEditor(
+                ExplorationMenuText.Get("combos.rename-combo"),
+                _selectedLoadoutDraft.Combos[_selectedComboIndex].Name,
+                CommitComboRename);
+        }
+
+        private void ShowRenameEditor(
+            string heading,
+            string currentName,
+            Action<string> commit)
+        {
+            if (_renameEditor != null)
+            {
+                return;
+            }
+
+            var editor = new VisualElement();
+            editor.AddToClassList("combo-rename-editor");
+            var label = new Label(heading);
+            label.AddToClassList("combo-rename-label");
+            editor.Add(label);
+
+            var field = new TextField { value = currentName };
+            field.AddToClassList("combo-rename-field");
+            editor.Add(field);
+
+            var error = new Label();
+            error.AddToClassList("combo-rename-error");
+            editor.Add(error);
+
+            void Save()
+            {
+                if (string.IsNullOrWhiteSpace(field.value))
+                {
+                    error.text = ExplorationMenuText.Get("combos.rename-required");
+                    return;
+                }
+
+                commit(field.value.Trim());
+            }
+
+            var save = new Button(Save)
+            {
+                text = ExplorationMenuText.Get("combos.rename-save")
+            };
+            save.AddToClassList("combo-rename-button");
+            editor.Add(save);
+            _comboEditorButtons.Add(save);
+            RegisterButtonAction(save, Save);
+
+            var cancel = new Button(RefreshCurrentComboPage)
+            {
+                text = ExplorationMenuText.Get("combos.rename-cancel")
+            };
+            cancel.AddToClassList("combo-rename-button");
+            editor.Add(cancel);
+            _comboEditorButtons.Add(cancel);
+            RegisterButtonAction(cancel, RefreshCurrentComboPage);
+
+            field.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                {
+                    Save();
+                    evt.StopPropagation();
+                }
+                else if (evt.keyCode == KeyCode.Escape)
+                {
+                    RefreshCurrentComboPage();
+                    evt.StopPropagation();
+                }
+            });
+
+            _renameEditor = editor;
+            _content.Insert(0, editor);
+            _root.schedule.Execute(() => field.Focus()).ExecuteLater(1);
+        }
+
+        private void CommitLoadoutRename(string name)
+        {
+            _selectedLoadout.Rename(name);
+            _selectedLoadoutDraft.Rename(name);
+            ShowLoadoutDetails(_selectedLoadout);
+        }
+
+        private void CommitComboRename(string name)
+        {
+            _selectedLoadout.RenameCombo(_selectedComboIndex, name);
+            _selectedLoadoutDraft.Combos[_selectedComboIndex].Rename(name);
+            ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+        }
+
+        private void RefreshCurrentComboPage()
+        {
+            if (_comboMenuLevel == ComboMenuLevel.ComboDetails && _selectedComboIndex >= 0)
+            {
+                ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+            }
+            else if (_comboMenuLevel == ComboMenuLevel.LoadoutDetails)
+            {
+                ShowLoadoutDetails(_selectedLoadout);
+            }
         }
 
         private void AddTimelinePreview(ComboConfiguration configuration)
@@ -1594,24 +1773,99 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             return result;
         }
 
-        private static string FormatCompactTimeline(ComboConfiguration configuration)
+        private static void AddCompactTimelinePreview(
+            VisualElement parent,
+            ComboConfiguration configuration)
         {
             IReadOnlyList<ComboActionDefinition> actions = configuration.BuildExecutionOrder();
-            int start = 1;
-            string result = string.Empty;
-            for (int index = 0; index < actions.Count; index++)
+            var track = new VisualElement();
+            track.AddToClassList("compact-timeline-track");
+            var cells = new TimelineResolutionCell[
+                PlayerStateLoadoutSessionBuilder.MaximumTimelineCost];
+            for (int index = 0; index < cells.Length; index++)
             {
-                if (index > 0)
-                {
-                    result += "  →  ";
-                }
-
-                int end = start + actions[index].TimelineCost - 1;
-                result += $"T{start}–{end}  {actions[index].DisplayName}";
-                start = end + 1;
+                cells[index] = new TimelineResolutionCell();
+                cells[index].AddToClassList("compact-timeline-cell");
+                track.Add(cells[index]);
             }
 
-            return result;
+            int actionStart = 0;
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+            {
+                ComboActionDefinition action = actions[actionIndex];
+                for (int localTime = 1; localTime <= action.TimelineCost; localTime++)
+                {
+                    int globalIndex = actionStart + localTime - 1;
+                    if (globalIndex < 0 || globalIndex >= cells.Length)
+                    {
+                        continue;
+                    }
+
+                    cells[globalIndex].AddToClassList("compact-timeline-cell-active");
+                    ApplyCompactResolutionMarker(cells[globalIndex], action, localTime);
+                }
+
+                actionStart += action.TimelineCost;
+            }
+
+            parent.Add(track);
+        }
+
+        private static void ApplyCompactResolutionMarker(
+            TimelineResolutionCell cell,
+            ComboActionDefinition action,
+            int localTime)
+        {
+            Color? windowStripeColor = null;
+            string markerClass = null;
+            bool chargeDependentPoint = false;
+            bool isInsideActionWindow = action.HasResolutionWindow
+                && localTime >= action.ResolutionWindowStart.Value
+                && localTime <= action.ResolutionWindowEnd.Value;
+            if (isInsideActionWindow)
+            {
+                windowStripeColor = ResolutionMarkerColor(action.ResolutionEffect);
+            }
+
+            for (int index = 0; index < action.ResolutionEvents.Count; index++)
+            {
+                ActionResolutionDefinition resolution = action.ResolutionEvents[index];
+                if (isInsideActionWindow && index == 0)
+                {
+                    continue;
+                }
+
+                if (resolution.HasResolutionWindow
+                    && localTime >= resolution.ResolutionWindowStart.Value
+                    && localTime <= resolution.ResolutionWindowEnd.Value)
+                {
+                    windowStripeColor ??= ResolutionMarkerColor(resolution.Effect);
+                    continue;
+                }
+
+                if (resolution.Offset != localTime)
+                {
+                    continue;
+                }
+
+                chargeDependentPoint |= action.IsChargeable
+                    && resolution.Offset == action.ResolutionOffset;
+                markerClass ??= ResolutionMarkerClass(resolution.Effect);
+            }
+
+            if (windowStripeColor.HasValue)
+            {
+                cell.SetResolutionWindow(windowStripeColor.Value);
+            }
+
+            if (chargeDependentPoint)
+            {
+                cell.AddToClassList("compact-timeline-marker-charge");
+            }
+            else if (markerClass != null)
+            {
+                cell.AddToClassList(markerClass);
+            }
         }
 
         private static string FormatFirstIssue(ComboValidationResult validation)
@@ -1632,7 +1886,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            _pageTitle.text = ExplorationMenuText.Get("inventory.heading");
+            ConfigurePageHeader(ExplorationMenuText.Get("inventory.heading"));
             _currentPage = MenuPage.Inventory;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
@@ -1655,7 +1909,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            _pageTitle.text = ExplorationMenuText.Get("equipment.heading");
+            ConfigurePageHeader(ExplorationMenuText.Get("equipment.heading"));
             _currentPage = MenuPage.Equipment;
             _editingEquipmentSlot = EquipmentSlot.None;
             ClearComboControls();
@@ -1992,7 +2246,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ShowUnavailableTitleMessage()
         {
-            _pageTitle.text = ExplorationMenuText.Get("nav.title");
+            ConfigurePageHeader(ExplorationMenuText.Get("nav.title"));
             _currentPage = MenuPage.ReturnToTitle;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;

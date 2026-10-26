@@ -147,11 +147,64 @@
     background-color: rgb(25, 24, 22);
 }
 
-.page-title {
+.page-heading-row {
     height: 56px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.page-title {
     font-size: 25px;
     -unity-font-style: bold;
     color: rgb(236, 218, 174);
+}
+
+.page-header-status {
+    margin-left: 16px;
+    color: rgb(148, 197, 139);
+    -unity-font-style: bold;
+}
+
+.page-header-status-active {
+    padding: 4px 9px;
+    background-color: rgba(45, 76, 43, 0.55);
+    border-left-width: 2px;
+    border-left-color: rgb(94, 151, 89);
+}
+
+.page-heading-spacer {
+    flex-grow: 1;
+}
+
+.page-header-actions {
+    flex-direction: row;
+    align-items: center;
+}
+
+.page-header-button {
+    min-height: 32px;
+    margin-left: 8px;
+    padding: 6px 12px;
+    color: rgb(210, 184, 145);
+    background-color: rgba(29, 28, 25, 0.72);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(84, 70, 51);
+    border-right-color: rgb(84, 70, 51);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.page-header-button:hover,
+.page-header-button:focus {
+    color: rgb(255, 235, 184);
+    background-color: rgb(65, 58, 47);
+    border-left-color: rgb(170, 136, 82);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
 }
 
 .page-scroll {
@@ -202,8 +255,7 @@
 }
 
 .loadout-card-button,
-.combo-card-button,
-.combo-back-button {
+.combo-card-button {
     height: auto;
     margin-bottom: 12px;
     padding: 14px 18px;
@@ -224,9 +276,7 @@
 .loadout-card-button:hover,
 .loadout-card-button:focus,
 .combo-card-button:hover,
-.combo-card-button:focus,
-.combo-back-button:hover,
-.combo-back-button:focus {
+.combo-card-button:focus {
     background-color: rgb(65, 58, 47);
     color: rgb(255, 235, 184);
     border-left-color: rgb(170, 136, 82);
@@ -263,9 +313,33 @@
     -unity-font-style: bold;
 }
 
-.loadout-combo-timeline {
+.compact-timeline-track {
     flex-grow: 1;
-    color: rgb(180, 169, 142);
+    flex-direction: row;
+}
+
+.compact-timeline-cell {
+    min-width: 3px;
+    height: 15px;
+    margin-right: 2px;
+    flex-basis: 0;
+    flex-grow: 1;
+    background-color: rgb(25, 25, 23);
+    border-left-color: rgb(48, 45, 39);
+    border-bottom-color: rgb(48, 45, 39);
+}
+
+.compact-timeline-cell-active {
+    background-color: rgb(67, 60, 49);
+}
+
+.compact-timeline-marker-charge {
+    background-color: rgb(190, 139, 43);
+}
+
+.compact-timeline-legend {
+    margin-bottom: 12px;
+    color: rgb(167, 153, 126);
     white-space: normal;
 }
 
@@ -273,16 +347,6 @@
 .action-detail-costs {
     margin-top: 5px;
     color: rgb(167, 153, 126);
-}
-
-.combo-back-button {
-    align-self: flex-start;
-    min-width: 190px;
-    min-height: 34px;
-    margin-bottom: 10px;
-    padding: 7px 12px;
-    background-color: rgba(29, 28, 25, 0.72);
-    color: rgb(210, 184, 145);
 }
 
 .page-scroll .unity-scroller--vertical {
@@ -620,6 +684,58 @@
 
 .combo-editor-message-error {
     color: rgb(222, 142, 126);
+}
+
+.combo-rename-editor {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgb(34, 32, 28);
+    border-left-width: 3px;
+    border-left-color: rgb(143, 110, 65);
+}
+
+.combo-rename-label {
+    min-width: 130px;
+    color: rgb(218, 204, 173);
+    -unity-font-style: bold;
+}
+
+.combo-rename-field {
+    min-width: 300px;
+    margin-right: 10px;
+    flex-grow: 1;
+}
+
+.combo-rename-field > .unity-text-input {
+    color: rgb(236, 218, 174);
+    background-color: rgb(22, 22, 20);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(112, 91, 61);
+    border-right-color: rgb(112, 91, 61);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(112, 91, 61);
+}
+
+.combo-rename-error {
+    margin-right: 10px;
+    color: rgb(222, 142, 126);
+}
+
+.combo-rename-button {
+    min-width: 105px;
+    min-height: 34px;
+    margin-left: 8px;
+    color: rgb(222, 207, 175);
+    background-color: rgb(52, 47, 39);
+    border-left-color: rgb(122, 96, 60);
+    border-right-color: rgb(122, 96, 60);
+    border-top-color: rgb(122, 96, 60);
+    border-bottom-color: rgb(122, 96, 60);
 }
 
 .combo-action-editor-layout {

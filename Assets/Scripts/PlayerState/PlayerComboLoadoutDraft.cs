@@ -28,7 +28,7 @@ namespace SER494.Gameplay.PlayerState
             LinkedPlacement = source.LinkedPlacement;
         }
 
-        public string Name { get; }
+        public string Name { get; private set; }
 
         public string OpeningActionId { get; private set; }
 
@@ -39,6 +39,11 @@ namespace SER494.Gameplay.PlayerState
         public string LinkedActionId { get; private set; }
 
         public PreparedLinkedActionPlacement? LinkedPlacement { get; private set; }
+
+        public void Rename(string name)
+        {
+            Name = RequireName(name, "Combo");
+        }
 
         public string GetActionId(PreparedComboActionSlot slot)
         {
@@ -184,6 +189,16 @@ namespace SER494.Gameplay.PlayerState
                 default: return placement.ToString();
             }
         }
+
+        private static string RequireName(string name, string subject)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException($"A {subject} name is required.", nameof(name));
+            }
+
+            return name.Trim();
+        }
     }
 
     public sealed class PlayerComboLoadoutDraft
@@ -191,10 +206,12 @@ namespace SER494.Gameplay.PlayerState
         private readonly PlayerComboLoadoutState _source;
         private readonly PreparedComboDraft[] _combos;
         private readonly IReadOnlyList<PreparedComboDraft> _readOnlyCombos;
+        private string _name;
 
         public PlayerComboLoadoutDraft(PlayerComboLoadoutState source)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
+            _name = source.Name;
             _combos = new PreparedComboDraft[source.Combos.Count];
             for (int index = 0; index < _combos.Length; index++)
             {
@@ -206,14 +223,29 @@ namespace SER494.Gameplay.PlayerState
 
         public string LoadoutId => _source.LoadoutId;
 
-        public string Name => _source.Name;
+        public string Name => _name;
 
         public IReadOnlyList<PreparedComboDraft> Combos => _readOnlyCombos;
+
+        public void Rename(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("A Loadout name is required.", nameof(name));
+            }
+
+            _name = name.Trim();
+        }
 
         public bool HasChanges
         {
             get
             {
+                if (!string.Equals(_name, _source.Name, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
                 for (int index = 0; index < _combos.Length; index++)
                 {
                     if (!_combos[index].Matches(_source.Combos[index]))
@@ -234,6 +266,7 @@ namespace SER494.Gameplay.PlayerState
                 prepared[index] = _combos[index].CreatePreparedState();
             }
 
+            _source.Rename(_name);
             for (int index = 0; index < prepared.Length; index++)
             {
                 _source.SetCombo(index, prepared[index]);
