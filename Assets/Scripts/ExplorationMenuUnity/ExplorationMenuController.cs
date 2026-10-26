@@ -30,10 +30,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private UIDocument _document;
         private VisualElement _root;
         private VisualElement _menuFrame;
+        private VisualElement _menuNavigation;
         private VisualElement _content;
         private Label _pageTitle;
         private Label _pageHeaderStatus;
         private VisualElement _pageHeaderActions;
+        private ScrollView _pageScroll;
         private Button _statusButton;
         private Button _comboButton;
         private Button _inventoryButton;
@@ -56,10 +58,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private readonly List<Button> _comboEditorButtons = new List<Button>();
         private readonly List<Button> _pageHeaderButtons = new List<Button>();
         private readonly List<Button> _loadoutComboButtons = new List<Button>();
-        private readonly List<Button> _loadoutControlButtons = new List<Button>();
         private readonly List<Button> _assignedActionButtons = new List<Button>();
         private readonly List<Button> _linkedPlacementButtons = new List<Button>();
-        private readonly List<Button> _comboEditorControlButtons = new List<Button>();
         private readonly List<Button> _actionLibraryFilterButtons = new List<Button>();
         private readonly List<Button> _actionLibraryCandidateButtons = new List<Button>();
         private readonly List<Button> _chargeLevelButtons = new List<Button>();
@@ -89,24 +89,29 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private Vector2 _lastMousePosition;
         private bool _hasLastMousePosition;
         private Button _lastNavigationTarget;
+        private int _contentRevision;
+        private bool _comboSidebarUnlocked;
 
         private void OnEnable()
         {
             _document = GetComponent<UIDocument>();
             _root = _document.rootVisualElement;
             _menuFrame = _root.Q<VisualElement>("menuFrame");
+            _menuNavigation = _root.Q<VisualElement>("menuNavigation");
             _content = _root.Q<VisualElement>("pageContent");
             _pageTitle = _root.Q<Label>("pageTitle");
             _pageHeaderStatus = _root.Q<Label>("pageHeaderStatus");
             _pageHeaderActions = _root.Q<VisualElement>("pageHeaderActions");
+            _pageScroll = _root.Q<ScrollView>("pageScroll");
             _statusButton = _root.Q<Button>("statusButton");
             _comboButton = _root.Q<Button>("comboButton");
             _inventoryButton = _root.Q<Button>("inventoryButton");
             _equipmentButton = _root.Q<Button>("equipmentButton");
             _returnToTitleButton = _root.Q<Button>("returnToTitleButton");
 
-            if (_menuFrame == null || _content == null || _pageTitle == null || _pageHeaderStatus == null
-                || _pageHeaderActions == null || _statusButton == null
+            if (_menuFrame == null || _menuNavigation == null || _content == null
+                || _pageTitle == null || _pageHeaderStatus == null
+                || _pageHeaderActions == null || _pageScroll == null || _statusButton == null
                 || _comboButton == null || _inventoryButton == null
                 || _equipmentButton == null || _returnToTitleButton == null)
             {
@@ -132,6 +137,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _inventoryButton.clicked += OnInventoryClicked;
             _equipmentButton.clicked += OnEquipmentClicked;
             _returnToTitleButton.clicked += OnReturnToTitleClicked;
+            _root.RegisterCallback<FocusInEvent>(OnFocusEntered, TrickleDown.TrickleDown);
             _root.style.display = DisplayStyle.None;
         }
 
@@ -145,6 +151,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 _returnToTitleButton.clicked -= OnReturnToTitleClicked;
             }
+            _root?.UnregisterCallback<FocusInEvent>(OnFocusEntered, TrickleDown.TrickleDown);
             _buttonActions.Clear();
 
             if (_isOpen)
@@ -185,6 +192,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (_isOpen)
             {
                 HandleAdditionalMenuInput();
+                HandleControllerScroll();
             }
         }
 
@@ -230,6 +238,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void CloseMenu()
         {
+            _contentRevision++;
             CloseUnsavedChangesDialog();
             CloseTimelineGuideDialog();
             _root.style.display = DisplayStyle.None;
@@ -297,7 +306,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     || keyboard.enterKey.wasPressedThisFrame
                     || keyboard.numpadEnterKey.wasPressedThisFrame
                     || keyboard.tabKey.wasPressedThisFrame
-                    || keyboard.qKey.wasPressedThisFrame);
+                    || keyboard.qKey.wasPressedThisFrame
+                    || keyboard.eKey.wasPressedThisFrame
+                    || keyboard.xKey.wasPressedThisFrame
+                    || keyboard.yKey.wasPressedThisFrame);
         }
 
         private static bool UsedGamepadNavigationThisFrame()
@@ -315,6 +327,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 || gamepad.buttonSouth.wasPressedThisFrame
                 || gamepad.buttonEast.wasPressedThisFrame
                 || gamepad.buttonWest.wasPressedThisFrame
+                || gamepad.buttonNorth.wasPressedThisFrame
+                || gamepad.leftShoulder.wasPressedThisFrame
+                || gamepad.rightShoulder.wasPressedThisFrame
                 || gamepad.leftStick.ReadValue().sqrMagnitude >= 0.36f;
         }
 
@@ -325,7 +340,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 UnityEngine.Cursor.visible = !useNavigationInput;
                 if (useNavigationInput && GetFocusedButton() == null)
                 {
-                    FocusNavigationTarget(_lastNavigationTarget);
+                    FocusNavigationTarget(DefaultNavigationTarget());
                 }
 
                 return;
@@ -336,7 +351,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = !useNavigationInput;
             if (useNavigationInput)
             {
-                FocusNavigationTarget(_lastNavigationTarget);
+                FocusNavigationTarget(DefaultNavigationTarget());
             }
             else
             {
@@ -373,12 +388,96 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private void FocusNavigationTarget(Button preferred)
         {
             Button target = preferred;
-            if (target == null || target.panel == null || !target.enabledInHierarchy)
+            if (target == null
+                || target.panel == null
+                || !target.enabledInHierarchy
+                || !target.focusable)
             {
-                target = SelectedSidebarButton();
+                target = IsNestedComboPage()
+                    ? FirstNestedComboNavigationTarget()
+                    : SelectedSidebarButton();
             }
 
             target?.Focus();
+        }
+
+        private void OnFocusEntered(FocusInEvent evt)
+        {
+            if (!(evt.target is Button focusedButton)
+                || !_buttonActions.ContainsKey(focusedButton))
+            {
+                return;
+            }
+
+            int capturedRevision = _contentRevision;
+            VisualElement focusedElement = focusedButton;
+            VisualElement current = focusedElement.parent;
+            while (current != null)
+            {
+                if (current is ScrollView scrollView)
+                {
+                    ScrollView capturedScroll = scrollView;
+                    VisualElement capturedElement = focusedElement;
+                    _root.schedule.Execute(() =>
+                    {
+                        if (!_isOpen
+                            || capturedRevision != _contentRevision
+                            || capturedScroll.panel == null
+                            || capturedElement.panel == null
+                            || capturedScroll.panel != capturedElement.panel
+                            || !capturedScroll.Contains(capturedElement))
+                        {
+                            return;
+                        }
+
+                        capturedScroll.ScrollTo(capturedElement);
+                    }).ExecuteLater(1);
+                }
+
+                current = current.parent;
+            }
+        }
+
+        private void HandleControllerScroll()
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad == null)
+            {
+                return;
+            }
+
+            float vertical = gamepad.rightStick.ReadValue().y;
+            if (Mathf.Abs(vertical) < 0.2f)
+            {
+                return;
+            }
+
+            ScrollView scrollView = FindFocusedScrollView() ?? _pageScroll;
+            if (scrollView == null)
+            {
+                return;
+            }
+
+            Vector2 offset = scrollView.scrollOffset;
+            offset.y -= vertical * 720f * Time.unscaledDeltaTime;
+            scrollView.scrollOffset = offset;
+        }
+
+        private ScrollView FindFocusedScrollView()
+        {
+            VisualElement current = _root?.panel?.focusController?.focusedElement
+                as VisualElement;
+            while (current != null)
+            {
+                if (current is ScrollView scrollView)
+                {
+                    return scrollView;
+                }
+
+                current = current.parent;
+            }
+
+            return null;
         }
 
         private Button SelectedSidebarButton()
@@ -453,6 +552,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     return;
                 }
 
+                if (_comboMenuLevel == ComboMenuLevel.LoadoutList
+                    && _usesNavigationInput
+                    && !_sidebarButtons.Contains(GetFocusedButton()))
+                {
+                    _comboSidebarUnlocked = true;
+                    SetSidebarCollapsed(false);
+                    FocusNavigationTarget(_comboButton);
+                    return;
+                }
+
             }
 
             if (_currentPage == MenuPage.Equipment
@@ -485,15 +594,76 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            bool focusActionFilter = _editingActionSlot.HasValue
-                && ((Keyboard.current != null
-                        && Keyboard.current.qKey.wasPressedThisFrame)
-                    || (Gamepad.current != null
-                        && Gamepad.current.buttonWest.wasPressedThisFrame));
-            if (focusActionFilter)
+            if (_unsavedDialog != null)
             {
-                FocusActionLibraryFilter();
+                HandleUnsavedDialogDirectionalInput();
                 return;
+            }
+
+            bool previousActionFilter = _editingActionSlot.HasValue
+                && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.leftShoulder.wasPressedThisFrame));
+            bool nextActionFilter = _editingActionSlot.HasValue
+                && ((Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.rightShoulder.wasPressedThisFrame));
+            if (previousActionFilter || nextActionFilter)
+            {
+                CycleActionLibraryFilter(nextActionFilter ? 1 : -1);
+                return;
+            }
+
+
+            bool shortcutAllowed = _timelineGuideDialog == null
+                && _unsavedDialog == null
+                && _renameEditor == null;
+            if (shortcutAllowed && !_editingActionSlot.HasValue)
+            {
+                bool shortcutX = (Keyboard.current != null
+                        && Keyboard.current.xKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.buttonWest.wasPressedThisFrame);
+                bool shortcutY = (Keyboard.current != null
+                        && Keyboard.current.yKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.buttonNorth.wasPressedThisFrame);
+                if (_comboMenuLevel == ComboMenuLevel.LoadoutDetails
+                    && shortcutX)
+                {
+                    if (PlayerStateService.TryGetActive(out PlayerStateService service)
+                        && _selectedLoadout != null
+                        && _selectedLoadout.LoadoutId
+                            != service.State.ComboLoadouts.ActiveLoadoutId)
+                    {
+                        ActivateSelectedLoadout();
+                    }
+                    return;
+                }
+
+                if (_comboMenuLevel == ComboMenuLevel.ComboDetails)
+                {
+                    bool hasComboChanges = _selectedLoadoutDraft != null
+                        && _selectedComboIndex >= 0
+                        && _selectedLoadoutDraft.HasComboChanges(_selectedComboIndex);
+                    if (shortcutX)
+                    {
+                        if (hasComboChanges)
+                        {
+                            ApplyCurrentComboAndRefresh();
+                        }
+                        return;
+                    }
+
+                    if (shortcutY)
+                    {
+                        if (hasComboChanges)
+                        {
+                            RevertCurrentComboAndRefresh();
+                        }
+                        return;
+                    }
+                }
             }
 
             bool moveLeft = Keyboard.current != null
@@ -544,6 +714,33 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 {
                     MoveFocus(1);
                 }
+            }
+        }
+
+        private void HandleUnsavedDialogDirectionalInput()
+        {
+            bool movePrevious = Keyboard.current != null
+                && (Keyboard.current.leftArrowKey.wasPressedThisFrame
+                    || Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.aKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame);
+            bool moveNext = Keyboard.current != null
+                && (Keyboard.current.rightArrowKey.wasPressedThisFrame
+                    || Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.dKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame);
+
+            if (Gamepad.current != null)
+            {
+                movePrevious |= Gamepad.current.dpad.left.wasPressedThisFrame
+                    || Gamepad.current.dpad.up.wasPressedThisFrame;
+                moveNext |= Gamepad.current.dpad.right.wasPressedThisFrame
+                    || Gamepad.current.dpad.down.wasPressedThisFrame;
+            }
+
+            if (movePrevious != moveNext)
+            {
+                MoveFocus(moveNext ? 1 : -1);
             }
         }
 
@@ -598,6 +795,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
             _comboMenuLevel = ComboMenuLevel.LoadoutList;
+            _comboSidebarUnlocked = false;
             _selectedLoadout = null;
             _selectedLoadoutDraft = null;
             _selectedComboIndex = -1;
@@ -882,10 +1080,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     text = ExplorationMenuText.Get("combos.activate")
                 };
                 activate.AddToClassList("combo-editor-control-button");
+                activate.focusable = false;
                 activate.SetEnabled(isValid);
                 controls.Add(activate);
                 _comboEditorButtons.Add(activate);
-                _loadoutControlButtons.Add(activate);
                 RegisterButtonAction(activate, ActivateSelectedLoadout);
             }
 
@@ -921,10 +1119,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 text = ExplorationMenuText.Get("combos.apply")
             };
             apply.AddToClassList("combo-editor-control-button");
+            apply.focusable = false;
             apply.SetEnabled(isValid && hasComboChanges);
             controls.Add(apply);
             _comboEditorButtons.Add(apply);
-            _comboEditorControlButtons.Add(apply);
             RegisterButtonAction(apply, ApplyCurrentComboAndRefresh);
 
             var revert = new Button(RevertCurrentComboAndRefresh)
@@ -932,10 +1130,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 text = ExplorationMenuText.Get("combos.revert")
             };
             revert.AddToClassList("combo-editor-control-button");
+            revert.focusable = false;
             revert.SetEnabled(hasComboChanges);
             controls.Add(revert);
             _comboEditorButtons.Add(revert);
-            _comboEditorControlButtons.Add(revert);
             RegisterButtonAction(revert, RevertCurrentComboAndRefresh);
             _content.Add(controls);
         }
@@ -1134,24 +1332,38 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     definition.ActionId,
                     _selectedComboIndex,
                     slot);
-                string suffix = usedElsewhere
-                    ? $"\n{ExplorationMenuText.Get("combos.used-elsewhere")}"
-                    : string.Empty;
                 string current = string.Equals(
                     draftCombo.GetActionId(slot),
                     definition.ActionId,
                     StringComparison.Ordinal)
                     ? $"  • {ExplorationMenuText.Get("combos.current")}" : string.Empty;
                 var button = new Button(
-                    () => ReplaceDraftAction(slot, definition.ActionId))
-                {
-                    text = $"{definition.DisplayName}{current}\n"
-                        + $"Timeline {definition.TimelineCost}  |  Stamina {definition.StaminaCost}"
-                        + $"  |  Mana {definition.ManaCost}\n"
-                        + $"{FormatActionLibrarySummary(definition)}{suffix}"
-                };
+                    () => ReplaceDraftAction(slot, definition.ActionId));
                 button.AddToClassList("combo-action-candidate-button");
                 button.SetEnabled(!usedElsewhere);
+
+                var name = new Label($"{definition.DisplayName}{current}");
+                name.AddToClassList("combo-action-candidate-name");
+                button.Add(name);
+
+                var costs = new Label(
+                    $"Timeline {definition.TimelineCost}  |  Stamina {definition.StaminaCost}"
+                    + $"  |  Mana {definition.ManaCost}");
+                costs.AddToClassList("combo-action-candidate-costs");
+                button.Add(costs);
+
+                var effects = new Label(FormatActionLibrarySummary(definition));
+                effects.AddToClassList("combo-action-candidate-effects");
+                button.Add(effects);
+
+                if (usedElsewhere)
+                {
+                    var unavailable = new Label(
+                        ExplorationMenuText.Get("combos.used-elsewhere"));
+                    unavailable.AddToClassList("combo-action-candidate-warning");
+                    button.Add(unavailable);
+                }
+
                 libraryBody.Add(button);
                 if (!usedElsewhere)
                 {
@@ -1263,6 +1475,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     text = FormatActionLibraryFilter(filter) + equipped
                 };
                 button.AddToClassList("combo-action-filter-button");
+                button.focusable = false;
                 button.EnableInClassList(
                     "combo-action-filter-selected",
                     filter == _actionLibraryFilter);
@@ -1315,6 +1528,33 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _actionLibraryFilter = filter;
             _actionLibraryFilterInitialized = true;
             ShowComboDetails(_selectedLoadout, _selectedComboIndex);
+        }
+
+        private void CycleActionLibraryFilter(int direction)
+        {
+            if (_actionLibraryFilterButtons.Count == 0)
+            {
+                return;
+            }
+
+            int currentIndex = _actionLibraryFilterButtons.IndexOf(
+                _selectedActionLibraryFilterButton);
+            if (currentIndex < 0)
+            {
+                currentIndex = 0;
+            }
+
+            int nextIndex = (currentIndex + direction) % _actionLibraryFilterButtons.Count;
+            if (nextIndex < 0)
+            {
+                nextIndex += _actionLibraryFilterButtons.Count;
+            }
+
+            Button nextFilter = _actionLibraryFilterButtons[nextIndex];
+            if (_buttonActions.TryGetValue(nextFilter, out Action changeFilter))
+            {
+                changeFilter();
+            }
         }
 
         private static string FormatActionLibraryFilter(CompatibleWeaponTypes filter)
@@ -1860,12 +2100,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 }
 
                 string detail = FormatResolutionSummary(resolution);
-                lines.Add($"{timing} {detail}");
+                lines.Add($"• {timing} — {detail}");
             }
 
             if (action.IsChargeable)
             {
-                lines.Add($"Charge Levels 0–{action.ChargeLevels.Count}; later levels extend the Timeline");
+                lines.Add(
+                    $"• Charge Levels 0–{action.ChargeLevels.Count}; later levels extend the Timeline");
             }
 
             for (int index = 0; index < action.ActiveWindows.Count; index++)
@@ -1874,13 +2115,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 string effect = window.Effect == ActiveWindowEffect.SuperArmor
                     ? $"Super Armor {ToRomanNumeral(window.SuperArmorLevel)}"
                     : $"Damage Taken -{window.DamageReduction * 100d:0}%";
-                lines.Add($"T{window.StartOffset}–T{window.EndOffset} {effect}");
+                lines.Add($"• T{window.StartOffset}–T{window.EndOffset} — {effect}");
             }
 
             if (action.SustainedAttack != null)
             {
                 lines.Add(
-                    $"Sustained Attack T{action.SustainedAttack.WindowStartOffset}–T{action.SustainedAttack.WindowEndOffset}"
+                    $"• Sustained Attack T{action.SustainedAttack.WindowStartOffset}–T{action.SustainedAttack.WindowEndOffset}"
                     + $"; every {action.SustainedAttack.HitInterval} Time Steps"
                     + $"; up to {action.SustainedAttack.MaximumHitCount} hits");
             }
@@ -1888,10 +2129,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (action.PreviousActionStatusRequirement != null)
             {
                 lines.Add(
-                    $"Requires previous Action: {action.PreviousActionStatusRequirement.DisplayName}");
+                    $"• Requires previous Action: {action.PreviousActionStatusRequirement.DisplayName}");
             }
 
-            return lines.Count == 0 ? "No Resolution Events" : string.Join("\n", lines);
+            return lines.Count == 0 ? "• No Resolution Events" : string.Join("\n", lines);
         }
 
         private static string FormatResolutionSummary(ActionResolutionDefinition resolution)
@@ -1977,11 +2218,72 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ConfigurePageHeader(string title)
         {
+            _contentRevision++;
             _pageTitle.text = title;
             _pageHeaderStatus.text = string.Empty;
             _pageHeaderStatus.RemoveFromClassList("page-header-status-active");
             _pageHeaderActions.Clear();
             _renameEditor = null;
+            SetSidebarCollapsed(IsNestedComboPage());
+        }
+
+        private bool IsNestedComboPage()
+        {
+            return _currentPage == MenuPage.Combos
+                && (_comboMenuLevel == ComboMenuLevel.LoadoutDetails
+                    || _comboMenuLevel == ComboMenuLevel.ComboDetails);
+        }
+
+        private void SetSidebarCollapsed(bool collapsed)
+        {
+            _menuNavigation.EnableInClassList("menu-navigation-collapsed", collapsed);
+            bool allowSidebarFocus = !collapsed
+                && (_currentPage != MenuPage.Combos
+                    || _comboMenuLevel != ComboMenuLevel.LoadoutList
+                    || _comboSidebarUnlocked);
+            for (int index = 0; index < _sidebarButtons.Count; index++)
+            {
+                _sidebarButtons[index].focusable = allowSidebarFocus;
+            }
+        }
+
+        private Button DefaultNavigationTarget()
+        {
+            if (_currentPage == MenuPage.Combos)
+            {
+                if (_comboMenuLevel == ComboMenuLevel.LoadoutList
+                    && !_comboSidebarUnlocked)
+                {
+                    return FirstEnabled(_comboPageButtons);
+                }
+
+                if (IsNestedComboPage())
+                {
+                    return FirstNestedComboNavigationTarget();
+                }
+            }
+
+            return _lastNavigationTarget;
+        }
+
+        private Button FirstNestedComboNavigationTarget()
+        {
+            if (_editingActionSlot.HasValue)
+            {
+                return FirstEnabled(_actionLibraryCandidateButtons);
+            }
+
+            if (_comboMenuLevel == ComboMenuLevel.ComboDetails)
+            {
+                return FirstEnabled(_assignedActionButtons);
+            }
+
+            if (_comboMenuLevel == ComboMenuLevel.LoadoutDetails)
+            {
+                return FirstEnabled(_loadoutComboButtons);
+            }
+
+            return null;
         }
 
         private void SetPageHeaderStatus(string text)
@@ -2683,11 +2985,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            ConfigurePageHeader(ExplorationMenuText.Get("inventory.heading"));
             _currentPage = MenuPage.Inventory;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
             ClearComboControls();
+            ConfigurePageHeader(ExplorationMenuText.Get("inventory.heading"));
             _content.Clear();
             AddSectionHeading(ExplorationMenuText.Get("inventory.consumables"));
             AddInventoryRow(state, PlayerStateInitialValues.HealingPotionId, "Healing Potion");
@@ -2706,10 +3008,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            ConfigurePageHeader(ExplorationMenuText.Get("equipment.heading"));
             _currentPage = MenuPage.Equipment;
             _editingEquipmentSlot = EquipmentSlot.None;
             ClearComboControls();
+            ConfigurePageHeader(ExplorationMenuText.Get("equipment.heading"));
             _content.Clear();
             ClearEquipmentControls();
 
@@ -3043,11 +3345,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ShowUnavailableTitleMessage()
         {
-            ConfigurePageHeader(ExplorationMenuText.Get("nav.title"));
             _currentPage = MenuPage.ReturnToTitle;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
             ClearComboControls();
+            ConfigurePageHeader(ExplorationMenuText.Get("nav.title"));
             _content.Clear();
             AddBodyText(ExplorationMenuText.Get("title.unavailable"), "page-note");
             SetSelectedNavigation(_returnToTitleButton);
@@ -3208,7 +3510,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 if (_actionLibraryFilterButtons.Contains(focusedButton))
                 {
-                    FocusAdjacent(_actionLibraryFilterButtons, focusedButton, direction);
                     return true;
                 }
 
@@ -3227,18 +3528,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (_linkedPlacementButtons.Contains(focusedButton))
             {
                 FocusAdjacent(_linkedPlacementButtons, focusedButton, direction);
-                return true;
-            }
-
-            if (_loadoutControlButtons.Contains(focusedButton))
-            {
-                FocusAdjacent(_loadoutControlButtons, focusedButton, direction);
-                return true;
-            }
-
-            if (_comboEditorControlButtons.Contains(focusedButton))
-            {
-                FocusAdjacent(_comboEditorControlButtons, focusedButton, direction);
                 return true;
             }
 
@@ -3267,20 +3556,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 int candidateIndex = _actionLibraryCandidateButtons.IndexOf(focusedButton);
                 if (candidateIndex >= 0)
                 {
-                    if (direction < 0
-                        && !HasEnabledButtonBefore(
-                            _actionLibraryCandidateButtons,
-                            candidateIndex))
-                    {
-                        FocusActionLibraryFilter();
-                    }
-                    else
-                    {
-                        FocusAdjacentEnabled(
-                            _actionLibraryCandidateButtons,
-                            candidateIndex,
-                            direction);
-                    }
+                    FocusAdjacentEnabled(
+                        _actionLibraryCandidateButtons,
+                        candidateIndex,
+                        direction);
 
                     return true;
                 }
@@ -3312,30 +3591,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     }
                     else
                     {
-                        if (direction > 0
-                            && comboIndex == _loadoutComboButtons.Count - 1
-                            && _loadoutControlButtons.Count > 0)
-                        {
-                            FocusFirstEnabled(_loadoutControlButtons);
-                        }
-                        else
-                        {
-                            FocusAdjacentEnabled(_loadoutComboButtons, comboIndex, direction);
-                        }
+                        FocusAdjacentEnabled(_loadoutComboButtons, comboIndex, direction);
                     }
 
                     return true;
                 }
 
-                if (_loadoutControlButtons.Contains(focusedButton))
-                {
-                    if (direction < 0)
-                    {
-                        FocusLastEnabled(_loadoutComboButtons);
-                    }
-
-                    return true;
-                }
             }
 
             if (_comboMenuLevel == ComboMenuLevel.ComboDetails)
@@ -3365,12 +3626,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     {
                         FocusFirstEnabled(_linkedPlacementButtons);
                     }
-                    else if (direction > 0
-                        && assignedIndex == _assignedActionButtons.Count - 1
-                        && _comboEditorControlButtons.Count > 0)
-                    {
-                        FocusFirstEnabled(_comboEditorControlButtons);
-                    }
                     else
                     {
                         FocusAdjacentEnabled(
@@ -3388,45 +3643,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     {
                         FocusLastEnabled(_assignedActionButtons);
                     }
-                    else if (_comboEditorControlButtons.Count > 0)
-                    {
-                        FocusFirstEnabled(_comboEditorControlButtons);
-                    }
-
-                    return true;
-                }
-
-
-                if (_comboEditorControlButtons.Contains(focusedButton))
-                {
-                    if (direction < 0)
-                    {
-                        if (_linkedPlacementButtons.Count > 0)
-                        {
-                            FocusFirstEnabled(_linkedPlacementButtons);
-                        }
-                        else
-                        {
-                            FocusLastEnabled(_assignedActionButtons);
-                        }
-                    }
 
                     return true;
                 }
             }
 
             return false;
-        }
-
-        private void FocusActionLibraryFilter()
-        {
-            Button target = _selectedActionLibraryFilterButton;
-            if (target == null && _actionLibraryFilterButtons.Count > 0)
-            {
-                target = _actionLibraryFilterButtons[0];
-            }
-
-            FocusNavigationTarget(target);
         }
 
         private void FocusAdjacent(List<Button> buttons, Button current, int direction)
@@ -3454,19 +3676,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
                 next += direction;
             }
-        }
-
-        private static bool HasEnabledButtonBefore(List<Button> buttons, int index)
-        {
-            for (int candidateIndex = index - 1; candidateIndex >= 0; candidateIndex--)
-            {
-                if (buttons[candidateIndex].enabledInHierarchy)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private void FocusFirstEnabled(List<Button> buttons)
@@ -3549,6 +3758,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ClearWarehouseControls()
         {
+            _contentRevision++;
             foreach (Button button in _equipmentWarehouseButtons)
             {
                 _buttonActions.Remove(button);
@@ -3559,6 +3769,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ClearComboControls()
         {
+            _contentRevision++;
             foreach (Button button in _comboPageButtons)
             {
                 _buttonActions.Remove(button);
@@ -3573,10 +3784,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _comboEditorButtons.Clear();
             _pageHeaderButtons.Clear();
             _loadoutComboButtons.Clear();
-            _loadoutControlButtons.Clear();
             _assignedActionButtons.Clear();
             _linkedPlacementButtons.Clear();
-            _comboEditorControlButtons.Clear();
             _actionLibraryFilterButtons.Clear();
             _actionLibraryCandidateButtons.Clear();
             foreach (Button button in _chargeLevelButtons)

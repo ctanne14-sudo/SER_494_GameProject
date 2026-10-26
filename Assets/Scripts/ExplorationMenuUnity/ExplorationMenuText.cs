@@ -51,7 +51,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.assigned-actions": return "Assigned Actions";
                 case "combos.action-details": return "Action Details";
                 case "combos.action-library": return "Actions";
-                case "combos.action-filter-shortcut": return "Q / X: Focus filters";
+                case "combos.action-filter-shortcut": return "Q / E or LB / RB: Change weapon filter";
                 case "combos.empty-slot": return "Empty";
                 case "combos.clear-slot": return "Clear This Optional Slot";
                 case "combos.current": return "Current";
@@ -59,14 +59,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.weapon-warning": return "Warning: incompatible with the equipped Weapon";
                 case "combos.no-owned-actions": return "No owned Actions are available for this slot.";
                 case "combos.linked-placement": return "Linked Action Placement";
-                case "combos.apply": return "Apply Changes";
-                case "combos.revert": return "Revert Changes";
+                case "combos.apply": return "Apply Changes  [X]";
+                case "combos.revert": return "Revert Changes  [Y]";
                 case "combos.unsaved-heading": return "Unsaved Combo Changes";
                 case "combos.unsaved-prompt": return "This Combo has unapplied changes. Save them before leaving?";
                 case "combos.unsaved-save": return "Save Changes";
                 case "combos.unsaved-discard": return "Discard Changes";
                 case "combos.unsaved-cancel": return "Back to Editing";
-                case "combos.activate": return "Set as Active Loadout";
+                case "combos.activate": return "Set as Active Loadout  [X]";
                 case "combos.fix-before-leaving": return "This Loadout cannot be left with an invalid draft.";
                 case "inventory.heading": return "Inventory";
                 case "inventory.consumables": return "Consumables";
@@ -93,7 +93,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "equipment.equipped": return "Equipped";
                 case "equipment.none": return "No owned equipment in this category.";
                 case "title.unavailable": return "A title scene has not been connected yet.";
-                case "footer.controls": return "Esc / B / Right Click: Back    F / Enter / A / Left Click: Confirm    WASD / Arrows / D-pad: Navigate    Wheel: Scroll";
+                case "footer.controls": return "Esc / B / Right Click: Back    F / Enter / A / Left Click: Confirm    WASD / Arrows / D-pad: Navigate    Wheel / Right Stick: Scroll";
                 default: return key;
             }
         }

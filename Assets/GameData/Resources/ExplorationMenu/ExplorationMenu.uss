@@ -75,6 +75,10 @@
     padding-top: 10px;
 }
 
+.menu-navigation-collapsed {
+    display: none;
+}
+
 .nav-button,
 .tab-button,
 .equip-button,
@@ -957,8 +961,53 @@
 }
 
 .combo-action-candidate-button {
+    flex-direction: column;
+    align-items: stretch;
     color: rgb(216, 205, 178);
     background-color: rgb(43, 41, 36);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(84, 70, 51);
+    border-right-color: rgb(84, 70, 51);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.combo-action-candidate-button:hover,
+.combo-action-candidate-button:focus {
+    color: rgb(255, 235, 184);
+    background-color: rgb(65, 58, 47);
+    border-left-color: rgb(170, 136, 82);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
+}
+
+.combo-action-candidate-name {
+    margin-bottom: 4px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+}
+
+.combo-action-candidate-costs {
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: rgb(174, 158, 128);
+}
+
+.combo-action-candidate-effects {
+    font-size: 14px;
+    white-space: normal;
+    color: rgb(218, 207, 181);
+}
+
+.combo-action-candidate-warning {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgb(183, 151, 103);
 }
 
 .combo-action-candidate-button:disabled {
@@ -995,15 +1044,11 @@
 .combo-linked-placement-button:hover,
 .combo-linked-placement-button:focus {
     color: rgb(255, 239, 195);
-    background-color: rgb(119, 86, 43);
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-top-width: 2px;
-    border-bottom-width: 2px;
-    border-left-color: rgb(244, 196, 96);
-    border-right-color: rgb(244, 196, 96);
-    border-top-color: rgb(244, 196, 96);
-    border-bottom-color: rgb(244, 196, 96);
+    background-color: rgb(65, 58, 47);
+    border-left-color: rgb(170, 136, 82);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
 }
 
 .page-note,
