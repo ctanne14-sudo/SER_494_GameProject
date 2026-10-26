@@ -276,8 +276,54 @@
 }
 
 .combo-back-button {
-    min-height: 42px;
+    align-self: flex-start;
+    min-width: 190px;
+    min-height: 34px;
+    margin-bottom: 10px;
+    padding: 7px 12px;
+    background-color: rgba(29, 28, 25, 0.72);
     color: rgb(210, 184, 145);
+}
+
+.page-scroll .unity-scroller--vertical {
+    width: 17px;
+    background-color: rgb(25, 24, 21);
+    border-left-width: 1px;
+    border-left-color: rgb(101, 81, 54);
+}
+
+.page-scroll .unity-base-slider__tracker {
+    background-color: rgb(35, 32, 27);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-left-color: rgb(67, 56, 43);
+    border-right-color: rgb(67, 56, 43);
+}
+
+.page-scroll .unity-base-slider__dragger {
+    background-color: rgb(126, 99, 61);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(184, 148, 88);
+    border-right-color: rgb(184, 148, 88);
+    border-top-color: rgb(184, 148, 88);
+    border-bottom-color: rgb(74, 58, 39);
+}
+
+.page-scroll .unity-scroller__low-button,
+.page-scroll .unity-scroller__high-button {
+    background-color: rgb(45, 39, 31);
+    -unity-background-image-tint-color: rgb(214, 184, 126);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(101, 81, 54);
+    border-right-color: rgb(101, 81, 54);
+    border-top-color: rgb(126, 99, 61);
+    border-bottom-color: rgb(67, 56, 43);
 }
 
 .combo-status-valid,
@@ -543,6 +589,143 @@
     margin-top: 8px;
     color: rgb(148, 197, 139);
     -unity-font-style: bold;
+}
+
+.combo-editor-controls {
+    margin-top: 12px;
+    margin-bottom: 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combo-editor-control-button {
+    min-width: 175px;
+    min-height: 42px;
+    margin-right: 10px;
+    margin-bottom: 8px;
+    color: rgb(222, 207, 175);
+    background-color: rgb(52, 47, 39);
+    border-left-color: rgb(122, 96, 60);
+    border-right-color: rgb(122, 96, 60);
+    border-top-color: rgb(122, 96, 60);
+    border-bottom-color: rgb(122, 96, 60);
+}
+
+.combo-editor-message {
+    min-height: 22px;
+    margin-bottom: 8px;
+    color: rgb(167, 153, 126);
+    white-space: normal;
+}
+
+.combo-editor-message-error {
+    color: rgb(222, 142, 126);
+}
+
+.combo-action-editor-layout {
+    min-height: 430px;
+    margin-bottom: 14px;
+    flex-direction: row;
+}
+
+.combo-assigned-actions,
+.combo-action-library {
+    padding: 14px;
+    background-color: rgb(34, 32, 28);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(84, 70, 51);
+    border-right-color: rgb(84, 70, 51);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.combo-assigned-actions {
+    width: 38%;
+    margin-right: 14px;
+}
+
+.combo-action-library {
+    flex-grow: 1;
+}
+
+.combo-editor-pane-title {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(236, 218, 174);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(112, 91, 61);
+}
+
+.combo-assigned-action-button,
+.combo-action-candidate-button {
+    height: auto;
+    min-height: 58px;
+    margin-bottom: 8px;
+    padding: 9px 12px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
+
+.combo-assigned-action-button {
+    color: rgb(218, 204, 173);
+    background-color: rgb(49, 47, 42);
+}
+
+.combo-assigned-action-selected,
+.combo-assigned-action-button:focus,
+.combo-assigned-action-button:hover {
+    color: rgb(255, 239, 195);
+    background-color: rgb(91, 69, 40);
+    border-left-color: rgb(202, 160, 78);
+    border-right-color: rgb(202, 160, 78);
+    border-top-color: rgb(202, 160, 78);
+    border-bottom-color: rgb(202, 160, 78);
+}
+
+.combo-action-candidate-button {
+    color: rgb(216, 205, 178);
+    background-color: rgb(43, 41, 36);
+}
+
+.combo-action-incompatible {
+    color: rgb(224, 177, 112);
+    border-left-color: rgb(171, 112, 49);
+}
+
+.combo-action-candidate-button:disabled {
+    opacity: 0.48;
+}
+
+.combo-linked-placement-label {
+    margin-top: 8px;
+    margin-bottom: 6px;
+    color: rgb(174, 158, 128);
+    -unity-font-style: bold;
+}
+
+.combo-linked-placement-row {
+    flex-direction: row;
+}
+
+.combo-linked-placement-button {
+    min-width: 84px;
+    margin-right: 6px;
+    color: rgb(205, 191, 162);
+    background-color: rgb(45, 42, 36);
+}
+
+.combo-linked-placement-selected {
+    color: rgb(255, 239, 195);
+    background-color: rgb(96, 72, 40);
+    border-left-color: rgb(202, 160, 78);
+    border-right-color: rgb(202, 160, 78);
+    border-top-color: rgb(202, 160, 78);
+    border-bottom-color: rgb(202, 160, 78);
 }
 
 .page-note,

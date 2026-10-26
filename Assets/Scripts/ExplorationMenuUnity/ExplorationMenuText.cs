@@ -21,8 +21,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.single-heading": return "Single Combo Loadout";
                 case "combos.actions-heading": return "Actions of a Combo";
                 case "combos.note": return "Select an unlocked loadout to inspect its four Combos and Timeline previews.";
-                case "combos.back-loadouts": return "Back to Loadouts";
-                case "combos.back-combos": return "Back to Combo List";
+                case "combos.back-loadouts": return "← Back to Loadouts";
+                case "combos.back-combos": return "← Back to Combo List";
                 case "combos.active": return "ACTIVE LOADOUT";
                 case "combos.inactive": return "INACTIVE LOADOUT";
                 case "combos.valid": return "Loadout configuration is valid.";
@@ -31,7 +31,21 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.timeline-legend": return "D Damage    G Guard    E Evade    B Buff / Debuff    H Heal    S Stamina    Diagonal stripes Resolution Window";
                 case "combos.charge-level": return "Preview Charge Level";
                 case "combos.actions": return "Action Details";
-                case "combos.editor-next": return "Action replacement, draft validation, activation prompts, and Revert Changes are added in the next Combo Configuration stage.";
+                case "combos.configure-actions": return "Configure Actions";
+                case "combos.assigned-actions": return "Assigned Actions";
+                case "combos.action-details": return "Action Details";
+                case "combos.action-library": return "Owned Action Library";
+                case "combos.empty-slot": return "Empty";
+                case "combos.clear-slot": return "Clear This Optional Slot";
+                case "combos.current": return "Current";
+                case "combos.used-elsewhere": return "Already assigned elsewhere in this Loadout";
+                case "combos.weapon-warning": return "Warning: incompatible with the equipped Weapon";
+                case "combos.no-owned-actions": return "No owned Actions are available for this slot.";
+                case "combos.linked-placement": return "Linked Action Placement";
+                case "combos.apply": return "Apply Changes";
+                case "combos.revert": return "Revert Changes";
+                case "combos.activate": return "Set as Active Loadout";
+                case "combos.fix-before-leaving": return "This Loadout cannot be left with an invalid draft.";
                 case "inventory.heading": return "Inventory";
                 case "inventory.consumables": return "Consumables";
                 case "inventory.materials": return "Materials";
@@ -57,7 +71,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "equipment.equipped": return "Equipped";
                 case "equipment.none": return "No owned equipment in this category.";
                 case "title.unavailable": return "A title scene has not been connected yet.";
-                case "footer.controls": return "Esc / B / Right Click: Back    F / Enter / A / Left Click: Confirm    WASD / Arrows / D-pad / Wheel: Navigate";
+                case "footer.controls": return "Esc / B / Right Click: Back    F / Enter / A / Left Click: Confirm    WASD / Arrows / D-pad: Navigate    Wheel: Scroll";
                 default: return key;
             }
         }
