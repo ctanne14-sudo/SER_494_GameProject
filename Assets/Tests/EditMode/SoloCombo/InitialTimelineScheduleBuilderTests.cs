@@ -5,6 +5,7 @@ using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
     public sealed class InitialTimelineScheduleBuilderTests
     {
         [Test]

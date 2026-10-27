@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
     public sealed class SoloComboLoadoutSessionTests
     {
         private SoloComboLoadoutSession _session;

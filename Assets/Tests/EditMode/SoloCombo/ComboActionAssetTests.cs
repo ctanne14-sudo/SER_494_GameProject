@@ -8,6 +8,8 @@ using UnityEngine;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
+    [Category("Authoring")]
     public sealed class ComboActionAssetTests
     {
         private ComboActionAsset _asset;

@@ -11,6 +11,7 @@ using UnityEngine.UIElements;
 
 namespace SER494.Gameplay.PlayModeTests
 {
+    [Category("PlayModeSmoke")]
     public sealed class ApplicationFlowSmokeTests
     {
         private const string ExplorationSceneName = "Floor1_Cell_A";

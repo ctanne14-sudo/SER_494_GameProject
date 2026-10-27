@@ -3,16 +3,15 @@ using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.Tests
 {
+    [Category("CoreCombat")]
     public sealed class CombatantStateTests
     {
         [Test]
-        public void Resources_CanBeRestoredButNeverExceedMaximums()
+        public void Resources_CanBePaidAndRestoredButNeverExceedMaximums()
         {
             CombatantState actor = CreateCombatant();
-            CombatAction action = new CombatAction("Resource Test", power: 1, manaCost: 4, staminaCost: 6);
-            CombatantState target = CreateCombatant();
 
-            CombatResolver.Execute(actor, target, action);
+            actor.Pay(manaCost: 4, staminaCost: 6);
             actor.RestoreMana(100);
             actor.RestoreStamina(100);
 

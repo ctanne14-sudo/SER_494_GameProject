@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
     public sealed class PlayerStateServiceTests
     {
         private static readonly MethodInfo AwakeMethod = typeof(PlayerStateService).GetMethod(

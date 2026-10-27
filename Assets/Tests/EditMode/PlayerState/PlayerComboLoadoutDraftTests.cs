@@ -2,6 +2,7 @@ using NUnit.Framework;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
     public sealed class PlayerComboLoadoutDraftTests
     {
         [Test]

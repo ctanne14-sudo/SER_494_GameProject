@@ -3,6 +3,7 @@ using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.Tests
 {
+    [Category("CoreCombat")]
     public sealed class CombatStatusTests
     {
         [Test]

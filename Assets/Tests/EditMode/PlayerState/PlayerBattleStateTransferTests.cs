@@ -6,6 +6,8 @@ using SER494.Gameplay.CombatIntegration;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
+    [Category("CombatIntegration")]
     public sealed class PlayerBattleStateTransferTests
     {
         [Test]

@@ -8,6 +8,7 @@ using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Tests
 {
+    [Category("CombatIntegration")]
     public sealed class PlayerEquipmentDerivedStatsTests
     {
         [Test]

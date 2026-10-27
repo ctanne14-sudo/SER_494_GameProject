@@ -5,6 +5,8 @@ using SER494.Gameplay.PlayerState.Unity;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
+    [Category("Persistence")]
     public sealed class PlayerSaveStorageTests
     {
         private string _saveDirectory;

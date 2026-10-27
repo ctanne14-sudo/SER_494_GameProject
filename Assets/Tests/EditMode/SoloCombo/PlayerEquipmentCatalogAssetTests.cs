@@ -5,6 +5,8 @@ using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
+    [Category("Authoring")]
     public sealed class PlayerEquipmentCatalogAssetTests
     {
         [Test]

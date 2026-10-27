@@ -9,6 +9,7 @@ using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Unity.Tests
 {
+    [Category("CombatIntegration")]
     public sealed class PlayerStateLoadoutSessionBuilderTests
     {
         private SoloComboLoadoutSession _session;

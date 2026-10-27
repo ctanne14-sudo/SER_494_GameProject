@@ -16,6 +16,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
     /// These tests intentionally fail when an authored asset is invalid, omitted
     /// from its catalog, or referenced by initial Player State without ownership.
     /// </summary>
+    [Category("CombatIntegration")]
+    [Category("ContentContract")]
     public sealed class AuthoredContentContractTests
     {
         private const string ActionAssetFolder =

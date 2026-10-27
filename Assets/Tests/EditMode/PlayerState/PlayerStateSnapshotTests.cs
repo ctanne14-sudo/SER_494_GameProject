@@ -3,6 +3,8 @@ using NUnit.Framework;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
+    [Category("Persistence")]
     public sealed class PlayerStateSnapshotTests
     {
         [Test]

@@ -3,6 +3,7 @@ using NUnit.Framework;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
     public sealed class EnemyBehaviorTableTests
     {
         [Test]

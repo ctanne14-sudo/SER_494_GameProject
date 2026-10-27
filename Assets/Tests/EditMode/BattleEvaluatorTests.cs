@@ -2,6 +2,7 @@ using NUnit.Framework;
 
 namespace SER494.Gameplay.Combat.Tests
 {
+    [Category("CoreCombat")]
     public sealed class BattleEvaluatorTests
     {
         [Test]

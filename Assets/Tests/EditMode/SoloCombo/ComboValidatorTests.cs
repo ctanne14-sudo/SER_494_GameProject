@@ -5,6 +5,7 @@ using SER494.Gameplay.Combat.Weapons;
 
 namespace SER494.Gameplay.Combat.SoloCombo.Tests
 {
+    [Category("CoreCombat")]
     public sealed class ComboValidatorTests
     {
         private static readonly ComboValidationLimits GenerousLimits =

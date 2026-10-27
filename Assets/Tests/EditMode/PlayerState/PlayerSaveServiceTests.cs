@@ -8,6 +8,8 @@ using UnityEngine;
 
 namespace SER494.Gameplay.PlayerState.Tests
 {
+    [Category("PlayerState")]
+    [Category("Persistence")]
     public sealed class PlayerSaveServiceTests
     {
         private static readonly MethodInfo PlayerStateAwake =
