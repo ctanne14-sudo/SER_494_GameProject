@@ -1,0 +1,24 @@
+{
+  "name": "SER494.PlayModeSmokeTests",
+  "rootNamespace": "SER494.Gameplay.PlayModeTests",
+  "references": [
+    "SER494.Combat",
+    "SER494.Combat.Authoring",
+    "SER494.CombatIntegration.Unity",
+    "SER494.ExplorationMenu.Unity",
+    "SER494.PlayerState",
+    "SER494.PlayerState.Unity"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
