@@ -153,7 +153,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 
         [TestCase(BattleOutcome.PlayerDefeat)]
         [TestCase(BattleOutcome.Draw)]
-        public void CanReturnToExploration_WithoutVictory_IsRejected(BattleOutcome outcome)
+        public void CanReturnToExploration_AfterAnyFinalOutcome_ReturnsTrue(BattleOutcome outcome)
         {
             BattleSessionService service = CreateService("Battle Sessions");
             BeginValidBattle(service);
@@ -164,8 +164,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 
             bool canReturn = service.CanReturnToExploration(out string returnError);
 
-            Assert.That(canReturn, Is.False);
-            Assert.That(returnError, Does.Contain("Only a player victory"));
+            Assert.That(canReturn, Is.True, returnError);
+            Assert.That(returnError, Is.Null);
         }
 
         [Test]
@@ -200,6 +200,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             EquipStartingGear(playerState);
             playerState.TakeDamage(35);
             Assert.That(playerState.TrySpendMana(7), Is.True);
+            playerState.SetCurrentCombatStamina(14);
             playerState.Inventory.Add("item.potion", 2);
             var weapon = new WeaponDefinition(
                 "weapon.integration-test",
@@ -218,7 +219,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(created, Is.True, error);
             Assert.That(battle.Player.CurrentHealth, Is.EqualTo(85));
             Assert.That(battle.Player.CurrentMana, Is.EqualTo(33));
-            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(30));
+            Assert.That(battle.Player.CurrentStamina, Is.EqualTo(14));
             Assert.That(battle.Player.Stats.Attack, Is.EqualTo(50));
             Assert.That(battle.Player.Stats.Defense, Is.EqualTo(10));
             Assert.That(battle.GetItemCount("item.potion"), Is.EqualTo(2));
@@ -261,6 +262,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 Is.True);
             Assert.That(playerState.CurrentHealth, Is.EqualTo(battle.Player.CurrentHealth));
             Assert.That(playerState.CurrentMana, Is.EqualTo(battle.Player.CurrentMana));
+            Assert.That(playerState.CurrentCombatStamina,
+                Is.EqualTo(battle.Player.CurrentStamina));
         }
 
         [Test]
@@ -311,8 +314,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 Is.True);
             Assert.That(
                 service.CanReturnToExploration(out string returnError),
-                Is.False);
-            Assert.That(returnError, Does.Contain("Mutual Destruction"));
+                Is.True,
+                returnError);
         }
 
         private void BeginValidBattle(BattleSessionService service)

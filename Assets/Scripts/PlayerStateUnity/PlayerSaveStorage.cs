@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SER494.Gameplay.PlayerState.Unity
@@ -9,11 +10,56 @@ namespace SER494.Gameplay.PlayerState.Unity
     [Serializable]
     internal sealed class PlayerSaveEnvelope
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int Version = CurrentVersion;
         public string SavedAtUtc;
         public PlayerStateSnapshot PlayerState;
+        public ExplorationSaveSnapshot Exploration = new ExplorationSaveSnapshot();
+    }
+
+    [Serializable]
+    public sealed class ExplorationSaveSnapshot
+    {
+        public bool HasCheckpoint;
+        public string SceneName;
+        public string SavePointId;
+        public float PositionX;
+        public float PositionY;
+        public float PositionZ;
+        public float RotationX;
+        public float RotationY;
+        public float RotationZ;
+        public float RotationW = 1f;
+        public List<string> DefeatedEncounterKeys = new List<string>();
+
+        public Vector3 Position => new Vector3(PositionX, PositionY, PositionZ);
+
+        public Quaternion Rotation => new Quaternion(
+            RotationX,
+            RotationY,
+            RotationZ,
+            RotationW);
+
+        public ExplorationSaveSnapshot Clone()
+        {
+            return new ExplorationSaveSnapshot
+            {
+                HasCheckpoint = HasCheckpoint,
+                SceneName = SceneName,
+                SavePointId = SavePointId,
+                PositionX = PositionX,
+                PositionY = PositionY,
+                PositionZ = PositionZ,
+                RotationX = RotationX,
+                RotationY = RotationY,
+                RotationZ = RotationZ,
+                RotationW = RotationW,
+                DefeatedEncounterKeys = DefeatedEncounterKeys == null
+                    ? new List<string>()
+                    : new List<string>(DefeatedEncounterKeys)
+            };
+        }
     }
 
     public enum SaveSlotState
@@ -55,14 +101,21 @@ namespace SER494.Gameplay.PlayerState.Unity
 
     public sealed class LoadedPlayerSave
     {
-        public LoadedPlayerSave(PlayerState state, DateTime savedAtUtc, bool fromBackup)
+        public LoadedPlayerSave(
+            PlayerState state,
+            ExplorationSaveSnapshot exploration,
+            DateTime savedAtUtc,
+            bool fromBackup)
         {
             State = state ?? throw new ArgumentNullException(nameof(state));
+            Exploration = exploration?.Clone() ?? new ExplorationSaveSnapshot();
             SavedAtUtc = savedAtUtc;
             FromBackup = fromBackup;
         }
 
         public PlayerState State { get; }
+
+        public ExplorationSaveSnapshot Exploration { get; }
 
         public DateTime SavedAtUtc { get; }
 
@@ -96,10 +149,23 @@ namespace SER494.Gameplay.PlayerState.Unity
 
         public void Save(int slotNumber, PlayerState state)
         {
+            Save(slotNumber, state, new ExplorationSaveSnapshot());
+        }
+
+        public void Save(
+            int slotNumber,
+            PlayerState state,
+            ExplorationSaveSnapshot exploration)
+        {
             ValidateSlotNumber(slotNumber);
             if (state == null)
             {
                 throw new ArgumentNullException(nameof(state));
+            }
+
+            if (exploration == null)
+            {
+                throw new ArgumentNullException(nameof(exploration));
             }
 
             Directory.CreateDirectory(_rootDirectory);
@@ -110,7 +176,8 @@ namespace SER494.Gameplay.PlayerState.Unity
             var envelope = new PlayerSaveEnvelope
             {
                 SavedAtUtc = _utcNow().ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-                PlayerState = PlayerStateSnapshotMapper.Capture(state)
+                PlayerState = PlayerStateSnapshotMapper.Capture(state),
+                Exploration = exploration.Clone()
             };
 
             string json = JsonUtility.ToJson(envelope, true);
@@ -266,7 +333,8 @@ namespace SER494.Gameplay.PlayerState.Unity
                 throw new InvalidDataException("The save file has no Player State data.");
             }
 
-            if (envelope.Version != PlayerSaveEnvelope.CurrentVersion)
+            if (envelope.Version < 1
+                || envelope.Version > PlayerSaveEnvelope.CurrentVersion)
             {
                 throw new NotSupportedException(
                     $"Save file version {envelope.Version} is not supported.");
@@ -285,8 +353,12 @@ namespace SER494.Gameplay.PlayerState.Unity
             try
             {
                 PlayerState state = PlayerStateSnapshotMapper.Restore(envelope.PlayerState);
+                ExplorationSaveSnapshot exploration = envelope.Version == 1
+                    ? new ExplorationSaveSnapshot()
+                    : envelope.Exploration ?? new ExplorationSaveSnapshot();
                 return new LoadedPlayerSave(
                     state,
+                    exploration,
                     savedAtUtc.ToUniversalTime(),
                     fromBackup);
             }

@@ -7,14 +7,28 @@ namespace SER494.Gameplay.PlayerState.Tests
     public sealed class PlayerStateTests
     {
         [Test]
-        public void Constructor_StartsHealthAndManaFull_ButStoresOnlyMaximumCombatStamina()
+        public void Constructor_StartsPersistentResourcesFull()
         {
             var state = CreateState();
 
             Assert.That(state.CurrentHealth, Is.EqualTo(100));
             Assert.That(state.CurrentMana, Is.EqualTo(30));
             Assert.That(state.MaximumCombatStamina, Is.EqualTo(30));
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(30));
             Assert.That(state.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void CombatStaminaMutations_ClampAndRestoreToMaximum()
+        {
+            var state = CreateState();
+
+            state.SetCurrentCombatStamina(7);
+            state.RestoreCombatStamina(5);
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(12));
+
+            state.RestoreCombatStaminaToMaximum();
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(30));
         }
 
         [Test]

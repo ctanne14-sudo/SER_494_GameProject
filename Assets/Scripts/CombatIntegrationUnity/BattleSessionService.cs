@@ -4,6 +4,7 @@ using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SER494.Gameplay.PlayerState.Unity;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
 {
@@ -22,6 +23,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             new ExplorationPresentationSuspension();
 
         private bool _isReturningToSource;
+        private string _returnSceneName;
+        private Vector3 _returnPosition;
+        private Quaternion _returnRotation;
+        private bool _hasReturnTransform;
 
         public static BattleSessionService Active => _active;
 
@@ -142,9 +147,16 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             CurrentSession.Complete(outcome);
             if (outcome == BattleOutcome.PlayerVictory || outcome == BattleOutcome.Draw)
             {
-                _defeatedEncounterKeys.Add(CreateEncounterKey(
+                string encounterKey = CreateEncounterKey(
                     CurrentSession.SourceSceneName,
-                    CurrentSession.EncounterInstanceId));
+                    CurrentSession.EncounterInstanceId);
+                _defeatedEncounterKeys.Add(encounterKey);
+                if (PlayerSaveService.TryGetActive(out PlayerSaveService saveService))
+                {
+                    saveService.MarkEncounterDefeated(
+                        CurrentSession.SourceSceneName,
+                        CurrentSession.EncounterInstanceId);
+                }
             }
 
             validationError = null;
@@ -173,14 +185,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            if (CurrentSession.Outcome != BattleOutcome.PlayerVictory)
-            {
-                validationError =
-                    "Only a player victory can currently return to exploration. "
-                    + "Defeat and Mutual Destruction await the finalized death rules.";
-                return false;
-            }
-
             if (_isReturningToSource)
             {
                 validationError = "The return to exploration is already in progress.";
@@ -198,17 +202,21 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            string sourceSceneName = CurrentSession.SourceSceneName;
-            if (!Application.CanStreamedLevelBeLoaded(sourceSceneName))
+            if (!TryPrepareReturnDestination(out validationError))
+            {
+                return false;
+            }
+
+            if (!Application.CanStreamedLevelBeLoaded(_returnSceneName))
             {
                 validationError =
-                    $"Source scene '{sourceSceneName}' is not available in Build Settings.";
+                    $"Return scene '{_returnSceneName}' is not available in Build Settings.";
                 return false;
             }
 
             _isReturningToSource = true;
             SceneManager.sceneLoaded += HandleSourceSceneLoaded;
-            SceneManager.LoadScene(sourceSceneName);
+            SceneManager.LoadScene(_returnSceneName);
             validationError = null;
             return true;
         }
@@ -219,6 +227,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 || string.IsNullOrWhiteSpace(encounterInstanceId))
             {
                 return false;
+            }
+
+            if (PlayerSaveService.TryGetActive(out PlayerSaveService saveService))
+            {
+                return saveService.IsEncounterDefeated(sourceSceneName, encounterInstanceId);
             }
 
             return _defeatedEncounterKeys.Contains(CreateEncounterKey(
@@ -245,7 +258,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 || CurrentSession == null
                 || !string.Equals(
                     scene.name,
-                    CurrentSession.SourceSceneName,
+                    _returnSceneName,
                     StringComparison.Ordinal))
             {
                 return;
@@ -282,9 +295,12 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 controller.enabled = false;
             }
 
-            player.transform.SetPositionAndRotation(
-                CurrentSession.ReturnPosition,
-                CurrentSession.ReturnRotation);
+            if (_hasReturnTransform)
+            {
+                player.transform.SetPositionAndRotation(
+                    _returnPosition,
+                    _returnRotation);
+            }
 
             if (controllerWasEnabled)
             {
@@ -294,6 +310,46 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             _explorationPresentation.Resume();
             CancelPendingReturn();
             CurrentSession = null;
+        }
+
+        private bool TryPrepareReturnDestination(out string validationError)
+        {
+            if (CurrentSession.Outcome == BattleOutcome.PlayerVictory)
+            {
+                _returnSceneName = CurrentSession.SourceSceneName;
+                _returnPosition = CurrentSession.ReturnPosition;
+                _returnRotation = CurrentSession.ReturnRotation;
+                _hasReturnTransform = true;
+                validationError = null;
+                return true;
+            }
+
+            if (!PlayerSaveService.TryGetActive(out PlayerSaveService saveService)
+                || !saveService.HasActiveSlot)
+            {
+                validationError =
+                    "Defeat recovery requires an active Gameplay Save slot.";
+                return false;
+            }
+
+            if (CurrentSession.Outcome == BattleOutcome.PlayerDefeat)
+            {
+                saveService.ReloadActiveSlot();
+            }
+            else if (CurrentSession.Outcome == BattleOutcome.Draw)
+            {
+                saveService.PrepareMutualDestructionReturn();
+            }
+
+            ExplorationSaveSnapshot exploration = saveService.Exploration;
+            _returnSceneName = string.IsNullOrWhiteSpace(exploration.SceneName)
+                ? CurrentSession.SourceSceneName
+                : exploration.SceneName;
+            _returnPosition = exploration.Position;
+            _returnRotation = exploration.Rotation;
+            _hasReturnTransform = exploration.HasCheckpoint;
+            validationError = null;
+            return true;
         }
 
         private void TrySuspendExplorationPresentation()
@@ -327,6 +383,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         {
             SceneManager.sceneLoaded -= HandleSourceSceneLoaded;
             _isReturningToSource = false;
+            _returnSceneName = null;
+            _hasReturnTransform = false;
         }
 
         private string ValidateBeginRequest(

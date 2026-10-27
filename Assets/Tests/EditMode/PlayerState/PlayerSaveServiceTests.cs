@@ -90,6 +90,74 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(stateService.State, Is.SameAs(stateBeforeLoad));
         }
 
+        [Test]
+        public void SaveAtCheckpoint_UsesActiveSlotAndRestoresAllResources()
+        {
+            (PlayerStateService stateService, PlayerSaveService saveService) =
+                CreateServices();
+            saveService.BeginNewGameInSlot(2, "Floor1_Cell_A");
+            stateService.State.SetCurrentHealth(12);
+            stateService.State.SetCurrentMana(3);
+            stateService.State.SetCurrentCombatStamina(7);
+
+            saveService.SaveAtCheckpoint(new SavePointContext(
+                "Floor1_Cell_A",
+                "floor1-cell-a.save-point-01",
+                new Vector3(4f, 1f, 2f),
+                Quaternion.identity));
+
+            Assert.That(saveService.ActiveSlotNumber, Is.EqualTo(2));
+            Assert.That(stateService.State.CurrentHealth,
+                Is.EqualTo(stateService.State.MaximumHealth));
+            Assert.That(stateService.State.CurrentMana,
+                Is.EqualTo(stateService.State.MaximumMana));
+            Assert.That(stateService.State.CurrentCombatStamina,
+                Is.EqualTo(stateService.State.MaximumCombatStamina));
+            Assert.That(saveService.InspectSlot(1).State, Is.EqualTo(SaveSlotState.Empty));
+            Assert.That(saveService.LoadSlot(2).Exploration.SavePointId,
+                Is.EqualTo("floor1-cell-a.save-point-01"));
+        }
+
+        [Test]
+        public void MutualDestruction_PreservesRuntimeProgressAndSetsResourcesToOne()
+        {
+            (PlayerStateService stateService, PlayerSaveService saveService) =
+                CreateServices();
+            saveService.BeginNewGameInSlot(1, "Floor1_Cell_A");
+            saveService.MarkEncounterDefeated("Floor1_Cell_A", "wanderer-03");
+
+            saveService.PrepareMutualDestructionReturn();
+
+            Assert.That(stateService.State.CurrentHealth, Is.EqualTo(1));
+            Assert.That(stateService.State.CurrentMana, Is.EqualTo(1));
+            Assert.That(stateService.State.CurrentCombatStamina, Is.EqualTo(1));
+            Assert.That(
+                saveService.IsEncounterDefeated("Floor1_Cell_A", "wanderer-03"),
+                Is.True);
+        }
+
+        [Test]
+        public void ReloadActiveSlot_DiscardsUnsavedProgressAndRestoresSavedResources()
+        {
+            (PlayerStateService stateService, PlayerSaveService saveService) =
+                CreateServices();
+            saveService.BeginNewGameInSlot(1, "Floor1_Cell_A");
+
+            stateService.State.SetCurrentHealth(23);
+            stateService.State.SetCurrentCombatStamina(17);
+            saveService.MarkEncounterDefeated("Floor1_Cell_A", "wanderer-01");
+
+            saveService.ReloadActiveSlot();
+
+            Assert.That(stateService.State.CurrentHealth,
+                Is.EqualTo(stateService.State.MaximumHealth));
+            Assert.That(stateService.State.CurrentCombatStamina,
+                Is.EqualTo(stateService.State.MaximumCombatStamina));
+            Assert.That(
+                saveService.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
+                Is.False);
+        }
+
         private (PlayerStateService, PlayerSaveService) CreateServices()
         {
             var gameObject = new GameObject("Player State and Save Services");

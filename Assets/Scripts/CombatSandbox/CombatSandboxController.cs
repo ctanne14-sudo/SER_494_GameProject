@@ -267,10 +267,14 @@ namespace SER494.Gameplay.CombatSandbox
                             && !_battleSessionService.IsReturningToSource;
                         break;
                     case BattleOutcome.PlayerDefeat:
-                        label = "Defeat Return Flow — pending rules";
+                        label = "Return to Last Save Point";
+                        canReturn = _battleSessionService != null
+                            && !_battleSessionService.IsReturningToSource;
                         break;
                     case BattleOutcome.Draw:
-                        label = "Mutual Destruction Return Flow — pending rules";
+                        label = "Mutual Destruction — Return to Save Point";
+                        canReturn = _battleSessionService != null
+                            && !_battleSessionService.IsReturningToSource;
                         break;
                     default:
                         label = "Return to Exploration — unavailable";

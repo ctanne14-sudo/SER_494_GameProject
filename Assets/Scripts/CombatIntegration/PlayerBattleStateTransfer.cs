@@ -31,7 +31,7 @@ namespace SER494.Gameplay.CombatIntegration
                 stats,
                 playerState.CurrentHealth,
                 playerState.CurrentMana,
-                playerState.MaximumCombatStamina);
+                playerState.CurrentCombatStamina);
         }
 
         public static IReadOnlyDictionary<string, int> CaptureInventory(
@@ -76,6 +76,7 @@ namespace SER494.Gameplay.CombatIntegration
 
             playerState.SetCurrentHealth(playerCombatant.CurrentHealth);
             playerState.SetCurrentMana(playerCombatant.CurrentMana);
+            playerState.SetCurrentCombatStamina(playerCombatant.CurrentStamina);
             foreach (KeyValuePair<string, int> item in remainingItems)
             {
                 playerState.Inventory.SetCount(item.Key, item.Value);
@@ -87,11 +88,12 @@ namespace SER494.Gameplay.CombatIntegration
             CombatantState playerCombatant)
         {
             if (playerCombatant.Stats.MaxHealth != playerState.MaximumHealth
-                || playerCombatant.Stats.MaxMana != playerState.MaximumMana)
+                || playerCombatant.Stats.MaxMana != playerState.MaximumMana
+                || playerCombatant.Stats.MaxStamina != playerState.MaximumCombatStamina)
             {
                 throw new InvalidOperationException(
                     "Battle results cannot be applied after the player's persistent "
-                    + "Health or Mana maximum changed during battle.");
+                    + "Health, Mana, or Stamina maximum changed during battle.");
             }
         }
 

@@ -48,6 +48,7 @@ namespace SER494.Gameplay.PlayerState.Tests
             SaveSlotInfo info = storage.Inspect(2);
 
             Assert.That(loaded.State.CurrentHealth, Is.EqualTo(73));
+            Assert.That(loaded.State.CurrentCombatStamina, Is.EqualTo(41));
             Assert.That(loaded.State.Inventory.GetCount("healing-potion"), Is.EqualTo(2));
             Assert.That(loaded.State.Equipment.EquippedWeaponId,
                 Is.EqualTo("weapon.greatsword.test"));
@@ -58,6 +59,34 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(loaded.FromBackup, Is.False);
             Assert.That(info.State, Is.EqualTo(SaveSlotState.Valid));
             Assert.That(info.SavedAtUtc, Is.EqualTo(savedAtUtc));
+        }
+
+        [Test]
+        public void SaveAndLoad_PreservesCheckpointAndDefeatedEncounters()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+            var exploration = new ExplorationSaveSnapshot
+            {
+                HasCheckpoint = true,
+                SceneName = "Floor1_Cell_A",
+                SavePointId = "floor1-cell-a.save-point-01",
+                PositionX = 3f,
+                PositionY = 1f,
+                PositionZ = -2f,
+                RotationW = 1f
+            };
+            exploration.DefeatedEncounterKeys.Add("Floor1_Cell_A::wanderer-01");
+
+            storage.Save(1, CreatePopulatedState(currentHealth: 73), exploration);
+            LoadedPlayerSave loaded = storage.Load(1);
+
+            Assert.That(loaded.Exploration.HasCheckpoint, Is.True);
+            Assert.That(loaded.Exploration.SceneName, Is.EqualTo("Floor1_Cell_A"));
+            Assert.That(loaded.Exploration.SavePointId,
+                Is.EqualTo("floor1-cell-a.save-point-01"));
+            Assert.That(loaded.Exploration.Position.x, Is.EqualTo(3f));
+            Assert.That(loaded.Exploration.DefeatedEncounterKeys,
+                Does.Contain("Floor1_Cell_A::wanderer-01"));
         }
 
         [Test]
@@ -155,14 +184,32 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 1", "\"Version\": 2"));
+                json.Replace("\"Version\": 2", "\"Version\": 3"));
 
             SaveSlotInfo info = storage.Inspect(3);
 
             Assert.That(info.State, Is.EqualTo(SaveSlotState.UnsupportedVersion));
             Assert.That(info.CanLoad, Is.False);
-            Assert.That(info.ErrorMessage, Does.Contain("version 2"));
+            Assert.That(info.ErrorMessage, Does.Contain("version 3"));
             Assert.Throws<NotSupportedException>(() => storage.Load(3));
+        }
+
+        [Test]
+        public void VersionOneSave_MigratesWithFullCombatStamina()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+            storage.Save(1, CreatePopulatedState(currentHealth: 73));
+            string savePath = storage.GetSavePath(1);
+            string json = File.ReadAllText(savePath);
+            File.WriteAllText(
+                savePath,
+                json.Replace("\"Version\": 2", "\"Version\": 1"));
+
+            LoadedPlayerSave loaded = storage.Load(1);
+
+            Assert.That(loaded.State.CurrentCombatStamina,
+                Is.EqualTo(loaded.State.MaximumCombatStamina));
+            Assert.That(loaded.Exploration.HasCheckpoint, Is.False);
         }
 
         [Test]
@@ -193,6 +240,7 @@ namespace SER494.Gameplay.PlayerState.Tests
         {
             var state = new PlayerState(100, 30, 100);
             state.SetCurrentHealth(currentHealth);
+            state.SetCurrentCombatStamina(41);
             state.Inventory.Add("healing-potion", 2);
             state.Equipment.Grant(
                 EquipmentCategory.Weapon,

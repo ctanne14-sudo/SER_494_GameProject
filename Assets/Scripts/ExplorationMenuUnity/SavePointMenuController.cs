@@ -31,10 +31,27 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private bool _previousInputGate;
         private bool _stickLatched;
         private int _openedFrame;
+        private SavePointContext _checkpoint;
 
         public static bool TryOpen()
         {
-            if (_active == null || _active._isOpen)
+            if (!PlayerSaveService.TryGetActive(out PlayerSaveService saveService)
+                || !saveService.Exploration.HasCheckpoint)
+            {
+                return false;
+            }
+
+            ExplorationSaveSnapshot saved = saveService.Exploration;
+            return TryOpen(new SavePointContext(
+                saved.SceneName,
+                saved.SavePointId,
+                saved.Position,
+                saved.Rotation));
+        }
+
+        public static bool TryOpen(SavePointContext checkpoint)
+        {
+            if (_active == null || _active._isOpen || checkpoint == null)
             {
                 return false;
             }
@@ -45,7 +62,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return false;
             }
 
-            _active.Open();
+            _active.Open(checkpoint);
             return true;
         }
 
@@ -96,6 +113,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         {
             if (!_isOpen)
             {
+                if (PlayerSaveService.TryGetActive(out PlayerSaveService saveService)
+                    && saveService.TryConsumeCheckpointInteractionRequest(
+                        out SavePointContext pendingCheckpoint))
+                {
+                    TryOpen(pendingCheckpoint);
+                }
+
                 return;
             }
 
@@ -161,8 +185,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private void Open()
+        private void Open(SavePointContext checkpoint)
         {
+            _checkpoint = checkpoint;
             _previousTimeScale = Time.timeScale;
             _previousCursorLockMode = UnityEngine.Cursor.lockState;
             _previousCursorVisible = UnityEngine.Cursor.visible;
@@ -174,8 +199,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             ExplorationMenuInputGate.IsOpen = true;
             _isOpen = true;
             _openedFrame = Time.frameCount;
-            _selectedSlotIndex = 0;
-            _message.text = "Choose a slot to save your current progress.";
+            PlayerSaveService.TryGetActive(out PlayerSaveService saveService);
+            _selectedSlotIndex = saveService != null && saveService.HasActiveSlot
+                ? saveService.ActiveSlotNumber - 1
+                : 0;
+            _message.text = saveService != null && saveService.HasActiveSlot
+                ? $"Save and recover all resources in Slot {saveService.ActiveSlotNumber}."
+                : "No active save slot is available.";
             _root.style.display = DisplayStyle.Flex;
             RefreshSlots();
             RefreshSlotSelection();
@@ -201,6 +231,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (!PlayerSaveService.TryGetActive(out PlayerSaveService saveService))
             {
                 _message.text = "Save service is unavailable.";
+                return;
+            }
+
+            if (!saveService.HasActiveSlot || index + 1 != saveService.ActiveSlotNumber)
+            {
+                _message.text = "This run can only save to its active slot.";
                 return;
             }
 
@@ -243,8 +279,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     throw new InvalidOperationException("Save service is unavailable.");
                 }
 
-                int slotNumber = _selectedSlotIndex + 1;
-                saveService.SaveSlot(slotNumber);
+                int slotNumber = saveService.ActiveSlotNumber;
+                saveService.SaveAtCheckpoint(_checkpoint);
                 RefreshSlots();
                 _message.text = $"Progress saved to Slot {slotNumber}.";
             }
@@ -272,6 +308,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 int slotNumber = index + 1;
                 SaveSlotInfo info = saveService.InspectSlot(slotNumber);
                 _slotButtons[index].text = FormatSlot(info);
+                _slotButtons[index].SetEnabled(
+                    saveService.HasActiveSlot
+                    && slotNumber == saveService.ActiveSlotNumber);
             }
         }
 

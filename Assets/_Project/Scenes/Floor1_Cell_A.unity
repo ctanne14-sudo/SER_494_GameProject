@@ -1826,6 +1826,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SavePointAction
   interactionPrompt: {fileID: 0}
   fallbackPrompt: E / A  Save
+  savePointId: floor1-cell-a.save-point-01
 --- !u!23 &105869303
 MeshRenderer:
   m_ObjectHideFlags: 0

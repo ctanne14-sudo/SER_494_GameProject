@@ -21,6 +21,7 @@ namespace SER494.Gameplay.PlayerState
                 nameof(baseStaminaRecoveryPerRound));
             CurrentHealth = MaximumHealth;
             CurrentMana = MaximumMana;
+            CurrentCombatStamina = MaximumCombatStamina;
 
             Inventory = new PlayerInventoryState();
             Currencies = new PlayerCurrencyState();
@@ -41,9 +42,11 @@ namespace SER494.Gameplay.PlayerState
 
         public int MaximumMana { get; }
 
-        // Stamina exists only during combat. A Battle State starts at this value
-        // instead of carrying a current Stamina value through exploration.
         public int MaximumCombatStamina { get; }
+
+        // Combat Stamina persists between battles. Save points restore it to its
+        // maximum, while a new battle starts from this current value.
+        public int CurrentCombatStamina { get; private set; }
 
         // Persistent base value. Equipment and battle statuses can modify the
         // actual recovery used by an individual battle without mutating this value.
@@ -119,6 +122,22 @@ namespace SER494.Gameplay.PlayerState
         public void RestoreManaToMaximum()
         {
             CurrentMana = MaximumMana;
+        }
+
+        public void SetCurrentCombatStamina(int value)
+        {
+            CurrentCombatStamina = Clamp(value, 0, MaximumCombatStamina);
+        }
+
+        public void RestoreCombatStamina(int amount)
+        {
+            RequireNonNegative(amount, nameof(amount));
+            SetCurrentCombatStamina(CurrentCombatStamina + amount);
+        }
+
+        public void RestoreCombatStaminaToMaximum()
+        {
+            CurrentCombatStamina = MaximumCombatStamina;
         }
 
         private static int Clamp(int value, int minimum, int maximum)

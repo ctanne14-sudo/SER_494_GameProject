@@ -11,11 +11,12 @@ namespace SER494.Gameplay.PlayerState.Tests
     public sealed class PlayerBattleStateTransferTests
     {
         [Test]
-        public void CreateCombatant_CarriesPersistentResourcesAndStartsStaminaFull()
+        public void CreateCombatant_CarriesAllPersistentResourcesIncludingStamina()
         {
             PlayerState state = CreateState();
             state.TakeDamage(35);
             Assert.That(state.TrySpendMana(8), Is.True);
+            state.SetCurrentCombatStamina(11);
 
             CombatantState combatant = PlayerBattleStateTransfer.CreateCombatant(
                 state,
@@ -25,7 +26,7 @@ namespace SER494.Gameplay.PlayerState.Tests
 
             Assert.That(combatant.CurrentHealth, Is.EqualTo(65));
             Assert.That(combatant.CurrentMana, Is.EqualTo(22));
-            Assert.That(combatant.CurrentStamina, Is.EqualTo(30));
+            Assert.That(combatant.CurrentStamina, Is.EqualTo(11));
             Assert.That(combatant.Stats.Attack, Is.EqualTo(70));
             Assert.That(combatant.Stats.Defense, Is.EqualTo(55));
         }
@@ -71,6 +72,7 @@ namespace SER494.Gameplay.PlayerState.Tests
 
             Assert.That(state.CurrentHealth, Is.EqualTo(42));
             Assert.That(state.CurrentMana, Is.EqualTo(9));
+            Assert.That(state.CurrentCombatStamina, Is.Zero);
             Assert.That(state.Inventory.GetCount("item.potion"), Is.EqualTo(1));
             Assert.That(state.Inventory.GetCount("item.quest-key"), Is.EqualTo(1));
         }

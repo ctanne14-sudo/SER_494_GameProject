@@ -19,9 +19,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private VisualElement _mainPage;
         private VisualElement _loadPage;
         private Label _message;
+        private Label _slotPageHeading;
         private int _mainIndex;
         private int _slotIndex;
         private bool _showingLoadPage;
+        private bool _startingNewGame;
+        private int _overwriteConfirmationSlot = -1;
         private bool _stickLatched;
         private Vector2 _lastMousePosition;
         private bool _hasMousePosition;
@@ -32,6 +35,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _mainPage = root.Q<VisualElement>("mainMenuPage");
             _loadPage = root.Q<VisualElement>("loadGamePage");
             _message = root.Q<Label>("loadMessage");
+            _slotPageHeading = root.Q<Label>("slotPageHeading");
 
             _mainButtons[0] = root.Q<Button>("newGameButton");
             _mainButtons[1] = root.Q<Button>("loadGameButton");
@@ -41,12 +45,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 int capturedIndex = index;
                 _slotButtons[index] = root.Q<Button>($"loadSlot{index + 1}");
-                _slotButtons[index].clicked += () => LoadSlot(capturedIndex);
+                _slotButtons[index].clicked += () => ChooseSlot(capturedIndex);
                 RegisterPointerSelection(_slotButtons[index], () => SelectSlot(capturedIndex));
             }
 
             Button backButton = root.Q<Button>("backToMainButton");
-            _mainButtons[0].clicked += StartNewGame;
+            _mainButtons[0].clicked += ShowNewGameSlots;
             _mainButtons[1].clicked += ShowLoadPage;
             _mainButtons[2].clicked += QuitGame;
             backButton.clicked += ShowMainPage;
@@ -99,7 +103,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UseNavigationMode();
             if (_showingLoadPage)
             {
-                LoadSlot(_slotIndex);
+                ChooseSlot(_slotIndex);
             }
             else
             {
@@ -117,15 +121,30 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void ShowLoadPage()
         {
+            ShowSlotPage(startingNewGame: false);
+        }
+
+        private void ShowNewGameSlots()
+        {
+            ShowSlotPage(startingNewGame: true);
+        }
+
+        private void ShowSlotPage(bool startingNewGame)
+        {
             _showingLoadPage = true;
+            _startingNewGame = startingNewGame;
+            _overwriteConfirmationSlot = -1;
             _mainPage.style.display = DisplayStyle.None;
             _loadPage.style.display = DisplayStyle.Flex;
-            _message.text = "Choose a valid save slot. Empty or damaged slots cannot be loaded.";
+            _slotPageHeading.text = startingNewGame ? "New Game" : "Load Game";
+            _message.text = startingNewGame
+                ? "Choose the save slot for this new game."
+                : "Choose a valid save slot. Empty or damaged slots cannot be loaded.";
             RefreshSlots();
             SelectSlot(0);
         }
 
-        private void StartNewGame()
+        private void StartNewGame(int slotNumber)
         {
             try
             {
@@ -135,12 +154,50 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 }
 
                 stateService.StartNewGame();
+                if (!PlayerSaveService.TryGetActive(out PlayerSaveService saveService))
+                {
+                    throw new InvalidOperationException("Save service is unavailable.");
+                }
+
+                saveService.BeginNewGameInSlot(
+                    slotNumber,
+                    TitleMenuBootstrap.ExplorationSceneName);
                 SceneManager.LoadScene(TitleMenuBootstrap.ExplorationSceneName);
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
             }
+        }
+
+        private void ChooseSlot(int index)
+        {
+            _slotIndex = index;
+            RefreshSlotSelection();
+
+            if (!_startingNewGame)
+            {
+                LoadSlot(index);
+                return;
+            }
+
+            if (!PlayerSaveService.TryGetActive(out PlayerSaveService saveService))
+            {
+                _message.text = "Save service is unavailable.";
+                return;
+            }
+
+            int slotNumber = index + 1;
+            SaveSlotInfo info = saveService.InspectSlot(slotNumber);
+            if (info.State != SaveSlotState.Empty
+                && _overwriteConfirmationSlot != slotNumber)
+            {
+                _overwriteConfirmationSlot = slotNumber;
+                _message.text = $"Slot {slotNumber} already contains progress. Confirm again to overwrite it.";
+                return;
+            }
+
+            StartNewGame(slotNumber);
         }
 
         private void LoadSlot(int index)
@@ -162,8 +219,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     return;
                 }
 
-                saveService.LoadSlot(index + 1);
-                SceneManager.LoadScene(TitleMenuBootstrap.ExplorationSceneName);
+                LoadedPlayerSave loaded = saveService.LoadSlot(index + 1);
+                string sceneName = string.IsNullOrWhiteSpace(loaded.Exploration.SceneName)
+                    ? TitleMenuBootstrap.ExplorationSceneName
+                    : loaded.Exploration.SceneName;
+                SceneManager.LoadScene(sceneName);
             }
             catch (Exception exception)
             {
@@ -241,7 +301,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         {
             switch (_mainIndex)
             {
-                case 0: StartNewGame(); break;
+                case 0: ShowNewGameSlots(); break;
                 case 1: ShowLoadPage(); break;
                 case 2: QuitGame(); break;
             }
@@ -260,6 +320,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void SelectSlot(int index)
         {
+            if (_slotIndex != index)
+            {
+                _overwriteConfirmationSlot = -1;
+            }
             _slotIndex = index;
             RefreshSlotSelection();
         }
