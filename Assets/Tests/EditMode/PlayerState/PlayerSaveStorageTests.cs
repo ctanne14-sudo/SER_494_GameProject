@@ -115,6 +115,55 @@ namespace SER494.Gameplay.PlayerState.Tests
         }
 
         [Test]
+        public void Load_EmptySlot_IsRejectedWithoutCreatingSaveFiles()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+
+            Assert.Throws<FileNotFoundException>(() => storage.Load(2));
+            Assert.That(storage.Inspect(2).State, Is.EqualTo(SaveSlotState.Empty));
+            Assert.That(Directory.Exists(_saveDirectory), Is.False);
+        }
+
+        [Test]
+        public void CorruptedPrimaryAndBackup_AreReportedAndRejectedTogether()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+            storage.Save(1, CreatePopulatedState(currentHealth: 81));
+            storage.Save(1, CreatePopulatedState(currentHealth: 42));
+            File.WriteAllText(storage.GetSavePath(1), "broken primary");
+            File.WriteAllText(storage.GetSavePath(1) + ".bak", "broken backup");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => storage.Load(1));
+            SaveSlotInfo info = storage.Inspect(1);
+
+            Assert.That(exception.Message, Does.Contain("and its backup cannot be loaded"));
+            Assert.That(exception.InnerException, Is.TypeOf<AggregateException>());
+            Assert.That(info.State, Is.EqualTo(SaveSlotState.Corrupted));
+            Assert.That(info.CanLoad, Is.False);
+            Assert.That(info.UsesBackup, Is.False);
+        }
+
+        [Test]
+        public void UnsupportedSaveVersion_IsReportedAndRejected()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+            storage.Save(3, CreatePopulatedState(currentHealth: 73));
+            string savePath = storage.GetSavePath(3);
+            string json = File.ReadAllText(savePath);
+            File.WriteAllText(
+                savePath,
+                json.Replace("\"Version\": 1", "\"Version\": 2"));
+
+            SaveSlotInfo info = storage.Inspect(3);
+
+            Assert.That(info.State, Is.EqualTo(SaveSlotState.UnsupportedVersion));
+            Assert.That(info.CanLoad, Is.False);
+            Assert.That(info.ErrorMessage, Does.Contain("version 2"));
+            Assert.Throws<NotSupportedException>(() => storage.Load(3));
+        }
+
+        [Test]
         public void Delete_RemovesPrimaryAndBackup()
         {
             var storage = new PlayerSaveStorage(_saveDirectory);

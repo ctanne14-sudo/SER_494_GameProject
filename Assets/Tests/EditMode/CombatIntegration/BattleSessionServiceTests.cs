@@ -262,6 +262,58 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.CurrentMana, Is.EqualTo(battle.Player.CurrentMana));
         }
 
+        [Test]
+        public void BattleAdapter_MutualDestruction_CommitsPlayerDeathAndEnemyDefeat()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PersistentPlayerState(100, 30, 30);
+            EquipStartingGear(playerState);
+            playerState.SetCurrentHealth(1);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(
+                weapon: null,
+                damageMultiplier: 10d);
+            BeginBattle(
+                service,
+                CreateValidEncounter(
+                    enemyMaximumHealth: 1,
+                    enemyAttack: 100,
+                    enemyDamageMultiplier: 1f),
+                loadout);
+            Assert.That(
+                BattleSessionBattleAdapter.TryCreateBattle(
+                    service.CurrentSession,
+                    playerState,
+                    out SoloComboBattleState battle,
+                    out string createError),
+                Is.True,
+                createError);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.Draw));
+            Assert.That(battle.Player.IsDefeated, Is.True);
+            Assert.That(battle.Enemy.IsDefeated, Is.True);
+            Assert.That(result.ActionResolutions, Has.Count.EqualTo(2));
+
+            bool committed = BattleSessionBattleAdapter.TryCommitBattleResult(
+                service,
+                service.CurrentSession,
+                playerState,
+                battle,
+                out string commitError);
+
+            Assert.That(committed, Is.True, commitError);
+            Assert.That(service.CurrentSession.Outcome, Is.EqualTo(BattleOutcome.Draw));
+            Assert.That(playerState.CurrentHealth, Is.Zero);
+            Assert.That(
+                service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
+                Is.True);
+            Assert.That(
+                service.CanReturnToExploration(out string returnError),
+                Is.False);
+            Assert.That(returnError, Does.Contain("Mutual Destruction"));
+        }
+
         private void BeginValidBattle(BattleSessionService service)
         {
             BeginBattle(
@@ -318,7 +370,9 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         private SoloComboEncounterDefinitionAsset CreateValidEncounter(
-            int enemyMaximumHealth = 100)
+            int enemyMaximumHealth = 100,
+            int enemyAttack = 1,
+            float enemyDamageMultiplier = 0.01f)
         {
             var encounter = ScriptableObject.CreateInstance<SoloComboEncounterDefinitionAsset>();
             _createdObjects.Add(encounter);
@@ -328,7 +382,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 "Test encounter",
                 "Wanderer",
                 enemyMaximumHealth,
-                1,
+                enemyAttack,
                 0,
                 1,
                 30,
@@ -343,7 +397,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                             "Wait",
                             timelineCost: 1,
                             resolutionEffect: ActionResolutionEffect.Damage,
-                            damageMultiplier: 0.01f))
+                            damageMultiplier: enemyDamageMultiplier))
                 });
             return encounter;
         }
