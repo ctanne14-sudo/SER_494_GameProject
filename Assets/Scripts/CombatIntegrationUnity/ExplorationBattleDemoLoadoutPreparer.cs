@@ -200,8 +200,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 new ComboValidationLimits(
                     MaximumTimelineCost,
                     MaximumMana,
-                    MaximumStamina),
-                weapon.WeaponType);
+                    MaximumStamina));
             if (!result.IsValid)
             {
                 ComboValidationIssue firstIssue = result.Issues[0];

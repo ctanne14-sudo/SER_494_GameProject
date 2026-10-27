@@ -140,7 +140,7 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void Validate_ActionCompatibleWithEquippedWeapon_IsValid()
+        public void Validate_ActionWeaponCompatibilityMetadata_DoesNotAffectStructuralValidity()
         {
             var main = new ComboActionDefinition(
                 "bow-main",
@@ -154,34 +154,9 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
             ComboValidationResult result = ComboValidator.Validate(
                 MainOnlyCombo("combo1", main),
-                GenerousLimits,
-                WeaponType.Bow);
+                GenerousLimits);
 
             Assert.That(result.IsValid, Is.True);
-        }
-
-        [Test]
-        public void Validate_ActionIncompatibleWithEquippedWeapon_IsInvalid()
-        {
-            var main = new ComboActionDefinition(
-                "bow-main",
-                "Bow Main",
-                ComboActionCategory.Main,
-                timelineCost: 1,
-                manaCost: 0,
-                staminaCost: 1,
-                cooldown: 0,
-                compatibleWeaponTypes: CompatibleWeaponTypes.Bow);
-
-            ComboValidationResult result = ComboValidator.Validate(
-                MainOnlyCombo("combo1", main),
-                GenerousLimits,
-                WeaponType.Greatsword);
-
-            Assert.That(result.IsValid, Is.False);
-            Assert.That(
-                result.Issues.Select(issue => issue.Code),
-                Contains.Item(ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon));
         }
 
         [Test]

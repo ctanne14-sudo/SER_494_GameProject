@@ -623,8 +623,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
 
             ComboValidationResult result = ComboLoadoutValidator.Validate(
                 configurations,
-                limits,
-                weaponDefinition?.WeaponType);
+                limits);
             if (!result.IsValid)
             {
                 Debug.LogError("Cannot start the test battle while the Combo loadout is invalid.", this);
@@ -689,8 +688,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
             {
                 ComboValidationResult currentResult = ComboValidator.Validate(
                     currentCombo,
-                    limits,
-                    weaponDefinition?.WeaponType);
+                    limits);
                 SetStatus(
                     _currentComboStatusLabel,
                     currentResult.IsValid
@@ -708,8 +706,7 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
 
             ComboValidationResult loadoutResult = ComboLoadoutValidator.Validate(
                 configurations,
-                limits,
-                weaponDefinition?.WeaponType);
+                limits);
             if (loadoutSession == null)
             {
                 SetStatus(
@@ -1263,8 +1260,6 @@ namespace SER494.Gameplay.Combat.UI.SoloCombo
                     return "Damage, Guard, and Evade Resolution Points cannot overlap.";
                 case ComboValidationErrorCode.ActionAssignedMoreThanOnce:
                     return "The same Action is assigned more than once.";
-                case ComboValidationErrorCode.ActionIncompatibleWithEquippedWeapon:
-                    return "An Action is incompatible with the equipped Weapon.";
                 case ComboValidationErrorCode.PreviousActionDoesNotProvideRequiredStatus:
                     return "The previous Action does not provide the required setup Status.";
                 case ComboValidationErrorCode.EmptyLoadout:
