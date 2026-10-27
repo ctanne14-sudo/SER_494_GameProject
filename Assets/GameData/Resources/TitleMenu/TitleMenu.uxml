@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="TitleMenu.uss" />
+    <ui:VisualElement name="titleOverlay" class="title-overlay">
+        <ui:VisualElement class="title-frame">
+            <ui:VisualElement class="title-heading">
+                <ui:Label text="Game Project" class="title-name" />
+            </ui:VisualElement>
+            <ui:VisualElement name="mainMenuPage" class="title-page">
+                <ui:Button name="newGameButton" text="New Game" class="title-button" />
+                <ui:Button name="loadGameButton" text="Load Game" class="title-button" />
+                <ui:Button name="quitGameButton" text="Quit Game" class="title-button title-danger-button" />
+            </ui:VisualElement>
+            <ui:VisualElement name="loadGamePage" class="title-page">
+                <ui:VisualElement class="load-heading-row">
+                    <ui:Label text="Load Game" class="load-heading" />
+                    <ui:Button name="backToMainButton" text="Back" class="title-small-button" />
+                </ui:VisualElement>
+                <ui:Label name="loadMessage" class="load-message" />
+                <ui:VisualElement class="load-slots">
+                    <ui:Button name="loadSlot1" class="load-slot" />
+                    <ui:Button name="loadSlot2" class="load-slot" />
+                    <ui:Button name="loadSlot3" class="load-slot" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

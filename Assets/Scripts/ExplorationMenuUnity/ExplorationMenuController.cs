@@ -11,6 +11,7 @@ using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
@@ -3459,7 +3460,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private void OnReturnToTitleClicked() => ShowPageWhenChanged(MenuPage.ReturnToTitle);
+        private void OnReturnToTitleClicked()
+        {
+            if (!_isOpen)
+            {
+                return;
+            }
+
+            CloseMenu();
+            SceneManager.LoadScene(TitleMenuBootstrap.TitleSceneName);
+        }
 
         private void ShowPageWhenChanged(MenuPage page)
         {

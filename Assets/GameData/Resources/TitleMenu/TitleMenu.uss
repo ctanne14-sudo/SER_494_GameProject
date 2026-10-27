@@ -1,0 +1,152 @@
+.title-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(15, 20, 26);
+    color: rgb(226, 216, 190);
+}
+
+.title-frame {
+    width: 780px;
+    min-height: 660px;
+    padding: 32px;
+    justify-content: center;
+    background-color: rgb(29, 27, 24);
+    background-image: url("project://database/Assets/ThirdParty/Kenney/FantasyUIBorders/PNG/Default/Panel/panel-000.png");
+    -unity-slice-left: 16;
+    -unity-slice-top: 16;
+    -unity-slice-right: 16;
+    -unity-slice-bottom: 16;
+    -unity-background-image-tint-color: rgb(139, 110, 70);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(139, 110, 70);
+    border-right-color: rgb(139, 110, 70);
+    border-top-color: rgb(174, 143, 91);
+    border-bottom-color: rgb(91, 69, 43);
+}
+
+.title-heading {
+    align-items: center;
+    margin-bottom: 38px;
+}
+
+.title-name {
+    font-size: 54px;
+    -unity-font-style: bold;
+    color: rgb(241, 223, 176);
+}
+
+.title-page {
+    min-height: 315px;
+    margin-left: 70px;
+    margin-right: 70px;
+}
+
+.title-button {
+    height: 64px;
+    margin-bottom: 16px;
+    font-size: 21px;
+    color: rgb(221, 209, 179);
+    background-color: rgb(50, 50, 47);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(94, 82, 62);
+    border-right-color: rgb(94, 82, 62);
+    border-top-color: rgb(111, 95, 69);
+    border-bottom-color: rgb(69, 59, 46);
+}
+
+.title-button:hover,
+.title-button:focus,
+.title-selected,
+.title-selected:hover,
+.title-selected:focus {
+    color: rgb(255, 235, 184);
+    background-color: rgb(89, 71, 45);
+    border-left-color: rgb(219, 175, 99);
+    border-right-color: rgb(219, 175, 99);
+    border-top-color: rgb(219, 175, 99);
+    border-bottom-color: rgb(219, 175, 99);
+}
+
+.title-danger-button {
+    color: rgb(215, 142, 126);
+}
+
+.load-heading-row {
+    height: 54px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.load-heading {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(241, 223, 176);
+}
+
+.title-small-button {
+    min-width: 120px;
+    height: 40px;
+    color: rgb(221, 209, 179);
+    background-color: rgb(52, 47, 39);
+    border-left-color: rgb(122, 96, 60);
+    border-right-color: rgb(122, 96, 60);
+    border-top-color: rgb(122, 96, 60);
+    border-bottom-color: rgb(122, 96, 60);
+}
+
+.load-message {
+    min-height: 38px;
+    color: rgb(174, 158, 128);
+    white-space: normal;
+}
+
+.load-slots {
+    flex-grow: 1;
+}
+
+.load-slot {
+    height: 76px;
+    margin-bottom: 12px;
+    padding-left: 20px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+    font-size: 16px;
+    color: rgb(221, 209, 179);
+    background-color: rgb(50, 50, 47);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(94, 82, 62);
+    border-right-color: rgb(94, 82, 62);
+    border-top-color: rgb(111, 95, 69);
+    border-bottom-color: rgb(69, 59, 46);
+}
+
+.load-slot:hover,
+.load-slot:focus,
+.load-slot-selected,
+.load-slot-selected:hover,
+.load-slot-selected:focus,
+.title-small-button:hover,
+.title-small-button:focus {
+    color: rgb(255, 235, 184);
+    background-color: rgb(89, 71, 45);
+    border-left-color: rgb(219, 175, 99);
+    border-right-color: rgb(219, 175, 99);
+    border-top-color: rgb(219, 175, 99);
+    border-bottom-color: rgb(219, 175, 99);
+}
+
