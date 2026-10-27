@@ -172,7 +172,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (keyboardTogglePressed || gamepadTogglePressed)
             {
                 if (_isOpen) HandleBack();
-                else TryOpenMenu(gamepadTogglePressed);
+                else if (!ExplorationMenuInputGate.IsOpen)
+                {
+                    TryOpenMenu(gamepadTogglePressed);
+                }
                 return;
             }
 
@@ -243,6 +246,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _contentRevision++;
             CloseUnsavedChangesDialog();
             CloseTimelineGuideDialog();
+            ReleaseMenuFocus();
             _root.style.display = DisplayStyle.None;
             _isOpen = false;
             _isInsideEquipmentPage = false;
@@ -252,6 +256,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = _previousCursorVisible;
             _hasLastMousePosition = false;
             _lastNavigationTarget = null;
+        }
+
+        private void ReleaseMenuFocus()
+        {
+            // A hidden UI Toolkit TextField can otherwise retain keyboard focus.
+            // On Windows, pressing Shift during exploration may then be handled by
+            // the active IME instead of behaving like a gameplay-only input.
+            _root?.panel?.focusController?.focusedElement?.Blur();
         }
 
         private void UpdateInputMode()
