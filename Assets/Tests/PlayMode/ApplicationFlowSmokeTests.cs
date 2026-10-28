@@ -63,7 +63,11 @@ namespace SER494.Gameplay.PlayModeTests
             Assert.That(document, Is.Not.Null);
             Assert.That(document.rootVisualElement.Q<Button>("newGameButton"), Is.Not.Null);
             Assert.That(document.rootVisualElement.Q<Button>("loadGameButton"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<Button>("settingsButton"), Is.Not.Null);
             Assert.That(document.rootVisualElement.Q<Button>("quitGameButton"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<Button>("deleteSaveDataButton"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<Button>("deleteSlot1"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<VisualElement>("deleteConfirmationOverlay"), Is.Not.Null);
 
             GameObject titleCamera = GameObject.Find("Title Camera");
             Assert.That(titleCamera, Is.Not.Null,
@@ -88,6 +92,23 @@ namespace SER494.Gameplay.PlayModeTests
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             Assert.That(player, Is.Not.Null,
                 "Exploration scene must contain an active Player object.");
+            SkinnedMeshRenderer[] playerRenderers =
+                player.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            Assert.That(playerRenderers, Is.Not.Empty,
+                "Player must contain a visible skinned mesh.");
+            Bounds playerBounds = playerRenderers[0].bounds;
+            for (int index = 1; index < playerRenderers.Length; index++)
+            {
+                playerBounds.Encapsulate(playerRenderers[index].bounds);
+            }
+            Vector2 rootPosition = new Vector2(
+                player.transform.position.x,
+                player.transform.position.z);
+            Vector2 visiblePosition = new Vector2(
+                playerBounds.center.x,
+                playerBounds.center.z);
+            Assert.That(Vector2.Distance(rootPosition, visiblePosition), Is.LessThan(0.5f),
+                "Player gameplay origin must remain aligned with the visible character.");
             Assert.That(Camera.main, Is.Not.Null,
                 "Exploration scene must contain an enabled Main Camera.");
             Assert.That(Object.FindAnyObjectByType<ExplorationMenuController>(), Is.Not.Null,

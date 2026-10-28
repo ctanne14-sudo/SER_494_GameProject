@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
@@ -24,6 +25,14 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             "Assets/GameData/SoloCombo/WeaponActions";
         private const string EncounterAssetFolder =
             "Assets/GameData/Resources/SoloCombo/Encounters";
+        private const string FloorOneScenePath =
+            "Assets/_Project/Scenes/Floor1_Cell_A.unity";
+        private const string PersistentPickupObjectId =
+            "floor1.healing-potion-pickup-01";
+        private const string PersistentItemPickupScriptGuid =
+            "55bd55a713cf4dff91ec67dcc4e51793";
+        private const string PersistentWorldObjectScriptGuid =
+            "bf66840a4e9985a49a85a9f824ad765b";
 
         [Test]
         public void ActionCatalog_ContainsEveryAuthoredActionExactlyOnce()
@@ -183,6 +192,39 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                     Is.True,
                     $"Scenario '{scenario}' maps to an invalid Encounter: {definitionError}");
             }
+        }
+
+        [Test]
+        public void FloorOneScene_ContainsConfiguredPersistentHealingPotionPickup()
+        {
+            Assert.That(File.Exists(FloorOneScenePath), Is.True,
+                $"Required exploration scene '{FloorOneScenePath}' is missing.");
+
+            string sceneText = File.ReadAllText(FloorOneScenePath);
+            Assert.That(sceneText,
+                Does.Contain("m_Name: Persistent Healing Potion Pickup"),
+                "Floor 1 must contain the authored one-time pickup object.");
+            Assert.That(sceneText,
+                Does.Contain($"guid: {PersistentItemPickupScriptGuid}"),
+                "The pickup must use PersistentItemPickupAction.");
+            Assert.That(sceneText,
+                Does.Contain($"guid: {PersistentWorldObjectScriptGuid}"),
+                "The pickup must use PersistentWorldObject.");
+            Assert.That(sceneText,
+                Does.Contain($"persistentObjectId: {PersistentPickupObjectId}"),
+                "The pickup must keep its stable world-object ID.");
+            Assert.That(sceneText,
+                Does.Contain("terminalStateId: collected"),
+                "The pickup terminal state must remain 'collected'.");
+            Assert.That(sceneText,
+                Does.Contain("deactivateAtTerminalState: 1"),
+                "A collected pickup must deactivate when its saved state is restored.");
+            Assert.That(sceneText,
+                Does.Contain("itemId: healing-potion"),
+                "The authored pickup must grant a Healing Potion.");
+            Assert.That(sceneText,
+                Does.Contain("amount: 1"),
+                "The authored pickup must grant exactly one item.");
         }
 
         private static void AssertLoadoutReferencesOwnedActions(

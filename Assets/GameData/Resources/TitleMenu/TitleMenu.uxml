@@ -8,6 +8,7 @@
             <ui:VisualElement name="mainMenuPage" class="title-page">
                 <ui:Button name="newGameButton" text="New Game" class="title-button" />
                 <ui:Button name="loadGameButton" text="Load Game" class="title-button" />
+                <ui:Button name="settingsButton" text="Settings" class="title-button" />
                 <ui:Button name="quitGameButton" text="Quit Game" class="title-button title-danger-button" />
             </ui:VisualElement>
             <ui:VisualElement name="loadGamePage" class="title-page">
@@ -20,6 +21,36 @@
                     <ui:Button name="loadSlot1" class="load-slot" />
                     <ui:Button name="loadSlot2" class="load-slot" />
                     <ui:Button name="loadSlot3" class="load-slot" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="settingsPage" class="title-page">
+                <ui:VisualElement class="load-heading-row">
+                    <ui:Label text="Settings" class="load-heading" />
+                    <ui:Button name="backFromSettingsButton" text="Back" class="title-small-button" />
+                </ui:VisualElement>
+                <ui:Label text="More settings, such as audio options, can be added here later." class="load-message" />
+                <ui:Button name="deleteSaveDataButton" text="Delete Save Data" class="title-button title-danger-button" />
+            </ui:VisualElement>
+            <ui:VisualElement name="deleteSavePage" class="title-page">
+                <ui:VisualElement class="load-heading-row">
+                    <ui:Label text="Select Save Data" class="load-heading" />
+                    <ui:Button name="backFromDeleteButton" text="Back" class="title-small-button" />
+                </ui:VisualElement>
+                <ui:Label name="deleteMessage" class="load-message" />
+                <ui:VisualElement class="load-slots">
+                    <ui:Button name="deleteSlot1" class="load-slot" />
+                    <ui:Button name="deleteSlot2" class="load-slot" />
+                    <ui:Button name="deleteSlot3" class="load-slot" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="deleteConfirmationOverlay" class="delete-confirmation-overlay">
+                <ui:VisualElement class="delete-confirmation-dialog">
+                    <ui:Label name="deleteConfirmationTitle" class="delete-confirmation-title" />
+                    <ui:Label name="deleteConfirmationMessage" class="delete-confirmation-message" />
+                    <ui:VisualElement class="delete-confirmation-actions">
+                        <ui:Button name="confirmDeleteButton" text="Continue" class="title-small-button title-danger-button" />
+                        <ui:Button name="cancelDeleteButton" text="Cancel" class="title-small-button" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

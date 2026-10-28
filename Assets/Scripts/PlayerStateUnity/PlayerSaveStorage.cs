@@ -10,12 +10,30 @@ namespace SER494.Gameplay.PlayerState.Unity
     [Serializable]
     internal sealed class PlayerSaveEnvelope
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int Version = CurrentVersion;
         public string SavedAtUtc;
         public PlayerStateSnapshot PlayerState;
         public ExplorationSaveSnapshot Exploration = new ExplorationSaveSnapshot();
+    }
+
+    [Serializable]
+    public sealed class WorldObjectStateSnapshot
+    {
+        public string SceneName;
+        public string ObjectId;
+        public string StateId;
+
+        public WorldObjectStateSnapshot Clone()
+        {
+            return new WorldObjectStateSnapshot
+            {
+                SceneName = SceneName,
+                ObjectId = ObjectId,
+                StateId = StateId
+            };
+        }
     }
 
     [Serializable]
@@ -32,6 +50,8 @@ namespace SER494.Gameplay.PlayerState.Unity
         public float RotationZ;
         public float RotationW = 1f;
         public List<string> DefeatedEncounterKeys = new List<string>();
+        public List<WorldObjectStateSnapshot> WorldObjectStates =
+            new List<WorldObjectStateSnapshot>();
 
         public Vector3 Position => new Vector3(PositionX, PositionY, PositionZ);
 
@@ -57,8 +77,26 @@ namespace SER494.Gameplay.PlayerState.Unity
                 RotationW = RotationW,
                 DefeatedEncounterKeys = DefeatedEncounterKeys == null
                     ? new List<string>()
-                    : new List<string>(DefeatedEncounterKeys)
+                    : new List<string>(DefeatedEncounterKeys),
+                WorldObjectStates = CloneWorldObjectStates(WorldObjectStates)
             };
+        }
+
+        private static List<WorldObjectStateSnapshot> CloneWorldObjectStates(
+            IEnumerable<WorldObjectStateSnapshot> source)
+        {
+            var result = new List<WorldObjectStateSnapshot>();
+            if (source == null)
+            {
+                return result;
+            }
+
+            foreach (WorldObjectStateSnapshot entry in source)
+            {
+                result.Add(entry?.Clone());
+            }
+
+            return result;
         }
     }
 
@@ -356,6 +394,7 @@ namespace SER494.Gameplay.PlayerState.Unity
                 ExplorationSaveSnapshot exploration = envelope.Version == 1
                     ? new ExplorationSaveSnapshot()
                     : envelope.Exploration ?? new ExplorationSaveSnapshot();
+                ValidateExploration(exploration);
                 return new LoadedPlayerSave(
                     state,
                     exploration,
@@ -369,6 +408,35 @@ namespace SER494.Gameplay.PlayerState.Unity
                 throw new InvalidDataException(
                     "The Player State data in the save file is invalid.",
                     exception);
+            }
+        }
+
+        private static void ValidateExploration(ExplorationSaveSnapshot exploration)
+        {
+            if (exploration.WorldObjectStates == null)
+            {
+                exploration.WorldObjectStates = new List<WorldObjectStateSnapshot>();
+                return;
+            }
+
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (WorldObjectStateSnapshot entry in exploration.WorldObjectStates)
+            {
+                if (entry == null
+                    || string.IsNullOrWhiteSpace(entry.SceneName)
+                    || string.IsNullOrWhiteSpace(entry.ObjectId)
+                    || string.IsNullOrWhiteSpace(entry.StateId))
+                {
+                    throw new ArgumentException(
+                        "Saved World Object states require scene, object, and state IDs.");
+                }
+
+                string key = $"{entry.SceneName.Trim()}::{entry.ObjectId.Trim()}";
+                if (!keys.Add(key))
+                {
+                    throw new ArgumentException(
+                        $"Saved World Object state '{key}' is duplicated.");
+                }
             }
         }
 

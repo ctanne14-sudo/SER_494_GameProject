@@ -5,6 +5,15 @@ using UnityEngine.SceneManagement;
 
 namespace SER494.Gameplay.PlayerState.Unity
 {
+    public static class WorldObjectStateIds
+    {
+        public const string Collected = "collected";
+        public const string Opened = "opened";
+        public const string Activated = "activated";
+        public const string Depleted = "depleted";
+        public const string Removed = "removed";
+    }
+
     public sealed class SavePointContext
     {
         public SavePointContext(
@@ -110,6 +119,8 @@ namespace SER494.Gameplay.PlayerState.Unity
             Storage.Save(slotNumber, RequirePlayerStateService().State, proposed);
             _exploration = proposed;
             ActiveSlotNumber = slotNumber;
+            _checkpointInteractionPending = false;
+            _restoreCheckpointOnNextSceneLoad = false;
         }
 
         public void SaveAtCheckpoint(SavePointContext checkpoint)
@@ -190,6 +201,63 @@ namespace SER494.Gameplay.PlayerState.Unity
             return _exploration.DefeatedEncounterKeys.Contains(key);
         }
 
+        public void SetWorldObjectState(
+            string sceneName,
+            string objectId,
+            string stateId)
+        {
+            string normalizedScene = RequireId(sceneName, nameof(sceneName));
+            string normalizedObject = RequireId(objectId, nameof(objectId));
+            string normalizedState = RequireId(stateId, nameof(stateId));
+            WorldObjectStateSnapshot existing = FindWorldObjectState(
+                normalizedScene,
+                normalizedObject);
+            if (existing != null)
+            {
+                existing.StateId = normalizedState;
+                return;
+            }
+
+            _exploration.WorldObjectStates.Add(new WorldObjectStateSnapshot
+            {
+                SceneName = normalizedScene,
+                ObjectId = normalizedObject,
+                StateId = normalizedState
+            });
+        }
+
+        public bool TryGetWorldObjectState(
+            string sceneName,
+            string objectId,
+            out string stateId)
+        {
+            string normalizedScene = RequireId(sceneName, nameof(sceneName));
+            string normalizedObject = RequireId(objectId, nameof(objectId));
+            WorldObjectStateSnapshot existing = FindWorldObjectState(
+                normalizedScene,
+                normalizedObject);
+            stateId = existing?.StateId;
+            return existing != null;
+        }
+
+        public bool ClearWorldObjectState(string sceneName, string objectId)
+        {
+            string normalizedScene = RequireId(sceneName, nameof(sceneName));
+            string normalizedObject = RequireId(objectId, nameof(objectId));
+            for (int index = 0; index < _exploration.WorldObjectStates.Count; index++)
+            {
+                WorldObjectStateSnapshot entry = _exploration.WorldObjectStates[index];
+                if (string.Equals(entry.SceneName, normalizedScene, StringComparison.Ordinal)
+                    && string.Equals(entry.ObjectId, normalizedObject, StringComparison.Ordinal))
+                {
+                    _exploration.WorldObjectStates.RemoveAt(index);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void PrepareMutualDestructionReturn()
         {
             PlayerState state = RequirePlayerStateService().State;
@@ -227,6 +295,13 @@ namespace SER494.Gameplay.PlayerState.Unity
         {
             RequireAuthority();
             Storage.Delete(slotNumber);
+            if (ActiveSlotNumber == slotNumber)
+            {
+                ActiveSlotNumber = 0;
+                _exploration = new ExplorationSaveSnapshot();
+                _checkpointInteractionPending = false;
+                _restoreCheckpointOnNextSceneLoad = false;
+            }
         }
 
         private void RequireAuthority()
@@ -251,6 +326,7 @@ namespace SER494.Gameplay.PlayerState.Unity
 
         private ExplorationSaveSnapshot CaptureCheckpoint(SavePointContext checkpoint)
         {
+            ExplorationSaveSnapshot currentExploration = _exploration.Clone();
             return new ExplorationSaveSnapshot
             {
                 HasCheckpoint = true,
@@ -263,8 +339,8 @@ namespace SER494.Gameplay.PlayerState.Unity
                 RotationY = checkpoint.Rotation.y,
                 RotationZ = checkpoint.Rotation.z,
                 RotationW = checkpoint.Rotation.w,
-                DefeatedEncounterKeys = new System.Collections.Generic.List<string>(
-                    _exploration.DefeatedEncounterKeys)
+                DefeatedEncounterKeys = currentExploration.DefeatedEncounterKeys,
+                WorldObjectStates = currentExploration.WorldObjectStates
             };
         }
 
@@ -343,6 +419,33 @@ namespace SER494.Gameplay.PlayerState.Unity
             }
 
             return $"{sceneName.Trim()}::{encounterInstanceId.Trim()}";
+        }
+
+        private WorldObjectStateSnapshot FindWorldObjectState(
+            string sceneName,
+            string objectId)
+        {
+            for (int index = 0; index < _exploration.WorldObjectStates.Count; index++)
+            {
+                WorldObjectStateSnapshot entry = _exploration.WorldObjectStates[index];
+                if (string.Equals(entry.SceneName, sceneName, StringComparison.Ordinal)
+                    && string.Equals(entry.ObjectId, objectId, StringComparison.Ordinal))
+                {
+                    return entry;
+                }
+            }
+
+            return null;
+        }
+
+        private static string RequireId(string value, string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException("A stable ID is required.", parameterName);
+            }
+
+            return value.Trim();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

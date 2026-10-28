@@ -11,6 +11,7 @@
 }
 
 .title-frame {
+    position: relative;
     width: 780px;
     min-height: 660px;
     padding: 32px;
@@ -30,6 +31,56 @@
     border-right-color: rgb(139, 110, 70);
     border-top-color: rgb(174, 143, 91);
     border-bottom-color: rgb(91, 69, 43);
+}
+
+.delete-confirmation-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(8, 9, 10, 0.78);
+}
+
+.delete-confirmation-dialog {
+    width: 560px;
+    padding: 28px;
+    background-color: rgb(29, 27, 24);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(174, 143, 91);
+    border-right-color: rgb(174, 143, 91);
+    border-top-color: rgb(174, 143, 91);
+    border-bottom-color: rgb(174, 143, 91);
+}
+
+.delete-confirmation-title {
+    margin-bottom: 18px;
+    font-size: 28px;
+    -unity-font-style: bold;
+    color: rgb(241, 223, 176);
+}
+
+.delete-confirmation-message {
+    min-height: 62px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    white-space: normal;
+    color: rgb(221, 209, 179);
+}
+
+.delete-confirmation-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.delete-confirmation-actions .title-small-button {
+    min-width: 190px;
+    margin-left: 12px;
 }
 
 .title-heading {

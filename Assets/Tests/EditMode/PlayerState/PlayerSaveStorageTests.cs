@@ -62,7 +62,7 @@ namespace SER494.Gameplay.PlayerState.Tests
         }
 
         [Test]
-        public void SaveAndLoad_PreservesCheckpointAndDefeatedEncounters()
+        public void SaveAndLoad_PreservesCheckpointDefeatedEncountersAndWorldObjects()
         {
             var storage = new PlayerSaveStorage(_saveDirectory);
             var exploration = new ExplorationSaveSnapshot
@@ -76,6 +76,12 @@ namespace SER494.Gameplay.PlayerState.Tests
                 RotationW = 1f
             };
             exploration.DefeatedEncounterKeys.Add("Floor1_Cell_A::wanderer-01");
+            exploration.WorldObjectStates.Add(new WorldObjectStateSnapshot
+            {
+                SceneName = "Floor1_Cell_A",
+                ObjectId = "treasure-chest-01",
+                StateId = WorldObjectStateIds.Opened
+            });
 
             storage.Save(1, CreatePopulatedState(currentHealth: 73), exploration);
             LoadedPlayerSave loaded = storage.Load(1);
@@ -87,6 +93,11 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(loaded.Exploration.Position.x, Is.EqualTo(3f));
             Assert.That(loaded.Exploration.DefeatedEncounterKeys,
                 Does.Contain("Floor1_Cell_A::wanderer-01"));
+            Assert.That(loaded.Exploration.WorldObjectStates, Has.Count.EqualTo(1));
+            Assert.That(loaded.Exploration.WorldObjectStates[0].ObjectId,
+                Is.EqualTo("treasure-chest-01"));
+            Assert.That(loaded.Exploration.WorldObjectStates[0].StateId,
+                Is.EqualTo(WorldObjectStateIds.Opened));
         }
 
         [Test]
@@ -184,13 +195,13 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 2", "\"Version\": 3"));
+                json.Replace("\"Version\": 3", "\"Version\": 4"));
 
             SaveSlotInfo info = storage.Inspect(3);
 
             Assert.That(info.State, Is.EqualTo(SaveSlotState.UnsupportedVersion));
             Assert.That(info.CanLoad, Is.False);
-            Assert.That(info.ErrorMessage, Does.Contain("version 3"));
+            Assert.That(info.ErrorMessage, Does.Contain("version 4"));
             Assert.Throws<NotSupportedException>(() => storage.Load(3));
         }
 
@@ -203,13 +214,30 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 2", "\"Version\": 1"));
+                json.Replace("\"Version\": 3", "\"Version\": 1")
+                    .Replace("\"Version\": 2", "\"Version\": 1"));
 
             LoadedPlayerSave loaded = storage.Load(1);
 
             Assert.That(loaded.State.CurrentCombatStamina,
                 Is.EqualTo(loaded.State.MaximumCombatStamina));
             Assert.That(loaded.Exploration.HasCheckpoint, Is.False);
+        }
+
+        [Test]
+        public void VersionTwoSave_MigratesWithEmptyWorldObjectStates()
+        {
+            var storage = new PlayerSaveStorage(_saveDirectory);
+            storage.Save(1, CreatePopulatedState(currentHealth: 73));
+            string savePath = storage.GetSavePath(1);
+            string json = File.ReadAllText(savePath);
+            File.WriteAllText(
+                savePath,
+                json.Replace("\"Version\": 3", "\"Version\": 2"));
+
+            LoadedPlayerSave loaded = storage.Load(1);
+
+            Assert.That(loaded.Exploration.WorldObjectStates, Is.Empty);
         }
 
         [Test]

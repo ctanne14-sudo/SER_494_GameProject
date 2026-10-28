@@ -125,6 +125,10 @@ namespace SER494.Gameplay.PlayerState.Tests
                 CreateServices();
             saveService.BeginNewGameInSlot(1, "Floor1_Cell_A");
             saveService.MarkEncounterDefeated("Floor1_Cell_A", "wanderer-03");
+            saveService.SetWorldObjectState(
+                "Floor1_Cell_A",
+                "treasure-chest-01",
+                WorldObjectStateIds.Opened);
 
             saveService.PrepareMutualDestructionReturn();
 
@@ -134,6 +138,13 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(
                 saveService.IsEncounterDefeated("Floor1_Cell_A", "wanderer-03"),
                 Is.True);
+            Assert.That(
+                saveService.TryGetWorldObjectState(
+                    "Floor1_Cell_A",
+                    "treasure-chest-01",
+                    out string worldObjectState),
+                Is.True);
+            Assert.That(worldObjectState, Is.EqualTo(WorldObjectStateIds.Opened));
         }
 
         [Test]
@@ -156,6 +167,117 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(
                 saveService.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.False);
+        }
+
+        [Test]
+        public void WorldObjectState_ReplacesByStableSceneObjectKeyAndCanBeCleared()
+        {
+            (PlayerStateService _, PlayerSaveService saveService) = CreateServices();
+
+            saveService.SetWorldObjectState(
+                "Floor1_Cell_A",
+                "treasure-chest-01",
+                WorldObjectStateIds.Opened);
+            saveService.SetWorldObjectState(
+                "Floor1_Cell_A",
+                "treasure-chest-01",
+                WorldObjectStateIds.Depleted);
+
+            Assert.That(
+                saveService.TryGetWorldObjectState(
+                    "Floor1_Cell_A",
+                    "treasure-chest-01",
+                    out string stateId),
+                Is.True);
+            Assert.That(stateId, Is.EqualTo(WorldObjectStateIds.Depleted));
+            Assert.That(
+                saveService.ClearWorldObjectState(
+                    "Floor1_Cell_A",
+                    "treasure-chest-01"),
+                Is.True);
+            Assert.That(
+                saveService.TryGetWorldObjectState(
+                    "Floor1_Cell_A",
+                    "treasure-chest-01",
+                    out _),
+                Is.False);
+        }
+
+        [Test]
+        public void WorldObjectState_CheckpointPersistsAndDefeatDiscardsLaterChanges()
+        {
+            (PlayerStateService _, PlayerSaveService saveService) = CreateServices();
+            saveService.BeginNewGameInSlot(1, "Floor1_Cell_A");
+            saveService.SetWorldObjectState(
+                "Floor1_Cell_A",
+                "treasure-chest-01",
+                WorldObjectStateIds.Opened);
+            saveService.SaveAtCheckpoint(new SavePointContext(
+                "Floor1_Cell_A",
+                "save-point-01",
+                Vector3.zero,
+                Quaternion.identity));
+            saveService.SetWorldObjectState(
+                "Floor1_Cell_A",
+                "pickup-01",
+                WorldObjectStateIds.Collected);
+
+            saveService.ReloadActiveSlot();
+
+            Assert.That(
+                saveService.TryGetWorldObjectState(
+                    "Floor1_Cell_A",
+                    "treasure-chest-01",
+                    out string savedState),
+                Is.True);
+            Assert.That(savedState, Is.EqualTo(WorldObjectStateIds.Opened));
+            Assert.That(
+                saveService.TryGetWorldObjectState(
+                    "Floor1_Cell_A",
+                    "pickup-01",
+                    out _),
+                Is.False);
+        }
+
+        [Test]
+        public void DeleteActiveSlot_RemovesSaveAndClearsActiveRuntimeSlot()
+        {
+            (PlayerStateService _, PlayerSaveService saveService) = CreateServices();
+            saveService.BeginNewGameInSlot(2, "Floor1_Cell_A");
+            saveService.MarkEncounterDefeated("Floor1_Cell_A", "wanderer-01");
+
+            saveService.DeleteSlot(2);
+
+            Assert.That(saveService.InspectSlot(2).State, Is.EqualTo(SaveSlotState.Empty));
+            Assert.That(saveService.ActiveSlotNumber, Is.Zero);
+            Assert.That(
+                saveService.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
+                Is.False);
+        }
+
+        [Test]
+        public void BeginNewGame_ClearsPendingCheckpointInteractionFromPreviousRun()
+        {
+            (PlayerStateService _, PlayerSaveService saveService) = CreateServices();
+            saveService.BeginNewGameInSlot(1, "Floor1_Cell_A");
+            saveService.SaveAtCheckpoint(new SavePointContext(
+                "Floor1_Cell_A",
+                "old-run-save-point",
+                Vector3.zero,
+                Quaternion.identity));
+            saveService.PrepareMutualDestructionReturn();
+
+            saveService.BeginNewGameInSlot(2, "Floor1_Cell_A");
+            saveService.SaveAtCheckpoint(new SavePointContext(
+                "Floor1_Cell_A",
+                "new-run-save-point",
+                Vector3.one,
+                Quaternion.identity));
+
+            Assert.That(
+                saveService.TryConsumeCheckpointInteractionRequest(out _),
+                Is.False,
+                "A new game must not inherit a checkpoint interaction request from an older run.");
         }
 
         private (PlayerStateService, PlayerSaveService) CreateServices()
