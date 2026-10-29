@@ -28,6 +28,27 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
     }
 
     [Serializable]
+    public sealed class EncounterRewardDropAuthoringData
+    {
+        [SerializeField]
+        private string itemId = string.Empty;
+
+        [SerializeField]
+        [Min(1)]
+        private int weight = 1;
+
+        public EncounterRewardDropAuthoringData(string itemId, int weight)
+        {
+            this.itemId = itemId;
+            this.weight = weight;
+        }
+
+        public string ItemId => itemId;
+
+        public int Weight => weight;
+    }
+
+    [Serializable]
     public sealed class EnemyActionAuthoringData
     {
         [SerializeField]
@@ -265,6 +286,19 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         private EncounterItemAuthoringData[] startingItems =
             Array.Empty<EncounterItemAuthoringData>();
 
+        [Header("Rewards")]
+        [SerializeField]
+        [Min(0)]
+        private int rewardGold;
+
+        [SerializeField]
+        [Min(0)]
+        private int rewardMaterialRollCount;
+
+        [SerializeField]
+        private EncounterRewardDropAuthoringData[] rewardMaterialDrops =
+            Array.Empty<EncounterRewardDropAuthoringData>();
+
         [Header("Scripted Enemy Rounds")]
         [SerializeField]
         private EnemySequenceAuthoringData[] scriptedSequences =
@@ -287,7 +321,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             int newManaRecoveryPerTurn,
             int newStaminaRecoveryPerTurn,
             EncounterItemAuthoringData[] newStartingItems,
-            EnemySequenceAuthoringData[] newScriptedSequences)
+            EnemySequenceAuthoringData[] newScriptedSequences,
+            int newRewardGold = 0,
+            int newRewardMaterialRollCount = 0,
+            EncounterRewardDropAuthoringData[] newRewardMaterialDrops = null)
         {
             encounterId = newEncounterId;
             displayName = newDisplayName;
@@ -300,6 +337,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             staminaRecoveryPerTurn = newStaminaRecoveryPerTurn;
             startingItems = newStartingItems ?? Array.Empty<EncounterItemAuthoringData>();
             scriptedSequences = newScriptedSequences ?? Array.Empty<EnemySequenceAuthoringData>();
+            rewardGold = newRewardGold;
+            rewardMaterialRollCount = newRewardMaterialRollCount;
+            rewardMaterialDrops = newRewardMaterialDrops
+                ?? Array.Empty<EncounterRewardDropAuthoringData>();
         }
 
         public bool TryCreateDefinition(
@@ -336,6 +377,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
+            if (!TryCreateRewards(out EncounterRewardDefinition rewards, out validationError))
+            {
+                return false;
+            }
+
             try
             {
                 definition = new SoloComboEncounterDefinition(
@@ -352,7 +398,45 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     EnemyBehaviorTable.Scripted(sequences),
                     manaRecoveryPerTurn,
                     staminaRecoveryPerTurn,
-                    items);
+                    items,
+                    rewards);
+                validationError = null;
+                return true;
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException || exception is InvalidOperationException)
+            {
+                validationError = exception.Message;
+                return false;
+            }
+        }
+
+        private bool TryCreateRewards(
+            out EncounterRewardDefinition rewards,
+            out string validationError)
+        {
+            rewards = null;
+            EncounterRewardDropAuthoringData[] authoredDrops = rewardMaterialDrops
+                ?? Array.Empty<EncounterRewardDropAuthoringData>();
+            var drops = new WeightedMaterialReward[authoredDrops.Length];
+            try
+            {
+                for (int index = 0; index < authoredDrops.Length; index++)
+                {
+                    EncounterRewardDropAuthoringData drop = authoredDrops[index];
+                    if (drop == null)
+                    {
+                        validationError = $"{name} contains a null reward at index {index}.";
+                        return false;
+                    }
+
+                    drops[index] = new WeightedMaterialReward(drop.ItemId, drop.Weight);
+                }
+
+                rewards = new EncounterRewardDefinition(
+                    rewardGold,
+                    rewardMaterialRollCount,
+                    drops);
                 validationError = null;
                 return true;
             }
@@ -401,6 +485,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             enemyDefense = Mathf.Max(0, enemyDefense);
             manaRecoveryPerTurn = Mathf.Max(0, manaRecoveryPerTurn);
             staminaRecoveryPerTurn = Mathf.Max(0, staminaRecoveryPerTurn);
+            rewardGold = Mathf.Max(0, rewardGold);
+            rewardMaterialRollCount = Mathf.Max(0, rewardMaterialRollCount);
         }
     }
 }

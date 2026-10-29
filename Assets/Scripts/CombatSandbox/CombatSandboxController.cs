@@ -1508,9 +1508,57 @@ namespace SER494.Gameplay.CombatSandbox
             }
 
             _battleResultCommitted = true;
+            AppendGrantedRewards(_battleSession.GrantedRewards);
             AppendLog(
                 "Persistent Player State and map encounter result were updated.",
                 CombatLogTone.Success);
+        }
+
+        private void AppendGrantedRewards(BattleRewardSummary rewards)
+        {
+            if (rewards == null
+                || (rewards.Gold <= 0 && rewards.TotalMaterialCount <= 0))
+            {
+                return;
+            }
+
+            var rewardParts = new List<string>();
+            if (rewards.Gold > 0)
+            {
+                rewardParts.Add($"{rewards.Gold} Gold");
+            }
+
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.WhiteCopperMaterialId,
+                "White Copper");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.BronzeMaterialId,
+                "Bronze");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.BrassMaterialId,
+                "Brass");
+
+            AppendLog(
+                $"Battle Rewards: {string.Join(", ", rewardParts)}.",
+                CombatLogTone.Success);
+        }
+
+        private static void AddMaterialReward(
+            ICollection<string> rewardParts,
+            BattleRewardSummary rewards,
+            string materialId,
+            string displayName)
+        {
+            if (rewards.Materials.TryGetValue(materialId, out int count))
+            {
+                rewardParts.Add($"{displayName} x{count}");
+            }
         }
 
         private void AppendLog(

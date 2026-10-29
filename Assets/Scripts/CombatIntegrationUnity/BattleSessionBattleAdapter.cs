@@ -5,6 +5,7 @@ using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
+using SER494.Gameplay.PlayerState;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
@@ -134,6 +135,23 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             SoloComboBattleState battle,
             out string validationError)
         {
+            return TryCommitBattleResult(
+                sessionService,
+                expectedSession,
+                playerState,
+                battle,
+                new Random(),
+                out validationError);
+        }
+
+        public static bool TryCommitBattleResult(
+            BattleSessionService sessionService,
+            BattleSession expectedSession,
+            PersistentPlayerState playerState,
+            SoloComboBattleState battle,
+            Random rewardRandom,
+            out string validationError)
+        {
             if (sessionService == null || !sessionService.IsAuthority)
             {
                 validationError = "The active BattleSessionService is unavailable.";
@@ -165,12 +183,41 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
+            if (rewardRandom == null)
+            {
+                validationError = "A reward random source is required.";
+                return false;
+            }
+
+            if (!expectedSession.Encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition encounter,
+                    out validationError))
+            {
+                return false;
+            }
+
+            BattleRewardSummary rewards = CreateRewards(
+                battle.Outcome,
+                encounter.Rewards,
+                rewardRandom);
+
+            try
+            {
+                ValidateRewardCapacity(playerState, rewards);
+            }
+            catch (OverflowException)
+            {
+                validationError = "Battle rewards exceed the supported inventory capacity.";
+                return false;
+            }
+
             try
             {
                 PlayerBattleStateTransfer.ApplyBattleResult(
                     playerState,
                     battle.Player,
                     battle.ItemCounts);
+                GrantRewards(playerState, rewards);
             }
             catch (Exception exception) when (
                 exception is ArgumentException || exception is InvalidOperationException)
@@ -181,7 +228,52 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             return sessionService.TryCompleteActiveBattle(
                 battle.Outcome,
+                rewards,
                 out validationError);
+        }
+
+        private static BattleRewardSummary CreateRewards(
+            BattleOutcome outcome,
+            EncounterRewardDefinition definition,
+            Random random)
+        {
+            if (outcome != BattleOutcome.PlayerVictory && outcome != BattleOutcome.Draw)
+            {
+                return BattleRewardSummary.None;
+            }
+
+            return new BattleRewardSummary(
+                definition.Gold,
+                definition.RollMaterials(random));
+        }
+
+        private static void ValidateRewardCapacity(
+            PersistentPlayerState playerState,
+            BattleRewardSummary rewards)
+        {
+            checked
+            {
+                _ = playerState.Currencies.Gold + rewards.Gold;
+                foreach (KeyValuePair<string, int> material in rewards.Materials)
+                {
+                    _ = playerState.Inventory.GetCount(material.Key) + material.Value;
+                }
+            }
+        }
+
+        private static void GrantRewards(
+            PersistentPlayerState playerState,
+            BattleRewardSummary rewards)
+        {
+            if (rewards.Gold > 0)
+            {
+                playerState.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, rewards.Gold);
+            }
+
+            foreach (KeyValuePair<string, int> material in rewards.Materials)
+            {
+                playerState.Inventory.Add(material.Key, material.Value);
+            }
         }
     }
 }

@@ -264,6 +264,22 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.CurrentMana, Is.EqualTo(battle.Player.CurrentMana));
             Assert.That(playerState.CurrentCombatStamina,
                 Is.EqualTo(battle.Player.CurrentStamina));
+            Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
+            Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.EqualTo(200));
+            Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+
+            bool committedAgain = BattleSessionBattleAdapter.TryCommitBattleResult(
+                service,
+                service.CurrentSession,
+                playerState,
+                battle,
+                out string duplicateError);
+
+            Assert.That(committedAgain, Is.False);
+            Assert.That(duplicateError, Does.Contain("already complete"));
+            Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
+            Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
         }
 
         [Test]
@@ -309,6 +325,9 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(committed, Is.True, commitError);
             Assert.That(service.CurrentSession.Outcome, Is.EqualTo(BattleOutcome.Draw));
             Assert.That(playerState.CurrentHealth, Is.Zero);
+            Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
+            Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.True);
@@ -316,6 +335,54 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 service.CanReturnToExploration(out string returnError),
                 Is.True,
                 returnError);
+        }
+
+        [Test]
+        public void BattleAdapter_PlayerDefeat_DoesNotGrantEncounterRewards()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PersistentPlayerState(100, 30, 30);
+            EquipStartingGear(playerState);
+            playerState.SetCurrentHealth(1);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(
+                weapon: null,
+                damageMultiplier: 0.01d);
+            BeginBattle(
+                service,
+                CreateValidEncounter(
+                    enemyMaximumHealth: 100,
+                    enemyAttack: 100,
+                    enemyDamageMultiplier: 1f),
+                loadout);
+            Assert.That(
+                BattleSessionBattleAdapter.TryCreateBattle(
+                    service.CurrentSession,
+                    playerState,
+                    out SoloComboBattleState battle,
+                    out string createError),
+                Is.True,
+                createError);
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.PlayerDefeat));
+            Assert.That(
+                BattleSessionBattleAdapter.TryCommitBattleResult(
+                    service,
+                    service.CurrentSession,
+                    playerState,
+                    battle,
+                    new System.Random(594),
+                    out string commitError),
+                Is.True,
+                commitError);
+            Assert.That(playerState.Currencies.Gold, Is.Zero);
+            Assert.That(TotalRewardMaterials(playerState), Is.Zero);
+            Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.Zero);
+            Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.Zero);
+            Assert.That(
+                service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
+                Is.False);
         }
 
         private void BeginValidBattle(BattleSessionService service)
@@ -402,8 +469,29 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                             timelineCost: 1,
                             resolutionEffect: ActionResolutionEffect.Damage,
                             damageMultiplier: enemyDamageMultiplier))
+                },
+                newRewardGold: 200,
+                newRewardMaterialRollCount: 3,
+                newRewardMaterialDrops: new[]
+                {
+                    new EncounterRewardDropAuthoringData(
+                        BattleRewardSummary.WhiteCopperMaterialId,
+                        30),
+                    new EncounterRewardDropAuthoringData(
+                        BattleRewardSummary.BronzeMaterialId,
+                        35),
+                    new EncounterRewardDropAuthoringData(
+                        BattleRewardSummary.BrassMaterialId,
+                        35)
                 });
             return encounter;
+        }
+
+        private static int TotalRewardMaterials(PersistentPlayerState playerState)
+        {
+            return playerState.Inventory.GetCount(BattleRewardSummary.WhiteCopperMaterialId)
+                + playerState.Inventory.GetCount(BattleRewardSummary.BronzeMaterialId)
+                + playerState.Inventory.GetCount(BattleRewardSummary.BrassMaterialId);
         }
 
         private SoloComboLoadoutSession CreatePreparedLoadout(

@@ -60,6 +60,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                             "Guard",
                             3,
                             ActionResolutionEffect.Guard))
+                },
+                newRewardGold: 200,
+                newRewardMaterialRollCount: 3,
+                newRewardMaterialDrops: new[]
+                {
+                    new EncounterRewardDropAuthoringData("material.white-copper", 30),
+                    new EncounterRewardDropAuthoringData("material.bronze", 35),
+                    new EncounterRewardDropAuthoringData("material.brass", 35)
                 });
 
             bool succeeded = _asset.TryCreateDefinition(
@@ -76,6 +84,9 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(definition.ManaRecoveryPerTurn, Is.EqualTo(1));
             Assert.That(definition.StaminaRecoveryPerTurn, Is.EqualTo(30));
             Assert.That(definition.StartingItems["healing-potion"], Is.EqualTo(2));
+            Assert.That(definition.Rewards.Gold, Is.EqualTo(200));
+            Assert.That(definition.Rewards.MaterialRollCount, Is.EqualTo(3));
+            Assert.That(definition.Rewards.TotalMaterialWeight, Is.EqualTo(100));
             var player = new CombatantState(
                 "Player",
                 new CombatantStats(100, 30, 30, 50, 50));
@@ -89,6 +100,48 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     previousSequenceId: null,
                     normalizedRoll: 0d).SequenceId,
                 Is.EqualTo("sequence.one"));
+        }
+
+        [Test]
+        public void TryCreateDefinition_DuplicateRewardMaterial_ReturnsValidationError()
+        {
+            _asset.Configure(
+                "encounter.test",
+                "Test Encounter",
+                string.Empty,
+                "Training Target",
+                100,
+                50,
+                50,
+                1,
+                1,
+                new EncounterItemAuthoringData[0],
+                new[]
+                {
+                    new EnemySequenceAuthoringData(
+                        "sequence.one",
+                        "Round One",
+                        new EnemyActionAuthoringData(
+                            "action.guard",
+                            "Guard",
+                            3,
+                            ActionResolutionEffect.Guard))
+                },
+                newRewardGold: 200,
+                newRewardMaterialRollCount: 3,
+                newRewardMaterialDrops: new[]
+                {
+                    new EncounterRewardDropAuthoringData("material.bronze", 30),
+                    new EncounterRewardDropAuthoringData("material.bronze", 70)
+                });
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out SoloComboEncounterDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("duplicated"));
         }
 
         [Test]

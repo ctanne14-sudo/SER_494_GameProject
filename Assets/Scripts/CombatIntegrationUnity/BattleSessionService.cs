@@ -120,6 +120,17 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             BattleOutcome outcome,
             out string validationError)
         {
+            return TryCompleteActiveBattle(
+                outcome,
+                BattleRewardSummary.None,
+                out validationError);
+        }
+
+        public bool TryCompleteActiveBattle(
+            BattleOutcome outcome,
+            BattleRewardSummary grantedRewards,
+            out string validationError)
+        {
             if (!IsAuthority)
             {
                 validationError = "Only the active BattleSessionService can complete a battle.";
@@ -144,7 +155,20 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            CurrentSession.Complete(outcome);
+            if (grantedRewards == null)
+            {
+                validationError = "A Battle Reward summary is required.";
+                return false;
+            }
+
+            if (outcome == BattleOutcome.PlayerDefeat
+                && (grantedRewards.Gold != 0 || grantedRewards.TotalMaterialCount != 0))
+            {
+                validationError = "A defeated player cannot receive Encounter rewards.";
+                return false;
+            }
+
+            CurrentSession.Complete(outcome, grantedRewards);
             if (outcome == BattleOutcome.PlayerVictory || outcome == BattleOutcome.Draw)
             {
                 string encounterKey = CreateEncounterKey(

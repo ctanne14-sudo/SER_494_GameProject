@@ -2839,7 +2839,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 "Greater Healing Potion");
             AddInventoryRow(state, PlayerStateInitialValues.VitalityTonicId, "Vitality Tonic");
             AddSectionHeading(ExplorationMenuText.Get("inventory.materials"));
-            AddBodyText(ExplorationMenuText.Get("inventory.empty"), "muted-text");
+            AddInventoryRow(
+                state,
+                BattleRewardSummary.WhiteCopperMaterialId,
+                "White Copper");
+            AddInventoryRow(state, BattleRewardSummary.BronzeMaterialId, "Bronze");
+            AddInventoryRow(state, BattleRewardSummary.BrassMaterialId, "Brass");
             SetSelectedNavigation(_inventoryButton);
         }
 

@@ -170,6 +170,35 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void ExplorationIntegrationEncounter_HasExpectedTestEnemyRewards()
+        {
+            SoloComboEncounterDefinitionAsset encounter = AssetDatabase.LoadAssetAtPath<
+                SoloComboEncounterDefinitionAsset>(
+                $"{EncounterAssetFolder}/ExplorationIntegrationEncounter.asset");
+            Assert.That(encounter, Is.Not.Null);
+            Assert.That(
+                encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition definition,
+                    out string validationError),
+                Is.True,
+                validationError);
+
+            Assert.That(definition.Rewards.Gold, Is.EqualTo(200));
+            Assert.That(definition.Rewards.MaterialRollCount, Is.EqualTo(3));
+            Assert.That(definition.Rewards.TotalMaterialWeight, Is.EqualTo(100));
+            Assert.That(definition.Rewards.MaterialDrops.Count, Is.EqualTo(3));
+            Assert.That(definition.Rewards.MaterialDrops[0].ItemId,
+                Is.EqualTo(BattleRewardSummary.WhiteCopperMaterialId));
+            Assert.That(definition.Rewards.MaterialDrops[0].Weight, Is.EqualTo(30));
+            Assert.That(definition.Rewards.MaterialDrops[1].ItemId,
+                Is.EqualTo(BattleRewardSummary.BronzeMaterialId));
+            Assert.That(definition.Rewards.MaterialDrops[1].Weight, Is.EqualTo(35));
+            Assert.That(definition.Rewards.MaterialDrops[2].ItemId,
+                Is.EqualTo(BattleRewardSummary.BrassMaterialId));
+            Assert.That(definition.Rewards.MaterialDrops[2].Weight, Is.EqualTo(35));
+        }
+
+        [Test]
         public void RegisteredTestScenarios_LoadTheExpectedEncounterAssets()
         {
             foreach (SoloComboTestScenario scenario in

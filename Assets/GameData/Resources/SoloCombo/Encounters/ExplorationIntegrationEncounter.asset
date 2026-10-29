@@ -23,6 +23,15 @@ MonoBehaviour:
   manaRecoveryPerTurn: 1
   staminaRecoveryPerTurn: 30
   startingItems: []
+  rewardGold: 200
+  rewardMaterialRollCount: 3
+  rewardMaterialDrops:
+  - itemId: material.white-copper
+    weight: 30
+  - itemId: material.bronze
+    weight: 35
+  - itemId: material.brass
+    weight: 35
   scriptedSequences:
   - sequenceId: integration.floor1.mock-wanderer.poke
     displayName: Measured Poke
