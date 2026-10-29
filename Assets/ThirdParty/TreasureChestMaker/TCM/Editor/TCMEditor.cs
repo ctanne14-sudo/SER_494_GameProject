@@ -99,7 +99,7 @@ namespace TCM {
 		
 		void OnGUI () {
 			scrollView = EditorGUILayout.BeginScrollView(scrollView);
-			Texture2D tcmTitle = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/TreasureChestMaker/TCM/GUITexture/tcmTitle.png", typeof(Texture2D));
+			Texture2D tcmTitle = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/ThirdParty/TreasureChestMaker/TCM/GUITexture/tcmTitle.png", typeof(Texture2D));
 			GUI.Label(new Rect(Screen.width/2-150,0,300,167), tcmTitle);
 			EditorGUILayout.LabelField("",GUILayout.Height(167));
 			EditorGUILayout.BeginHorizontal();
@@ -952,17 +952,17 @@ namespace TCM {
 	    private void SaveMaterials(){
 	    	AssetDatabase.SaveAssets();
 	    	if(numColors == NumColors.TwoColors){
-				AssetDatabase.MoveAsset("Assets/newBaseMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BaseMaterial.mat");
-				AssetDatabase.MoveAsset("Assets/newBorderMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BorderMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newBaseMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BaseMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newBorderMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BorderMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newTopBaseMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newTopBorderMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newBottomBaseMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newBottomBorderMaterial.mat");
 	    	} else {
-				AssetDatabase.MoveAsset("Assets/newTopBaseMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "TopBaseMaterial.mat");
-				AssetDatabase.MoveAsset("Assets/newTopBorderMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "TopBorderMaterial.mat");
-				AssetDatabase.MoveAsset("Assets/newBottomBaseMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BottomBaseMaterial.mat");
-				AssetDatabase.MoveAsset("Assets/newBottomBorderMaterial.mat","Assets/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BottomBorderMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newTopBaseMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "TopBaseMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newTopBorderMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "TopBorderMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newBottomBaseMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BottomBaseMaterial.mat");
+				AssetDatabase.MoveAsset("Assets/newBottomBorderMaterial.mat","Assets/ThirdParty/TreasureChestMaker/TCM/ChestMaterials/" + chestName + "BottomBorderMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newBaseMaterial.mat");
 				AssetDatabase.DeleteAsset("Assets/newBorderMaterial.mat");
 	    	}

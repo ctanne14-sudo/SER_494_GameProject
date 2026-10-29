@@ -112,6 +112,10 @@ Known path-based consumers that must be updated:
 
 The complete package root and root `.meta` must move together. Package demos remain with their package unless the entire demo is deliberately removed in a separate commit.
 
+Compatibility note: Treasure Chest Maker contains editor-only code with fixed `AssetDatabase` paths to its original package root. After moving the package with its `.meta` files intact, those path strings are updated to `Assets/ThirdParty/TreasureChestMaker/`. This is a documented project compatibility patch; runtime assets and their GUID-based references are unchanged.
+
+Status (2026-10-28): completed. Both package roots and root `.meta` files were moved through Unity's `AssetDatabase`; pre-move file counts and content fingerprints were preserved before applying the compatibility patch above. Unity reimport and compilation succeeded, followed by 258/258 passing Edit Mode tests and 3/3 passing Play Mode smoke tests.
+
 ### Batch 3: Template and recovery cleanup
 
 Review and, if unused, remove:
