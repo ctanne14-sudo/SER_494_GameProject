@@ -132,6 +132,8 @@ Status (2026-10-28): completed after confirming that none of the template asset 
 
 Code splits occur only after the asset layout is stable. They preserve namespaces and public behavior and are covered by the existing tests before any API redesign is considered.
 
+Status (2026-10-28): in progress. The first low-risk split moves pure Action and Combo display-text formatting out of `ExplorationMenuController` into `ExplorationMenuActionTextFormatter`. Input handling, focus navigation, page construction, Timeline rendering, draft state, equipment behavior, and persistence remain unchanged in this batch.
+
 ## Validation gate for every batch
 
 Before the batch:

@@ -959,7 +959,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
                 if (configuration != null)
                 {
-                    var sequence = new Label(FormatActionSequence(configuration));
+                    var sequence = new Label(
+                        ExplorationMenuActionTextFormatter.FormatActionSequence(configuration));
                     sequence.AddToClassList("combo-card-sequence");
                     button.Add(sequence);
 
@@ -984,7 +985,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                         state.MaximumCombatStamina));
                 var validationLabel = new Label(validation.IsValid
                     ? ExplorationMenuText.Get("combos.valid")
-                    : $"{ExplorationMenuText.Get("combos.invalid")} {FormatFirstIssue(validation)}");
+                    : $"{ExplorationMenuText.Get("combos.invalid")} "
+                        + ExplorationMenuActionTextFormatter.FormatFirstIssue(validation));
                 validationLabel.AddToClassList(
                     validation.IsValid ? "combo-status-valid" : "combo-status-invalid");
                 _content.Add(validationLabel);
@@ -1234,7 +1236,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             var button = new Button(() => BeginActionReplacement(slot))
             {
-                text = $"{FormatActionSlot(slot)}\n{displayName}"
+                text = $"{ExplorationMenuActionTextFormatter.FormatActionSlot(slot)}\n{displayName}"
             };
             button.AddToClassList("combo-assigned-action-button");
             button.EnableInClassList("combo-assigned-action-selected", _editingActionSlot == slot);
@@ -1285,7 +1287,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         {
             var button = new Button(() => SetLinkedPlacement(draftCombo, placement))
             {
-                text = ShortPlacementName(placement)
+                text = ExplorationMenuActionTextFormatter.ShortPlacementName(placement)
             };
             button.AddToClassList("combo-linked-placement-button");
             button.EnableInClassList(
@@ -1306,7 +1308,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             PreparedComboActionSlot slot)
         {
             var heading = new Label(
-                $"{ExplorationMenuText.Get("combos.action-library")} — {FormatActionSlot(slot)}");
+                $"{ExplorationMenuText.Get("combos.action-library")} — "
+                    + ExplorationMenuActionTextFormatter.FormatActionSlot(slot));
             heading.AddToClassList("combo-editor-pane-title");
             library.Add(heading);
 
@@ -1373,7 +1376,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 costs.AddToClassList("combo-action-candidate-costs");
                 button.Add(costs);
 
-                var effects = new Label(FormatActionLibrarySummary(definition));
+                var effects = new Label(
+                    ExplorationMenuActionTextFormatter.FormatActionLibrarySummary(definition));
                 effects.AddToClassList("combo-action-candidate-effects");
                 button.Add(effects);
 
@@ -1518,7 +1522,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     : string.Empty;
                 var button = new Button(() => SetActionLibraryFilter(filter))
                 {
-                    text = FormatActionLibraryFilter(filter) + equipped
+                    text = ExplorationMenuActionTextFormatter.FormatActionLibraryFilter(filter)
+                        + equipped
                 };
                 button.AddToClassList("combo-action-filter-button");
                 button.focusable = false;
@@ -1600,20 +1605,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (_buttonActions.TryGetValue(nextFilter, out Action changeFilter))
             {
                 changeFilter();
-            }
-        }
-
-        private static string FormatActionLibraryFilter(CompatibleWeaponTypes filter)
-        {
-            switch (filter)
-            {
-                case CompatibleWeaponTypes.All: return "Common";
-                case CompatibleWeaponTypes.Greatsword: return "Greatsword";
-                case CompatibleWeaponTypes.SwordAndShield: return "Sword & Shield";
-                case CompatibleWeaponTypes.GlaiveAndShield: return "Glaive & Shield";
-                case CompatibleWeaponTypes.Bow: return "Bow";
-                case CompatibleWeaponTypes.Bladeguard: return "Bladeguard";
-                default: return filter.ToString();
             }
         }
 
@@ -1987,7 +1978,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return true;
             }
 
-            validationError = FormatFirstIssue(validation);
+            validationError = ExplorationMenuActionTextFormatter.FormatFirstIssue(validation);
             return false;
         }
 
@@ -2099,167 +2090,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private static ComboActionCategory ToActionCategory(PreparedComboActionSlot slot)
         {
             return (ComboActionCategory)slot;
-        }
-
-        private static string FormatActionSlot(PreparedComboActionSlot slot)
-        {
-            switch (slot)
-            {
-                case PreparedComboActionSlot.Opening: return "Opening [O]";
-                case PreparedComboActionSlot.Main: return "Main [M]";
-                case PreparedComboActionSlot.Closing: return "Closing [C]";
-                case PreparedComboActionSlot.Linked: return "Linked [L]";
-                default: return slot.ToString();
-            }
-        }
-
-        private static string FormatActionLibrarySummary(ComboActionDefinition action)
-        {
-            var lines = new List<string>();
-            for (int index = 0; index < action.ResolutionEvents.Count; index++)
-            {
-                ActionResolutionDefinition resolution = action.ResolutionEvents[index];
-                if (resolution.Effect == ActionResolutionEffect.None
-                    && resolution.ItemCost == null)
-                {
-                    continue;
-                }
-
-                string timing;
-                if (resolution.HasResolutionWindow)
-                {
-                    timing = $"T{resolution.ResolutionWindowStart.Value}–T{resolution.ResolutionWindowEnd.Value}";
-                }
-                else if (action.IsChargeable
-                    && index == 0
-                    && resolution.Offset == action.ResolutionOffset)
-                {
-                    timing = $"T{resolution.Offset}";
-                    for (int level = 0; level < action.ChargeLevels.Count; level++)
-                    {
-                        timing += $"/T{resolution.Offset + action.ChargeLevels[level].AdditionalTimelineCost}";
-                    }
-                }
-                else
-                {
-                    timing = $"T{resolution.Offset}";
-                }
-
-                string detail = FormatResolutionSummary(resolution);
-                lines.Add($"• {timing} — {detail}");
-            }
-
-            if (action.IsChargeable)
-            {
-                lines.Add(
-                    $"• Charge Levels 0–{action.ChargeLevels.Count}; later levels extend the Timeline");
-            }
-
-            for (int index = 0; index < action.ActiveWindows.Count; index++)
-            {
-                ActionActiveWindowDefinition window = action.ActiveWindows[index];
-                string effect = window.Effect == ActiveWindowEffect.SuperArmor
-                    ? $"Super Armor {ToRomanNumeral(window.SuperArmorLevel)}"
-                    : $"Damage Taken -{window.DamageReduction * 100d:0}%";
-                lines.Add($"• T{window.StartOffset}–T{window.EndOffset} — {effect}");
-            }
-
-            if (action.SustainedAttack != null)
-            {
-                lines.Add(
-                    $"• Sustained Attack T{action.SustainedAttack.WindowStartOffset}–T{action.SustainedAttack.WindowEndOffset}"
-                    + $"; every {action.SustainedAttack.HitInterval} Time Steps"
-                    + $"; up to {action.SustainedAttack.MaximumHitCount} hits");
-            }
-
-            if (action.PreviousActionStatusRequirement != null)
-            {
-                lines.Add(
-                    $"• Requires previous Action: {action.PreviousActionStatusRequirement.DisplayName}");
-            }
-
-            return lines.Count == 0 ? "• No Resolution Events" : string.Join("\n", lines);
-        }
-
-        private static string FormatResolutionSummary(ActionResolutionDefinition resolution)
-        {
-            string result = resolution.HasResolutionWindow
-                ? $"{resolution.Effect} Resolution Window"
-                : resolution.Effect.ToString();
-            if (resolution.DamageEffect != null)
-            {
-                result = "Damage: ";
-                for (int index = 0; index < resolution.DamageEffect.Components.Count; index++)
-                {
-                    if (index > 0)
-                    {
-                        result += ", ";
-                    }
-
-                    var component = resolution.DamageEffect.Components[index];
-                    result += $"{component.Type} {component.ActionMultiplier * 100d:0}%";
-                }
-
-                if (resolution.DamageTags != DamageResolutionTag.None)
-                {
-                    result += $" [{resolution.DamageTags}]";
-                }
-
-                if (resolution.OnHitDisruption != null)
-                {
-                    result += $"; {resolution.OnHitDisruption.Type} {resolution.OnHitDisruption.Duration}";
-                }
-            }
-            else if (resolution.Healing != null)
-            {
-                result = resolution.Healing.Type == ActionHealingType.FlatAmount
-                    ? $"Heal {resolution.Healing.Value:0} HP"
-                    : $"Heal {resolution.Healing.Value * 100d:0}% Max HP";
-            }
-            else if (resolution.StaminaRecovery > 0)
-            {
-                result = $"Restore {resolution.StaminaRecovery} Stamina";
-            }
-            else if (resolution.StatusEffect != null)
-            {
-                string target = resolution.StatusTarget == ActionStatusTarget.Self
-                    ? "Self" : "Opponent";
-                string durationUnit = resolution.StatusEffect.DurationType
-                    == CombatStatusDurationType.Rounds ? "Rounds" : "Time Steps";
-                result = $"{resolution.Effect}: {resolution.StatusEffect.DisplayName} ({target})"
-                    + $" for {resolution.StatusEffect.Duration} {durationUnit}";
-            }
-
-            if (resolution.ItemCost != null)
-            {
-                result += $"; consumes {resolution.ItemCost.Amount} {resolution.ItemCost.DisplayName}";
-            }
-
-            return result;
-        }
-
-        private static string ToRomanNumeral(int value)
-        {
-            switch (value)
-            {
-                case 1: return "I";
-                case 2: return "II";
-                case 3: return "III";
-                case 4: return "IV";
-                case 5: return "V";
-                default: return value.ToString();
-            }
-        }
-
-        private static string ShortPlacementName(PreparedLinkedActionPlacement placement)
-        {
-            switch (placement)
-            {
-                case PreparedLinkedActionPlacement.AfterOpening: return "After O";
-                case PreparedLinkedActionPlacement.AfterMain: return "After M";
-                case PreparedLinkedActionPlacement.AfterClosing: return "After C";
-                default: return placement.ToString();
-            }
         }
 
         private void ConfigurePageHeader(string title)
@@ -2901,23 +2731,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _content.Add(error);
         }
 
-        private static string FormatActionSequence(ComboConfiguration configuration)
-        {
-            IReadOnlyList<ComboActionDefinition> actions = configuration.BuildExecutionOrder();
-            string result = string.Empty;
-            for (int index = 0; index < actions.Count; index++)
-            {
-                if (index > 0)
-                {
-                    result += "  →  ";
-                }
-
-                result += actions[index].DisplayName;
-            }
-
-            return result;
-        }
-
         private static void AddCompactTimelinePreview(
             VisualElement parent,
             ComboConfiguration configuration)
@@ -3011,17 +2824,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 cell.AddToClassList(markerClass);
             }
-        }
-
-        private static string FormatFirstIssue(ComboValidationResult validation)
-        {
-            if (validation == null || validation.IsValid || validation.Issues.Count == 0)
-            {
-                return string.Empty;
-            }
-
-            ComboValidationIssue issue = validation.Issues[0];
-            return $"{issue.Code} in {issue.ComboName}.";
         }
 
         private void ShowInventory()
