@@ -132,7 +132,16 @@ Status (2026-10-28): completed after confirming that none of the template asset 
 
 Code splits occur only after the asset layout is stable. They preserve namespaces and public behavior and are covered by the existing tests before any API redesign is considered.
 
-Status (2026-10-28): in progress. The first low-risk split moves pure Action and Combo display-text formatting out of `ExplorationMenuController` into `ExplorationMenuActionTextFormatter`. Input handling, focus navigation, page construction, Timeline rendering, draft state, equipment behavior, and persistence remain unchanged in this batch.
+Status (2026-10-29): paused after two low-risk splits. The first split moved pure Action and Combo display-text formatting out of `ExplorationMenuController` into `ExplorationMenuActionTextFormatter`. The second split moved Editor-only equipment and Combo preview seeding into `ExplorationMenuEditorPreviewContent`. Input handling, focus navigation, page construction, Timeline rendering, draft state, equipment behavior, and persistence remained unchanged by these batches. After the second split, Unity compilation succeeded, 258/258 Edit Mode tests passed, and 3/3 Play Mode smoke tests passed.
+
+The remaining architecture work is deliberately deferred so feature integration can continue:
+
+1. continue splitting `ExplorationMenuController` by page construction, navigation/input, Timeline rendering, and draft-editing responsibilities;
+2. split the large Action Definition and Timeline Builder implementations without changing their serialized data or runtime semantics;
+3. organize legacy exploration scripts and tighten assembly boundaries;
+4. separate production Build content from prototype and sandbox Build content.
+
+When this phase resumes, each item remains an independent migration batch and must pass the validation gate below before the next item begins.
 
 ## Validation gate for every batch
 
