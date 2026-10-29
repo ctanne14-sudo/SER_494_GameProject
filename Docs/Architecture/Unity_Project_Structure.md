@@ -124,6 +124,10 @@ Review and, if unused, remove:
 - `Assets/TutorialInfo/`;
 - `Assets/_Recovery.meta`.
 
+Also clear the stale `templateDefaultScene` value in `ProjectSettings/ProjectSettings.asset`; it referenced the removed template scene at `Assets/Scenes/SampleScene.unity` and does not control the project's Build Settings or runtime title-scene flow.
+
+Status (2026-10-28): completed after confirming that none of the template asset GUIDs had external references. The URP template welcome asset, tutorial editor files, template layout and artwork, and orphaned recovery metadata were removed. The stale template default-scene value was cleared without changing Build Settings or authored scenes.
+
 ### Batch 4 and later: Code organization
 
 Code splits occur only after the asset layout is stable. They preserve namespaces and public behavior and are covered by the existing tests before any API redesign is considered.
