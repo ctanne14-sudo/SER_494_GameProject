@@ -15,7 +15,7 @@ namespace SER494.Gameplay.Combat.Editor.CombatIntegration
 {
     public static class CombatIntegrationDemoSceneCreator
     {
-        private const string FloorScenePath = "Assets/_Project/Scenes/Floor1_Cell_A.unity";
+        private const string FloorScenePath = "Assets/_Project/Scenes/Exploration/Floor1_Cell_A.unity";
         private const string EncounterPath =
             "Assets/GameData/Resources/SoloCombo/Encounters/ExplorationIntegrationEncounter.asset";
         private const string LoadoutSessionPath =

@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 
 public static class PersistentHealingPotionPickupSceneCreator
 {
-    private const string FloorScenePath = "Assets/_Project/Scenes/Floor1_Cell_A.unity";
+    private const string FloorScenePath = "Assets/_Project/Scenes/Exploration/Floor1_Cell_A.unity";
     private const string PickupName = "Persistent Healing Potion Pickup";
     private const string PickupId = "floor1.healing-potion-pickup-01";
 

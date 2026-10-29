@@ -13,8 +13,8 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
 {
     public static class ComboBuilderPrototypeSceneCreator
     {
-        private const string ScenePath = "Assets/Scenes/ComboBuilderSandbox.unity";
-        private const string CombatScenePath = "Assets/Scenes/CombatSandbox.unity";
+        private const string ScenePath = "Assets/_Project/Scenes/Prototype/ComboBuilderSandbox.unity";
+        private const string CombatScenePath = "Assets/_Project/Scenes/Prototype/CombatSandbox.unity";
         private const string PanelSettingsPath = "Assets/UI/SoloCombo/ComboBuilderPanelSettings.asset";
         private const string LoadoutSessionPath = "Assets/GameData/SoloCombo/SoloComboLoadoutSession.asset";
         private const string VisualTreePath = "Assets/UI/SoloCombo/SoloComboBuilder.uxml";

@@ -10,7 +10,7 @@ namespace Roguelike.EditorTools
     public static class RoomBuilder
     {
         private const string Root = "Assets/_Project";
-        private const string SceneFolder = Root + "/Scenes";
+        private const string SceneFolder = Root + "/Scenes/Exploration";
         private const string MaterialFolder = Root + "/Materials";
         private const string ResourcesFolder = Root + "/Resources";
 
@@ -54,7 +54,7 @@ namespace Roguelike.EditorTools
             EditorSceneManager.OpenScene(scenePaths[0]);
             EditorUtility.DisplayDialog(
                 "Rooms built",
-                "Created 3 isometric scenes in Assets/_Project/Scenes and added them to Build Settings.\n\n" +
+                "Created 3 isometric scenes in Assets/_Project/Scenes/Exploration and added them to Build Settings.\n\n" +
                 "Open them from that folder to look around in the Scene view. The green box at the end of each room is the exit to the next floor.",
                 "OK");
         }
@@ -523,6 +523,7 @@ namespace Roguelike.EditorTools
         {
             EnsureFolder("Assets", "_Project");
             EnsureFolder(Root, "Scenes");
+            EnsureFolder(Root + "/Scenes", "Exploration");
             EnsureFolder(Root, "Materials");
             EnsureFolder(Root, "Resources");
         }

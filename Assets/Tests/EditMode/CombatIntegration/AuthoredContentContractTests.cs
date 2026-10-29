@@ -26,7 +26,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         private const string EncounterAssetFolder =
             "Assets/GameData/Resources/SoloCombo/Encounters";
         private const string FloorOneScenePath =
-            "Assets/_Project/Scenes/Floor1_Cell_A.unity";
+            "Assets/_Project/Scenes/Exploration/Floor1_Cell_A.unity";
         private const string PersistentPickupObjectId =
             "floor1.healing-potion-pickup-01";
         private const string PersistentItemPickupScriptGuid =
