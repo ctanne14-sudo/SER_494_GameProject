@@ -86,6 +86,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public const string WhiteCopperMaterialId = "material.white-copper";
         public const string BronzeMaterialId = "material.bronze";
         public const string BrassMaterialId = "material.brass";
+        public const string ApeBeastPeltMaterialId = "material.ape-beast-pelt";
+        public const string ApeBeastArmguardMaterialId = "material.ape-beast-armguard";
+        public const string ApeBeastBlackFurMaterialId = "material.ape-beast-black-fur";
+        public const string ApeBeastBloodMaterialId = "material.ape-beast-blood";
 
         public static readonly BattleRewardSummary None =
             new BattleRewardSummary(0, null);

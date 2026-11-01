@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using UnityEngine;
@@ -181,6 +182,96 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(succeeded, Is.False);
             Assert.That(definition, Is.Null);
             Assert.That(validationError, Does.Contain("duplicate"));
+        }
+
+        [Test]
+        public void TryCreateDefinition_RichEnemyAction_PreservesEventsWindowsAndCancelResponse()
+        {
+            var damageReduction = new CombatStatusDefinition(
+                "status.test.damage-reduction",
+                "Damage Reduction",
+                CombatStatusDurationType.TimeSteps,
+                20,
+                CombatStatusModifierDirection.DamageTaken,
+                DamageModifier.All(-0.20d),
+                CombatStatusStackingPolicy.IndependentInstances);
+            _asset.Configure(
+                "encounter.rich-enemy",
+                "Rich Enemy",
+                string.Empty,
+                "Rich Enemy",
+                250,
+                50,
+                30,
+                1,
+                10,
+                new EncounterItemAuthoringData[0],
+                new[]
+                {
+                    new EnemySequenceAuthoringData(
+                        "round.one",
+                        "Round One",
+                        new EnemyActionAuthoringData(
+                            "action.rich",
+                            "Rich Action",
+                            20,
+                            new[]
+                            {
+                                new EnemyResolutionEventAuthoringData(
+                                    3,
+                                    ActionResolutionEffect.ApplyBuff,
+                                    statusEffect: damageReduction,
+                                    statusTarget: ActionStatusTarget.Self),
+                                new EnemyResolutionEventAuthoringData(
+                                    6,
+                                    ActionResolutionEffect.Damage,
+                                    1.00f,
+                                    DamageType.Slashing),
+                                new EnemyResolutionEventAuthoringData(
+                                    9,
+                                    ActionResolutionEffect.Guard)
+                            },
+                            new[]
+                            {
+                                new EnemyActiveWindowAuthoringData(
+                                    "action.rich.super-armor",
+                                    "Super Armor III",
+                                    1,
+                                    20,
+                                    ActiveWindowEffect.SuperArmor,
+                                    superArmorLevel: 3)
+                            }))
+                });
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out SoloComboEncounterDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True, validationError);
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 30, 30, 50, 50));
+            var enemy = new CombatantState(
+                definition.EnemyDisplayName,
+                definition.EnemyStats);
+            EnemyActionDefinition action = definition.EnemyBehavior.SelectSequence(
+                player,
+                enemy,
+                previousSequenceId: null,
+                normalizedRoll: 0d).Actions[0];
+
+            Assert.That(action.ResolutionEvents.Count, Is.EqualTo(3));
+            Assert.That(action.ResolutionEvents[0].Effect,
+                Is.EqualTo(ActionResolutionEffect.ApplyBuff));
+            Assert.That(action.ResolutionEvents[0].StatusEffect.Duration, Is.EqualTo(20));
+            Assert.That(action.ResolutionEvents[1].Offset, Is.EqualTo(6));
+            Assert.That(action.ResolutionEvents[2].Effect,
+                Is.EqualTo(ActionResolutionEffect.Guard));
+            Assert.That(action.ActiveWindows.Count, Is.EqualTo(1));
+            Assert.That(action.ActiveWindows[0].SuperArmorLevel, Is.EqualTo(3));
+            Assert.That(
+                action.DisruptionResponseSegments[0].StaggerResponse,
+                Is.EqualTo(ActionDisruptionResponse.CancelAction));
         }
     }
 }

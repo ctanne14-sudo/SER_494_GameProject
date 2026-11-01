@@ -1814,17 +1814,17 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void OvercommitOnEvadedStagger_CancelsAttackerAndAdvancesFollowingAction()
+        public void OvercommitOnEvadedStagger_UsesSelfDefinedDurationAndCancelsAttacker()
         {
             var sidestep = new ComboActionDefinition(
                 "sidestep",
                 "Sidestep",
                 ComboActionCategory.Opening,
-                timelineCost: 2,
+                timelineCost: 6,
                 manaCost: 0,
                 staminaCost: 1,
                 cooldown: 0,
-                resolutionOffset: 1,
+                resolutionOffset: 5,
                 resolutionEffect: ActionResolutionEffect.Evade);
             var combo = new ComboConfiguration(
                 "evade-counter",
@@ -1848,26 +1848,26 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                     new EnemyActionDefinition(
                         "committed-lunge",
                         "Committed Lunge",
-                        timelineCost: 4,
-                        resolutionOffset: 1,
+                        timelineCost: 10,
+                        resolutionOffset: 5,
                         damageMultiplier: 0.60d,
                         damageTags: DamageResolutionTag.Overcommit,
                         disruptionResponseSegments: new[]
                         {
                             new DisruptionResponseSegmentDefinition(
                                 startOffset: 1,
-                                endOffset: 4,
+                                endOffset: 10,
                                 flinchResponse: ActionDisruptionResponse.PauseAndResume,
                                 staggerResponse: ActionDisruptionResponse.CancelAction,
                                 knockdownResponse: ActionDisruptionResponse.CancelAction)
                         },
                         onEvadedDisruption: new ActionDisruptionDefinition(
                             ActionDisruptionType.Stagger,
-                            duration: 2)),
+                            duration: 5)),
                     new EnemyActionDefinition(
                         "follow-up",
                         "Follow-up",
-                        timelineCost: 3,
+                        timelineCost: 10,
                         resolutionOffset: 3,
                         damageMultiplier: 0.35d)
                 });
@@ -1897,10 +1897,10 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(evadedLunge.DisruptionResponse,
                 Is.EqualTo(ActionDisruptionResponse.CancelAction));
             Assert.That(canceledLunge.IsCanceled, Is.True);
-            Assert.That(canceledLunge.Cancellation.RecoveryEndTime, Is.EqualTo(3));
-            Assert.That(advancedFollowUp.StartTime, Is.EqualTo(3));
-            Assert.That(advancedFollowUp.ResolutionTime, Is.EqualTo(6));
-            Assert.That(result.Schedule.CompletionTime, Is.EqualTo(6));
+            Assert.That(canceledLunge.Cancellation.RecoveryEndTime, Is.EqualTo(10));
+            Assert.That(advancedFollowUp.StartTime, Is.EqualTo(10));
+            Assert.That(advancedFollowUp.ResolutionTime, Is.EqualTo(13));
+            Assert.That(result.Schedule.CompletionTime, Is.EqualTo(20));
         }
 
         [Test]

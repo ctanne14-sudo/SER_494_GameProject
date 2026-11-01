@@ -29,6 +29,9 @@ MonoBehaviour:
     quantity: 4
   - itemId: vitality-tonic
     quantity: 6
+  rewardGold: 0
+  rewardMaterialRollCount: 0
+  rewardMaterialDrops: []
   scriptedSequences:
   - sequenceId: training.greatsword.round-1
     displayName: "R1 / Combo 1 \u2014 Charge Timing"
@@ -49,6 +52,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r1.pressure
       displayName: Shoulder Pressure
       timelineCost: 6
@@ -65,6 +70,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.greatsword.round-2
     displayName: "R2 / Combo 2 \u2014 Clash then Evade"
     actions:
@@ -84,6 +91,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r2.overcommit
       displayName: Overcommitted Finish
       timelineCost: 10
@@ -100,6 +109,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.greatsword.round-3
     displayName: "R3 / Combo 3 \u2014 Armor and Unguardable"
     actions:
@@ -119,6 +130,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r3.guard
       displayName: Unguardable Check
       timelineCost: 3
@@ -135,6 +148,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r3.buff-check
       displayName: Steadfast Check
       timelineCost: 7
@@ -151,6 +166,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.greatsword.round-4
     displayName: "R4 / Combo 4 \u2014 Buff and Split Damage"
     actions:
@@ -170,6 +187,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r4.split-guard
       displayName: First Sweep Guard
       timelineCost: 17
@@ -186,6 +205,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: greatsword.r4.finish
       displayName: Closing Check
       timelineCost: 2
@@ -202,3 +223,5 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []

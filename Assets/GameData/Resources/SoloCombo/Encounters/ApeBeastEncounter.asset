@@ -1,0 +1,507 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: ApeBeastEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: encounter.ape-beast
+  displayName: Ape Beast Encounter
+  description: A heavy-hitting three-round Ape Beast combat cycle.
+  enemyDisplayName: Ape Beast
+  enemyMaximumHealth: 450
+  enemyAttack: 60
+  enemyDefense: 0
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 10
+  startingItems: []
+  rewardGold: 300
+  rewardMaterialRollCount: 5
+  rewardMaterialDrops:
+  - itemId: material.ape-beast-pelt
+    weight: 30
+  - itemId: material.ape-beast-armguard
+    weight: 30
+  - itemId: material.ape-beast-black-fur
+    weight: 30
+  - itemId: material.ape-beast-blood
+    weight: 10
+  scriptedSequences:
+  - sequenceId: enemy.ape-beast.round-1
+    displayName: Round 1
+    actions:
+    - actionId: enemy.ape-beast.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 2
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-2
+      displayName: Action 2
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 8
+        effect: 1
+        damageMultiplier: 1
+        damageType: 1
+        damageTags: 8
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 1
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 5
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-1
+      displayName: Action 1
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 1
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+  - sequenceId: enemy.ape-beast.round-2
+    displayName: Round 2
+    actions:
+    - actionId: enemy.ape-beast.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.6
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-6
+      displayName: Action 6
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.5
+        damageType: 1
+        damageTags: 2
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.6
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+  - sequenceId: enemy.ape-beast.round-3
+    displayName: Round 3
+    actions:
+    - actionId: enemy.ape-beast.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.6
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-5
+      displayName: Action 5
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 4
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 1
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 5
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.6
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.ape-beast.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 2
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []

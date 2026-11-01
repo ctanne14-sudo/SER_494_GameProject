@@ -1543,6 +1543,26 @@ namespace SER494.Gameplay.CombatSandbox
                 rewards,
                 BattleRewardSummary.BrassMaterialId,
                 "Brass");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.ApeBeastPeltMaterialId,
+                "Ape Beast Pelt");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.ApeBeastArmguardMaterialId,
+                "Ape Beast Armguard");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.ApeBeastBlackFurMaterialId,
+                "Ape Beast Black Fur");
+            AddMaterialReward(
+                rewardParts,
+                rewards,
+                BattleRewardSummary.ApeBeastBloodMaterialId,
+                "Ape Beast Blood");
 
             AppendLog(
                 $"Battle Rewards: {string.Join(", ", rewardParts)}.",

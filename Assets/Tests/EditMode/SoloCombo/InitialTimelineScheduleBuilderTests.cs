@@ -461,6 +461,48 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void BuildEnemyOnly_MultipleResolutionEvents_KeepLocalOffsetsAndActionBoundaries()
+        {
+            var first = new EnemyActionDefinition(
+                "enemy-first",
+                "Enemy First",
+                timelineCost: 10,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(2, ActionResolutionEffect.Evade),
+                    new ActionResolutionDefinition(
+                        5,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Slashing, 0.60d))
+                });
+            var second = new EnemyActionDefinition(
+                "enemy-second",
+                "Enemy Second",
+                timelineCost: 10,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(3, ActionResolutionEffect.Guard),
+                    new ActionResolutionDefinition(
+                        8,
+                        ActionResolutionEffect.Damage,
+                        DamageEffectDefinition.Single(DamageType.Piercing, 0.20d))
+                });
+
+            InitialTimelineSchedule schedule = InitialTimelineScheduleBuilder.BuildEnemyOnly(
+                EnemySequence(first, second));
+
+            Assert.That(schedule.Actions.Count, Is.EqualTo(2));
+            Assert.That(
+                schedule.Actions[0].ResolutionEvents.Select(step => step.Time),
+                Is.EqualTo(new[] { 2, 5 }));
+            Assert.That(
+                schedule.Actions[1].ResolutionEvents.Select(step => step.Time),
+                Is.EqualTo(new[] { 13, 18 }));
+            Assert.That(schedule.Actions[1].StartTime, Is.EqualTo(10));
+            Assert.That(schedule.CompletionTime, Is.EqualTo(20));
+        }
+
+        [Test]
         public void Build_ConvertsActiveWindowFromActionLocalTimeToTimelineTime()
         {
             var activeWindow = new ActionActiveWindowDefinition(

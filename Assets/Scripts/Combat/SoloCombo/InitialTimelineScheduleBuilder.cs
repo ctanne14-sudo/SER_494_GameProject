@@ -688,7 +688,14 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     resolutionTimes: ScheduleResolutionTimes(
                         definition.SustainedAttack,
                         currentTime,
-                        definition.ResolutionOffset)));
+                        definition.ResolutionOffset),
+                    resolutionEvents: definition.SustainedAttack == null
+                        ? ScheduleResolutionEvents(
+                            definition.ResolutionEvents,
+                            currentTime,
+                            legacyPrimaryWindowStart: null,
+                            legacyPrimaryWindowEnd: null)
+                        : null));
                 currentTime = endTime;
             }
 

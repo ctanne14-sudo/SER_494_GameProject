@@ -10,6 +10,36 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string actionId,
             string displayName,
             int timelineCost,
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents,
+            IReadOnlyList<ActionActiveWindowDefinition> activeWindows = null,
+            IReadOnlyList<DisruptionResponseSegmentDefinition> disruptionResponseSegments = null)
+            : this(
+                actionId,
+                displayName,
+                timelineCost,
+                GetPrimaryResolution(resolutionEvents).Offset,
+                GetPrimaryResolution(resolutionEvents).DamageEffect,
+                GetPrimaryResolution(resolutionEvents).Effect,
+                GetPrimaryResolution(resolutionEvents).DamageTags,
+                GetPrimaryResolution(resolutionEvents).StatusEffect,
+                GetPrimaryResolution(resolutionEvents).StatusTarget,
+                activeWindows,
+                GetPrimaryResolution(resolutionEvents).OnHitDisruption,
+                disruptionResponseSegments,
+                GetPrimaryResolution(resolutionEvents).OnGuardedDisruption,
+                GetPrimaryResolution(resolutionEvents).Clash,
+                GetPrimaryResolution(resolutionEvents).OnEvadedDisruption,
+                sustainedAttack: null)
+        {
+            ResolutionEvents = CopyAndValidateResolutionEvents(
+                resolutionEvents,
+                TimelineCost);
+        }
+
+        public EnemyActionDefinition(
+            string actionId,
+            string displayName,
+            int timelineCost,
             int resolutionOffset,
             double damageMultiplier = 0d,
             DamageType damageType = DamageType.Slashing,
@@ -177,6 +207,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 .CopyAndValidateDisruptionResponseSegments(
                     disruptionResponseSegments,
                     TimelineCost);
+            ResolutionEvents = Array.AsReadOnly(new[]
+            {
+                new ActionResolutionDefinition(
+                    ResolutionOffset,
+                    ResolutionEffect,
+                    DamageEffect,
+                    DamageTags,
+                    StatusEffect,
+                    StatusTarget,
+                    OnHitDisruption,
+                    OnGuardedDisruption,
+                    Clash,
+                    OnEvadedDisruption)
+            });
         }
 
         public string ActionId { get; }
@@ -212,6 +256,71 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public IReadOnlyList<DisruptionResponseSegmentDefinition> DisruptionResponseSegments { get; }
 
         public SustainedAttackDefinition SustainedAttack { get; }
+
+        public IReadOnlyList<ActionResolutionDefinition> ResolutionEvents { get; private set; }
+
+        private static ActionResolutionDefinition GetPrimaryResolution(
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents)
+        {
+            if (resolutionEvents == null || resolutionEvents.Count == 0)
+            {
+                throw new ArgumentException(
+                    "An enemy Action must contain at least one Resolution Event.",
+                    nameof(resolutionEvents));
+            }
+
+            return resolutionEvents[0]
+                ?? throw new ArgumentException(
+                    "A Resolution Event cannot be null.",
+                    nameof(resolutionEvents));
+        }
+
+        private static IReadOnlyList<ActionResolutionDefinition> CopyAndValidateResolutionEvents(
+            IReadOnlyList<ActionResolutionDefinition> resolutionEvents,
+            int timelineCost)
+        {
+            if (resolutionEvents == null || resolutionEvents.Count == 0)
+            {
+                throw new ArgumentException(
+                    "An enemy Action must contain at least one Resolution Event.",
+                    nameof(resolutionEvents));
+            }
+
+            var copy = new ActionResolutionDefinition[resolutionEvents.Count];
+            var exclusiveEffectsByOffset = new Dictionary<int, ActionResolutionEffect>();
+            for (int index = 0; index < resolutionEvents.Count; index++)
+            {
+                ActionResolutionDefinition resolution = resolutionEvents[index]
+                    ?? throw new ArgumentException(
+                        "A Resolution Event cannot be null.",
+                        nameof(resolutionEvents));
+                resolution.ValidateForActionTimelineCost(timelineCost);
+                bool isExclusive = resolution.Effect == ActionResolutionEffect.Damage
+                    || resolution.Effect == ActionResolutionEffect.Guard
+                    || resolution.Effect == ActionResolutionEffect.Evade;
+                if (isExclusive
+                    && exclusiveEffectsByOffset.TryGetValue(
+                        resolution.Offset,
+                        out ActionResolutionEffect existingEffect)
+                    && (existingEffect != ActionResolutionEffect.Damage
+                        || resolution.Effect != ActionResolutionEffect.Damage))
+                {
+                    throw new ArgumentException(
+                        "Damage cannot overlap Guard or Evade, and defensive Resolution "
+                        + "Events cannot overlap in one enemy Action.",
+                        nameof(resolutionEvents));
+                }
+
+                if (isExclusive)
+                {
+                    exclusiveEffectsByOffset[resolution.Offset] = resolution.Effect;
+                }
+
+                copy[index] = resolution;
+            }
+
+            return Array.AsReadOnly(copy);
+        }
 
         private static DamageEffectDefinition CreateSingleDamageEffect(
             double damageMultiplier,

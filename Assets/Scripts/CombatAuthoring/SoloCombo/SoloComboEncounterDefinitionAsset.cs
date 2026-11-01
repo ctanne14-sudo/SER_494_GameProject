@@ -49,6 +49,182 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
     }
 
     [Serializable]
+    public sealed class EnemyResolutionEventAuthoringData
+    {
+        [SerializeField, Min(0)] private int offset;
+        [SerializeField] private ActionResolutionEffect effect;
+        [SerializeField, Min(0f)] private float damageMultiplier;
+        [SerializeField] private DamageType damageType = DamageType.Slashing;
+        [SerializeField] private DamageResolutionTag damageTags;
+        [SerializeField] private bool appliesOnHitDisruption;
+        [SerializeField] private ActionDisruptionType onHitDisruptionType = ActionDisruptionType.Stagger;
+        [SerializeField, Min(1)] private int onHitDisruptionDuration = 1;
+        [SerializeField] private bool appliesOnEvadedDisruption;
+        [SerializeField] private ActionDisruptionType onEvadedDisruptionType = ActionDisruptionType.Stagger;
+        [SerializeField, Min(1)] private int onEvadedDisruptionDuration = 1;
+        [SerializeField] private bool hasClash;
+        [SerializeField, Range(0.01f, 1f)] private float clashDamageReduction = 0.3f;
+        [SerializeField, Range(0, 5)] private int clashSuperArmorLevel;
+        [SerializeField] private string statusId = string.Empty;
+        [SerializeField] private string statusDisplayName = string.Empty;
+        [SerializeField, Min(1)] private int statusDuration = 1;
+        [SerializeField] private CombatStatusDurationType statusDurationType = CombatStatusDurationType.TimeSteps;
+        [SerializeField] private CombatStatusModifierDirection statusModifierDirection = CombatStatusModifierDirection.DamageTaken;
+        [SerializeField] private DamageModifierScope statusModifierScope = DamageModifierScope.All;
+        [SerializeField] private DamageFamily statusModifierFamily = DamageFamily.Physical;
+        [SerializeField] private DamageType statusModifierType = DamageType.Slashing;
+        [SerializeField] private float statusModifierAmount;
+        [SerializeField] private CombatStatusStackingPolicy statusStackingPolicy = CombatStatusStackingPolicy.IndependentInstances;
+        [SerializeField] private ActionStatusTarget statusTarget = ActionStatusTarget.Self;
+
+        public EnemyResolutionEventAuthoringData(
+            int offset,
+            ActionResolutionEffect effect,
+            float damageMultiplier = 0f,
+            DamageType damageType = DamageType.Slashing,
+            DamageResolutionTag damageTags = DamageResolutionTag.None,
+            ActionDisruptionDefinition onHitDisruption = null,
+            ActionDisruptionDefinition onEvadedDisruption = null,
+            DamageClashDefinition clash = null,
+            CombatStatusDefinition statusEffect = null,
+            ActionStatusTarget statusTarget = ActionStatusTarget.Self)
+        {
+            this.offset = offset;
+            this.effect = effect;
+            this.damageMultiplier = damageMultiplier;
+            this.damageType = damageType;
+            this.damageTags = damageTags;
+            appliesOnHitDisruption = onHitDisruption != null;
+            onHitDisruptionType = onHitDisruption?.Type ?? ActionDisruptionType.Stagger;
+            onHitDisruptionDuration = onHitDisruption?.Duration ?? 1;
+            appliesOnEvadedDisruption = onEvadedDisruption != null;
+            onEvadedDisruptionType = onEvadedDisruption?.Type ?? ActionDisruptionType.Stagger;
+            onEvadedDisruptionDuration = onEvadedDisruption?.Duration ?? 1;
+            hasClash = clash != null;
+            clashDamageReduction = (float)(clash?.DamageReduction ?? 0.3d);
+            clashSuperArmorLevel = clash?.SuperArmorLevel ?? 0;
+            this.statusTarget = statusTarget;
+            if (statusEffect != null)
+            {
+                statusId = statusEffect.StatusId;
+                statusDisplayName = statusEffect.DisplayName;
+                statusDuration = statusEffect.Duration;
+                statusDurationType = statusEffect.DurationType;
+                statusModifierDirection = statusEffect.ModifierDirection;
+                statusModifierScope = statusEffect.Modifier.Scope;
+                statusModifierFamily = statusEffect.Modifier.Family;
+                statusModifierType = statusEffect.Modifier.Type;
+                statusModifierAmount = (float)statusEffect.Modifier.Amount;
+                statusStackingPolicy = statusEffect.StackingPolicy;
+            }
+        }
+
+        public ActionResolutionDefinition CreateDefinition()
+        {
+            DamageEffectDefinition damage = damageMultiplier > 0f
+                ? DamageEffectDefinition.Single(damageType, damageMultiplier)
+                : null;
+            CombatStatusDefinition status = CreateStatusDefinition();
+            return new ActionResolutionDefinition(
+                offset,
+                effect,
+                damage,
+                damageTags,
+                status,
+                statusTarget,
+                appliesOnHitDisruption
+                    ? new ActionDisruptionDefinition(onHitDisruptionType, onHitDisruptionDuration)
+                    : null,
+                clash: hasClash
+                    ? new DamageClashDefinition(clashDamageReduction, clashSuperArmorLevel)
+                    : null,
+                onEvadedDisruption: appliesOnEvadedDisruption
+                    ? new ActionDisruptionDefinition(onEvadedDisruptionType, onEvadedDisruptionDuration)
+                    : null);
+        }
+
+        private CombatStatusDefinition CreateStatusDefinition()
+        {
+            if (effect != ActionResolutionEffect.ApplyBuff
+                && effect != ActionResolutionEffect.ApplyDebuff)
+            {
+                return null;
+            }
+
+            DamageModifier modifier;
+            switch (statusModifierScope)
+            {
+                case DamageModifierScope.All:
+                    modifier = DamageModifier.All(statusModifierAmount);
+                    break;
+                case DamageModifierScope.Family:
+                    modifier = DamageModifier.ForFamily(statusModifierFamily, statusModifierAmount);
+                    break;
+                case DamageModifierScope.Type:
+                    modifier = DamageModifier.ForType(statusModifierType, statusModifierAmount);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(statusModifierScope));
+            }
+
+            return new CombatStatusDefinition(
+                statusId,
+                statusDisplayName,
+                statusDurationType,
+                statusDuration,
+                statusModifierDirection,
+                modifier,
+                statusStackingPolicy);
+        }
+    }
+
+    [Serializable]
+    public sealed class EnemyActiveWindowAuthoringData
+    {
+        [SerializeField] private string windowId = string.Empty;
+        [SerializeField] private string displayName = string.Empty;
+        [SerializeField, Min(1)] private int startOffset = 1;
+        [SerializeField, Min(1)] private int endOffset = 1;
+        [SerializeField] private ActiveWindowEffect effect = ActiveWindowEffect.SuperArmor;
+        [SerializeField, Range(0f, 0.99f)] private float damageReduction;
+        [SerializeField, Range(0, 5)] private int superArmorLevel;
+        [SerializeField] private ActiveWindowDisruptionPolicy disruptionPolicy = ActiveWindowDisruptionPolicy.PersistThroughDisruption;
+
+        public EnemyActiveWindowAuthoringData(
+            string windowId,
+            string displayName,
+            int startOffset,
+            int endOffset,
+            ActiveWindowEffect effect,
+            float damageReduction = 0f,
+            int superArmorLevel = 0,
+            ActiveWindowDisruptionPolicy disruptionPolicy = ActiveWindowDisruptionPolicy.PersistThroughDisruption)
+        {
+            this.windowId = windowId;
+            this.displayName = displayName;
+            this.startOffset = startOffset;
+            this.endOffset = endOffset;
+            this.effect = effect;
+            this.damageReduction = damageReduction;
+            this.superArmorLevel = superArmorLevel;
+            this.disruptionPolicy = disruptionPolicy;
+        }
+
+        public ActionActiveWindowDefinition CreateDefinition()
+        {
+            return new ActionActiveWindowDefinition(
+                windowId,
+                displayName,
+                startOffset,
+                endOffset,
+                effect,
+                damageReduction,
+                disruptionPolicy,
+                superArmorLevel);
+        }
+    }
+
+    [Serializable]
     public sealed class EnemyActionAuthoringData
     {
         [SerializeField]
@@ -103,6 +279,14 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         [SerializeField]
         private ActionDisruptionResponse knockdownResponse = ActionDisruptionResponse.PauseAndResume;
 
+        [SerializeField]
+        private EnemyResolutionEventAuthoringData[] resolutionEvents =
+            Array.Empty<EnemyResolutionEventAuthoringData>();
+
+        [SerializeField]
+        private EnemyActiveWindowAuthoringData[] activeWindows =
+            Array.Empty<EnemyActiveWindowAuthoringData>();
+
         public EnemyActionAuthoringData(
             string actionId,
             string displayName,
@@ -129,6 +313,25 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             onEvadedDisruptionDuration = onEvadedDisruption?.Duration ?? 1;
         }
 
+        public EnemyActionAuthoringData(
+            string actionId,
+            string displayName,
+            int timelineCost,
+            EnemyResolutionEventAuthoringData[] resolutionEvents,
+            EnemyActiveWindowAuthoringData[] activeWindows = null)
+        {
+            this.actionId = actionId;
+            this.displayName = displayName;
+            this.timelineCost = timelineCost;
+            this.resolutionEvents = resolutionEvents
+                ?? Array.Empty<EnemyResolutionEventAuthoringData>();
+            this.activeWindows = activeWindows
+                ?? Array.Empty<EnemyActiveWindowAuthoringData>();
+            flinchResponse = ActionDisruptionResponse.CancelAction;
+            staggerResponse = ActionDisruptionResponse.CancelAction;
+            knockdownResponse = ActionDisruptionResponse.CancelAction;
+        }
+
         public bool TryCreateDefinition(
             out EnemyActionDefinition definition,
             out string validationError)
@@ -136,6 +339,45 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             definition = null;
             try
             {
+                if (resolutionEvents != null && resolutionEvents.Length > 0)
+                {
+                    var runtimeEvents = new ActionResolutionDefinition[resolutionEvents.Length];
+                    for (int index = 0; index < resolutionEvents.Length; index++)
+                    {
+                        runtimeEvents[index] = resolutionEvents[index]?.CreateDefinition()
+                            ?? throw new ArgumentException(
+                                $"Enemy Action '{displayName}' contains a null Resolution Event.");
+                    }
+
+                    EnemyActiveWindowAuthoringData[] authoredWindows = activeWindows
+                        ?? Array.Empty<EnemyActiveWindowAuthoringData>();
+                    var runtimeWindows = new ActionActiveWindowDefinition[authoredWindows.Length];
+                    for (int index = 0; index < authoredWindows.Length; index++)
+                    {
+                        runtimeWindows[index] = authoredWindows[index]?.CreateDefinition()
+                            ?? throw new ArgumentException(
+                                $"Enemy Action '{displayName}' contains a null Active Window.");
+                    }
+
+                    definition = new EnemyActionDefinition(
+                        actionId,
+                        displayName,
+                        timelineCost,
+                        runtimeEvents,
+                        runtimeWindows,
+                        new[]
+                        {
+                            new DisruptionResponseSegmentDefinition(
+                                1,
+                                timelineCost,
+                                flinchResponse,
+                                staggerResponse,
+                                knockdownResponse)
+                        });
+                    validationError = null;
+                    return true;
+                }
+
                 definition = new EnemyActionDefinition(
                     actionId,
                     displayName,

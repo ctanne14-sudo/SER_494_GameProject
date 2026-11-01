@@ -29,6 +29,9 @@ MonoBehaviour:
     quantity: 4
   - itemId: vitality-tonic
     quantity: 6
+  rewardGold: 0
+  rewardMaterialRollCount: 0
+  rewardMaterialDrops: []
   scriptedSequences:
   - sequenceId: training.sword-shield.round-1
     displayName: "R1 / Combo 1 \u2014 Evade and Guard Chain"
@@ -49,6 +52,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r1.guard
       displayName: Guard Check
       timelineCost: 2
@@ -65,6 +70,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r1.evade-2
       displayName: Evade Check B
       timelineCost: 5
@@ -81,6 +88,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r1.evade-3
       displayName: Evade Check C
       timelineCost: 5
@@ -97,6 +106,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.sword-shield.round-2
     displayName: "R2 / Combo 2 \u2014 Three Guard Points"
     actions:
@@ -116,6 +127,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r2.guard-2
       displayName: Main Guard Check
       timelineCost: 9
@@ -132,6 +145,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r2.guard-3
       displayName: Closing Guard Check
       timelineCost: 10
@@ -148,6 +163,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.sword-shield.round-3
     displayName: "R3 / Combo 3 \u2014 Airborne Split Attack"
     actions:
@@ -167,6 +184,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r3.guard
       displayName: First Aerial Hit Guard
       timelineCost: 3
@@ -183,6 +202,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r3.second-hit
       displayName: Second Aerial Hit Check
       timelineCost: 2
@@ -199,6 +220,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r3.recovery
       displayName: Breather Setup
       timelineCost: 8
@@ -215,6 +238,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
   - sequenceId: training.sword-shield.round-4
     displayName: "R4 / Combo 4 \u2014 Guard QTE and Split Healing"
     actions:
@@ -234,6 +259,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r4.qte-2
       displayName: Guard Window B
       timelineCost: 1
@@ -250,6 +277,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r4.qte-3
       displayName: Guard Window C
       timelineCost: 1
@@ -266,6 +295,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r4.wound-1
       displayName: Potion Setup A
       timelineCost: 2
@@ -282,6 +313,8 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
     - actionId: sword-shield.r4.wound-2
       displayName: Potion Setup B
       timelineCost: 1
@@ -298,3 +331,5 @@ MonoBehaviour:
       flinchResponse: 0
       staggerResponse: 1
       knockdownResponse: 1
+      resolutionEvents: []
+      activeWindows: []
