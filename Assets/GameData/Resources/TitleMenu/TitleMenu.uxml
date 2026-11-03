@@ -28,7 +28,11 @@
                     <ui:Label text="Settings" class="load-heading" />
                     <ui:Button name="backFromSettingsButton" text="Back" class="title-small-button" />
                 </ui:VisualElement>
-                <ui:Label text="More settings, such as audio options, can be added here later." class="load-message" />
+                <ui:VisualElement name="audioSettings" class="settings-list">
+                    <ui:Slider name="musicVolumeSlider" label="Music Volume" low-value="0" high-value="1" value="0.6" class="settings-slider" />
+                    <ui:Slider name="sfxVolumeSlider" label="Sound Effects" low-value="0" high-value="1" value="0.8" class="settings-slider" />
+                    <ui:Slider name="sensitivitySlider" label="Mouse Sensitivity" low-value="1" high-value="10" value="5" class="settings-slider" />
+                </ui:VisualElement>
                 <ui:Button name="deleteSaveDataButton" text="Delete Save Data" class="title-button title-danger-button" />
             </ui:VisualElement>
             <ui:VisualElement name="deleteSavePage" class="title-page">
