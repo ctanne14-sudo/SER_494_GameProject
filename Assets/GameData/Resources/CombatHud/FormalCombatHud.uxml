@@ -39,7 +39,11 @@
         <ui:VisualElement class="combat-hud-bottom-row">
             <ui:VisualElement class="combat-hud-timeline-panel" picking-mode="Ignore">
                 <ui:VisualElement class="combat-hud-timeline-header">
-                    <ui:Label name="timelinePageLabel" text="T1–T30" class="combat-hud-timeline-page" />
+                    <ui:VisualElement class="combat-hud-timeline-page-controls">
+                        <ui:Button name="previousTimelinePageButton" text="‹" class="combat-hud-timeline-page-button" />
+                        <ui:Label name="timelinePageLabel" text="T1–T30" class="combat-hud-timeline-page" />
+                        <ui:Button name="nextTimelinePageButton" text="›" class="combat-hud-timeline-page-button" />
+                    </ui:VisualElement>
                     <ui:Label name="timelineStateLabel" class="combat-hud-timeline-state" />
                 </ui:VisualElement>
                 <ui:VisualElement class="combat-hud-timeline-row">

@@ -138,6 +138,14 @@ namespace SER494.Gameplay.CombatSandbox
 
         public int PlaybackEndTimeStep => _playbackEndTimeStep;
 
+        /// <summary>
+        /// The schedule the formal HUD should present. A committed live schedule
+        /// takes priority over the player's preview; before either exists, the
+        /// locked Enemy Intent remains visible on its own row.
+        /// </summary>
+        public InitialTimelineSchedule FormalTimelineSchedule =>
+            _battle?.ActiveTimeline ?? _previewSchedule ?? _battle?.EnemyIntent;
+
         private void Awake()
         {
             ResetBattle();

@@ -37,12 +37,17 @@ namespace SER494.Gameplay.CombatHud.Unity
         private Label _vitalityTonicCount;
         private Label _timelinePageLabel;
         private Label _timelineStateLabel;
+        private Button _previousTimelinePageButton;
+        private Button _nextTimelinePageButton;
         private VisualElement _comboList;
         private Button _clearPreviewButton;
         private CombatSandboxController _sandbox;
         private CombatSandboxController _builtForSandbox;
         private bool _isVisible;
         private int _lastTimelineMarker = -1;
+        private int _timelinePageStart = 1;
+        private int _renderedTimelinePageStart = -1;
+        private InitialTimelineSchedule _renderedTimelineSchedule;
         private string _lastPlayerStatusSignature;
         private string _lastEnemyStatusSignature;
 
@@ -65,9 +70,15 @@ namespace SER494.Gameplay.CombatHud.Unity
             _vitalityTonicCount = documentRoot.Q<Label>("vitalityTonicCount");
             _timelinePageLabel = documentRoot.Q<Label>("timelinePageLabel");
             _timelineStateLabel = documentRoot.Q<Label>("timelineStateLabel");
+            _previousTimelinePageButton =
+                documentRoot.Q<Button>("previousTimelinePageButton");
+            _nextTimelinePageButton =
+                documentRoot.Q<Button>("nextTimelinePageButton");
             _comboList = documentRoot.Q<VisualElement>("comboList");
             _clearPreviewButton = documentRoot.Q<Button>("clearPreviewButton");
             _clearPreviewButton.clicked += ClearPreview;
+            _previousTimelinePageButton.clicked += ShowPreviousTimelinePage;
+            _nextTimelinePageButton.clicked += ShowNextTimelinePage;
 
             CreateTimelineCells(
                 documentRoot.Q<VisualElement>("playerTimelineCells"),
@@ -84,6 +95,16 @@ namespace SER494.Gameplay.CombatHud.Unity
             if (_clearPreviewButton != null)
             {
                 _clearPreviewButton.clicked -= ClearPreview;
+            }
+
+            if (_previousTimelinePageButton != null)
+            {
+                _previousTimelinePageButton.clicked -= ShowPreviousTimelinePage;
+            }
+
+            if (_nextTimelinePageButton != null)
+            {
+                _nextTimelinePageButton.clicked -= ShowNextTimelinePage;
             }
         }
 
@@ -222,8 +243,52 @@ namespace SER494.Gameplay.CombatHud.Unity
 
         private void RefreshTimelineState(SoloComboBattleState battle)
         {
+            InitialTimelineSchedule schedule = _sandbox.FormalTimelineSchedule;
+            bool scheduleChanged = !ReferenceEquals(
+                schedule,
+                _renderedTimelineSchedule);
+            int maximumTimeStep = Mathf.Max(
+                TimelineCellCount,
+                schedule?.CompletionTime ?? TimelineCellCount);
+
+            if (_sandbox.IsTimelinePlaying)
+            {
+                int currentTimeStep = Mathf.Max(1, _sandbox.PlaybackTimeStep);
+                _timelinePageStart = PageStartFor(currentTimeStep);
+            }
+            else if (scheduleChanged)
+            {
+                _timelinePageStart = 1;
+            }
+
+            int finalPageStart = PageStartFor(maximumTimeStep);
+            _timelinePageStart = Mathf.Clamp(
+                _timelinePageStart,
+                1,
+                finalPageStart);
+
+            if (scheduleChanged
+                || _timelinePageStart != _renderedTimelinePageStart)
+            {
+                RenderTimeline(
+                    schedule,
+                    TimelineActorSide.Player,
+                    _playerTimelineCells,
+                    _timelinePageStart);
+                RenderTimeline(
+                    schedule,
+                    TimelineActorSide.Enemy,
+                    _enemyTimelineCells,
+                    _timelinePageStart);
+                _renderedTimelineSchedule = schedule;
+                _renderedTimelinePageStart = _timelinePageStart;
+                _lastTimelineMarker = -1;
+            }
+
             int marker = _sandbox.IsTimelinePlaying
-                ? Mathf.Clamp(_sandbox.PlaybackTimeStep, 1, TimelineCellCount)
+                && _sandbox.PlaybackTimeStep >= _timelinePageStart
+                && _sandbox.PlaybackTimeStep < _timelinePageStart + TimelineCellCount
+                ? _sandbox.PlaybackTimeStep - _timelinePageStart + 1
                 : -1;
             if (marker != _lastTimelineMarker)
             {
@@ -239,7 +304,13 @@ namespace SER494.Gameplay.CombatHud.Unity
                 _lastTimelineMarker = marker;
             }
 
-            _timelinePageLabel.text = "T1–T30";
+            int pageEnd = _timelinePageStart + TimelineCellCount - 1;
+            _timelinePageLabel.text = $"T{_timelinePageStart}–T{pageEnd}";
+            _previousTimelinePageButton.SetEnabled(
+                !_sandbox.IsTimelinePlaying && _timelinePageStart > 1);
+            _nextTimelinePageButton.SetEnabled(
+                !_sandbox.IsTimelinePlaying
+                && _timelinePageStart < finalPageStart);
             if (_sandbox.IsTimelinePlaying)
             {
                 _timelineStateLabel.text =
@@ -277,6 +348,33 @@ namespace SER494.Gameplay.CombatHud.Unity
         private void ClearPreview()
         {
             _sandbox?.ClearFormalComboPreview();
+        }
+
+        private void ShowPreviousTimelinePage()
+        {
+            if (_sandbox == null || _sandbox.IsTimelinePlaying)
+            {
+                return;
+            }
+
+            _timelinePageStart = Mathf.Max(1, _timelinePageStart - TimelineCellCount);
+        }
+
+        private void ShowNextTimelinePage()
+        {
+            if (_sandbox == null || _sandbox.IsTimelinePlaying)
+            {
+                return;
+            }
+
+            int maximumTimeStep = Mathf.Max(
+                TimelineCellCount,
+                _sandbox.FormalTimelineSchedule?.CompletionTime
+                    ?? TimelineCellCount);
+            int finalPageStart = PageStartFor(maximumTimeStep);
+            _timelinePageStart = Mathf.Min(
+                finalPageStart,
+                _timelinePageStart + TimelineCellCount);
         }
 
         private void HandleComboShortcuts()
@@ -390,8 +488,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             cells.Clear();
             for (int index = 0; index < TimelineCellCount; index++)
             {
-                var cell = new VisualElement();
-                cell.AddToClassList("combat-hud-timeline-cell");
+                var cell = new FormalTimelineCell();
                 if ((index + 1) % 5 == 0)
                 {
                     cell.AddToClassList("combat-hud-timeline-major-cell");
@@ -400,6 +497,262 @@ namespace SER494.Gameplay.CombatHud.Unity
 
                 container.Add(cell);
                 cells.Add(cell);
+            }
+        }
+
+        private static int PageStartFor(int timeStep)
+        {
+            return ((Mathf.Max(1, timeStep) - 1) / TimelineCellCount)
+                * TimelineCellCount + 1;
+        }
+
+        private static void RenderTimeline(
+            InitialTimelineSchedule schedule,
+            TimelineActorSide side,
+            IReadOnlyList<VisualElement> cells,
+            int pageStart)
+        {
+            for (int index = 0; index < cells.Count; index++)
+            {
+                var cell = (FormalTimelineCell)cells[index];
+                cell.SetTimeStep(pageStart + index);
+                cell.ResetPresentation();
+            }
+
+            if (schedule == null)
+            {
+                return;
+            }
+
+            int pageEnd = pageStart + TimelineCellCount - 1;
+            for (int actionIndex = 0;
+                actionIndex < schedule.Actions.Count;
+                actionIndex++)
+            {
+                ScheduledTimelineAction action = schedule.Actions[actionIndex];
+                if (action.Side != side)
+                {
+                    continue;
+                }
+
+                int occupiedStart = Mathf.Max(pageStart, action.StartTime + 1);
+                int occupiedEnd = Mathf.Min(pageEnd, action.EndTime);
+                for (int timeStep = occupiedStart;
+                    timeStep <= occupiedEnd;
+                    timeStep++)
+                {
+                    GetTimelineCell(cells, pageStart, timeStep).SetActionOccupied();
+                }
+
+                for (int eventIndex = 0;
+                    eventIndex < action.ResolutionEvents.Count;
+                    eventIndex++)
+                {
+                    ScheduledResolutionEvent resolution =
+                        action.ResolutionEvents[eventIndex];
+                    int? windowStart = resolution.ResolutionWindowStartTime;
+                    int? windowEnd = resolution.ResolutionWindowEndTime;
+                    if (!windowStart.HasValue
+                        && eventIndex == 0
+                        && action.HasResolutionWindow)
+                    {
+                        windowStart = action.ResolutionWindowStartTime;
+                        windowEnd = action.ResolutionWindowEndTime;
+                    }
+
+                    if (windowStart.HasValue && windowEnd.HasValue)
+                    {
+                        int visibleStart = Mathf.Max(pageStart, windowStart.Value);
+                        int visibleEnd = Mathf.Min(pageEnd, windowEnd.Value);
+                        for (int timeStep = visibleStart;
+                            timeStep <= visibleEnd;
+                            timeStep++)
+                        {
+                            GetTimelineCell(cells, pageStart, timeStep)
+                                .SetResolutionWindow(resolution.Effect);
+                        }
+                    }
+                    else if (resolution.Time >= pageStart
+                        && resolution.Time <= pageEnd)
+                    {
+                        GetTimelineCell(cells, pageStart, resolution.Time)
+                            .SetResolutionPoint(resolution.Effect);
+                    }
+                }
+            }
+        }
+
+        private static FormalTimelineCell GetTimelineCell(
+            IReadOnlyList<VisualElement> cells,
+            int pageStart,
+            int timeStep)
+        {
+            return (FormalTimelineCell)cells[timeStep - pageStart];
+        }
+
+        private sealed class FormalTimelineCell : VisualElement
+        {
+            private readonly Label _marker;
+            private Color _stripeColor;
+            private bool _hasResolutionWindow;
+
+            public FormalTimelineCell()
+            {
+                AddToClassList("combat-hud-timeline-cell");
+                _marker = new Label();
+                _marker.AddToClassList("combat-hud-timeline-marker");
+                Add(_marker);
+                generateVisualContent += DrawResolutionWindow;
+            }
+
+            public void SetTimeStep(int timeStep)
+            {
+                tooltip = timeStep % 5 == 0 ? $"T{timeStep}" : string.Empty;
+            }
+
+            public void ResetPresentation()
+            {
+                EnableInClassList("combat-hud-timeline-action", false);
+                EnableInClassList("combat-hud-timeline-damage", false);
+                EnableInClassList("combat-hud-timeline-guard", false);
+                EnableInClassList("combat-hud-timeline-evade", false);
+                EnableInClassList("combat-hud-timeline-status", false);
+                EnableInClassList("combat-hud-timeline-heal", false);
+                EnableInClassList("combat-hud-timeline-stamina", false);
+                EnableInClassList("combat-hud-timeline-current", false);
+                _marker.text = string.Empty;
+                _hasResolutionWindow = false;
+                MarkDirtyRepaint();
+            }
+
+            public void SetActionOccupied()
+            {
+                EnableInClassList("combat-hud-timeline-action", true);
+            }
+
+            public void SetResolutionPoint(ActionResolutionEffect effect)
+            {
+                AddEffectClass(effect);
+                AddMarker(effect);
+            }
+
+            public void SetResolutionWindow(ActionResolutionEffect effect)
+            {
+                EnableInClassList("combat-hud-timeline-action", true);
+                _stripeColor = EffectColor(effect);
+                _hasResolutionWindow = true;
+                AddMarker(effect);
+                MarkDirtyRepaint();
+            }
+
+            private void AddEffectClass(ActionResolutionEffect effect)
+            {
+                string className = EffectClass(effect);
+                if (!string.IsNullOrEmpty(className))
+                {
+                    EnableInClassList(className, true);
+                }
+            }
+
+            private void AddMarker(ActionResolutionEffect effect)
+            {
+                string marker = EffectMarker(effect);
+                if (string.IsNullOrEmpty(marker)
+                    || _marker.text.Contains(marker))
+                {
+                    return;
+                }
+
+                _marker.text += marker;
+            }
+
+            private void DrawResolutionWindow(MeshGenerationContext context)
+            {
+                if (!_hasResolutionWindow
+                    || contentRect.width < 1f
+                    || contentRect.height < 1f)
+                {
+                    return;
+                }
+
+                Painter2D painter = context.painter2D;
+                painter.strokeColor = _stripeColor;
+                painter.lineWidth = 2f;
+                float height = contentRect.height;
+                float width = contentRect.width;
+                for (float bottomX = -height; bottomX < width; bottomX += 8f)
+                {
+                    Vector2 start = bottomX < 0f
+                        ? new Vector2(0f, height + bottomX)
+                        : new Vector2(bottomX, height);
+                    float topX = bottomX + height;
+                    Vector2 end = topX > width
+                        ? new Vector2(width, height - width + bottomX)
+                        : new Vector2(topX, 0f);
+                    painter.BeginPath();
+                    painter.MoveTo(start);
+                    painter.LineTo(end);
+                    painter.Stroke();
+                }
+            }
+
+            private static string EffectClass(ActionResolutionEffect effect)
+            {
+                switch (effect)
+                {
+                    case ActionResolutionEffect.Damage:
+                        return "combat-hud-timeline-damage";
+                    case ActionResolutionEffect.Guard:
+                        return "combat-hud-timeline-guard";
+                    case ActionResolutionEffect.Evade:
+                        return "combat-hud-timeline-evade";
+                    case ActionResolutionEffect.ApplyBuff:
+                    case ActionResolutionEffect.ApplyDebuff:
+                        return "combat-hud-timeline-status";
+                    case ActionResolutionEffect.Heal:
+                        return "combat-hud-timeline-heal";
+                    case ActionResolutionEffect.RestoreStamina:
+                        return "combat-hud-timeline-stamina";
+                    default:
+                        return string.Empty;
+                }
+            }
+
+            private static string EffectMarker(ActionResolutionEffect effect)
+            {
+                switch (effect)
+                {
+                    case ActionResolutionEffect.Damage: return "D";
+                    case ActionResolutionEffect.Guard: return "G";
+                    case ActionResolutionEffect.Evade: return "E";
+                    case ActionResolutionEffect.ApplyBuff:
+                    case ActionResolutionEffect.ApplyDebuff: return "B";
+                    case ActionResolutionEffect.Heal: return "H";
+                    case ActionResolutionEffect.RestoreStamina: return "S";
+                    default: return string.Empty;
+                }
+            }
+
+            private static Color EffectColor(ActionResolutionEffect effect)
+            {
+                switch (effect)
+                {
+                    case ActionResolutionEffect.Damage:
+                        return new Color(0.90f, 0.30f, 0.25f, 1f);
+                    case ActionResolutionEffect.Guard:
+                        return new Color(0.32f, 0.58f, 0.95f, 1f);
+                    case ActionResolutionEffect.Evade:
+                        return new Color(0.30f, 0.80f, 0.88f, 1f);
+                    case ActionResolutionEffect.ApplyBuff:
+                    case ActionResolutionEffect.ApplyDebuff:
+                        return new Color(0.70f, 0.42f, 0.88f, 1f);
+                    case ActionResolutionEffect.Heal:
+                        return new Color(0.34f, 0.82f, 0.45f, 1f);
+                    case ActionResolutionEffect.RestoreStamina:
+                        return new Color(0.95f, 0.74f, 0.22f, 1f);
+                    default:
+                        return new Color(0.75f, 0.72f, 0.64f, 1f);
+                }
             }
         }
     }
