@@ -37,7 +37,7 @@ namespace SER494.Gameplay.PlayerState.Tests
 
             Assert.That(service.IsAuthority, Is.True);
             Assert.That(PlayerStateService.Active, Is.SameAs(service));
-            Assert.That(service.State.CurrentHealth, Is.EqualTo(100));
+            Assert.That(service.State.CurrentHealth, Is.EqualTo(500));
             Assert.That(service.State.MaximumMana, Is.EqualTo(30));
             Assert.That(service.State.MaximumCombatStamina, Is.EqualTo(100));
             Assert.That(service.State.BaseStaminaRecoveryPerRound, Is.EqualTo(10));

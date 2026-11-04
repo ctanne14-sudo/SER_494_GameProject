@@ -108,12 +108,35 @@ namespace SER494.Gameplay.CombatSandbox
         private BattleSessionService _battleSessionService;
         private PlayerStateService _playerStateService;
         private bool _battleResultCommitted;
+        private int _completedRoundCount;
 
         public SoloComboLoadoutSession LoadoutSession
         {
             get => loadoutSession;
             set => loadoutSession = value;
         }
+
+        /// <summary>
+        /// The current battle exposed for the formal HUD as read-only presentation data.
+        /// Battle commands must still go through this controller.
+        /// </summary>
+        public SoloComboBattleState CurrentBattle => _battle;
+
+        public bool IsFormalBattlePresentationActive =>
+            _battleSession != null && _battle != null;
+
+        public bool ShouldShowFormalBattleHud =>
+            IsFormalBattlePresentationActive && !_battleSession.IsComplete;
+
+        public bool IsTimelinePlaying => _isTimelinePlaying;
+
+        public int PreviewedComboIndex => _previewedComboIndex;
+
+        public int CurrentRoundNumber => _completedRoundCount + 1;
+
+        public int PlaybackTimeStep => _playbackTimeStep;
+
+        public int PlaybackEndTimeStep => _playbackEndTimeStep;
 
         private void Awake()
         {
@@ -122,6 +145,13 @@ namespace SER494.Gameplay.CombatSandbox
 
         private void OnGUI()
         {
+            // Integrated battles use the formal UI Toolkit HUD. Keep IMGUI available
+            // when CombatSandbox is opened directly as a development test scene.
+            if (IsFormalBattlePresentationActive)
+            {
+                return;
+            }
+
             InitializeStyles();
 
             float width = Mathf.Clamp(Screen.width * 0.95f, 360f, 1900f);
@@ -1098,6 +1128,57 @@ namespace SER494.Gameplay.CombatSandbox
             _previewSchedule = _battle.PreviewCombo(comboIndex);
         }
 
+        public bool TryPreviewFormalCombo(int comboIndex)
+        {
+            if (!ShouldShowFormalBattleHud
+                || _isTimelinePlaying
+                || comboIndex < 0
+                || comboIndex >= _battle.Combos.Count
+                || _battle.GetExecutionFailure(comboIndex)
+                    != SoloComboExecutionFailure.None)
+            {
+                return false;
+            }
+
+            PreviewCombo(comboIndex);
+            return _previewedComboIndex == comboIndex;
+        }
+
+        public bool TryConfirmFormalCombo(int comboIndex)
+        {
+            if (!ShouldShowFormalBattleHud
+                || _isTimelinePlaying
+                || _previewedComboIndex != comboIndex
+                || comboIndex < 0
+                || comboIndex >= _battle.Combos.Count
+                || _battle.GetExecutionFailure(comboIndex)
+                    != SoloComboExecutionFailure.None)
+            {
+                return false;
+            }
+
+            ExecuteCombo(comboIndex);
+            return _isTimelinePlaying;
+        }
+
+        public void ClearFormalComboPreview()
+        {
+            if (ShouldShowFormalBattleHud && !_isTimelinePlaying)
+            {
+                ClearComboPreview();
+            }
+        }
+
+        public string GetFormalComboAvailabilityText(int comboIndex)
+        {
+            if (_battle == null)
+            {
+                return "battle unavailable";
+            }
+
+            return FailureText(_battle.GetExecutionFailure(comboIndex));
+        }
+
         private void ClearComboPreview()
         {
             _previewedComboIndex = -1;
@@ -1175,6 +1256,7 @@ namespace SER494.Gameplay.CombatSandbox
             _battleSessionService = null;
             _playerStateService = null;
             _battleResultCommitted = false;
+            _completedRoundCount = 0;
 
             if (BattleSessionService.TryGetActive(out BattleSessionService sessionService)
                 && sessionService.CurrentSession != null)
@@ -1235,7 +1317,7 @@ namespace SER494.Gameplay.CombatSandbox
             var player = new CombatantState(
                 "Player",
                 new CombatantStats(
-                    maxHealth: 100,
+                    maxHealth: 500,
                     maxMana: 30,
                     maxStamina: 30,
                     attack: loadoutSession.EquippedWeapon?.WeaponAttack ?? 50,
@@ -1457,6 +1539,7 @@ namespace SER494.Gameplay.CombatSandbox
         private void CompleteTimelinePlayback(SoloComboTurnResult result)
         {
             _lastCompletedTimeline = result.Schedule;
+            _completedRoundCount++;
             if (result.ManaRecovered > 0 || result.StaminaRecovered > 0)
             {
                 AppendLog(

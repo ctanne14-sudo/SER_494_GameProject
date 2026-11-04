@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="BattleResult.uss" />
+    <ui:VisualElement name="battleResultOverlay" class="battle-result-overlay">
+        <ui:VisualElement name="battleResultFrame" class="battle-result-frame">
+            <ui:VisualElement class="battle-result-header">
+                <ui:Label name="outcomeTitle" class="battle-result-outcome-title" />
+                <ui:Label name="enemyName" class="battle-result-enemy-name" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="battle-result-divider" />
+
+            <ui:VisualElement class="battle-result-content">
+                <ui:VisualElement class="battle-result-card battle-result-rewards-card">
+                    <ui:Label name="rewardHeading" class="battle-result-card-heading" />
+                    <ui:VisualElement class="battle-result-card-divider" />
+                    <ui:VisualElement name="goldRow" class="battle-result-reward-row battle-result-gold-row">
+                        <ui:Label text="Gold" class="battle-result-reward-name" />
+                        <ui:Label name="goldValue" class="battle-result-reward-value" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="materialList" class="battle-result-material-list" />
+                    <ui:Label name="emptyRewards" text="No rewards were granted." class="battle-result-empty-rewards" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="battle-result-card battle-result-consequence-card">
+                    <ui:Label name="consequenceHeading" class="battle-result-card-heading" />
+                    <ui:VisualElement class="battle-result-card-divider" />
+                    <ui:Label name="consequenceBody" class="battle-result-consequence-body" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="errorMessage" class="battle-result-error" />
+            <ui:Button name="continueButton" class="battle-result-continue-button" />
+            <ui:Label text="Enter / F / A: Continue" class="battle-result-input-hint" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

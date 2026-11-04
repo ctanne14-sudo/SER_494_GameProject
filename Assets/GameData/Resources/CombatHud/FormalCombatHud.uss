@@ -1,0 +1,353 @@
+.combat-hud-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    color: rgb(231, 217, 181);
+}
+
+.combat-hud-top-row {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    top: 3%;
+    height: 190px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.combat-hud-combatant-panel {
+    width: 36%;
+    min-width: 360px;
+    padding: 12px 16px 14px 16px;
+    background-color: rgba(14, 16, 19, 0.88);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+    border-right-color: rgb(132, 101, 56);
+    border-top-color: rgb(132, 101, 56);
+    border-bottom-color: rgb(132, 101, 56);
+}
+
+.combat-hud-enemy-panel {
+    align-items: stretch;
+}
+
+.combat-hud-name {
+    margin-bottom: 6px;
+    font-size: 23px;
+    -unity-font-style: bold;
+    color: rgb(239, 222, 177);
+}
+
+.combat-hud-enemy-name {
+    -unity-text-align: middle-right;
+}
+
+.combat-hud-resource {
+    height: 30px;
+    margin-bottom: 5px;
+    background-color: rgb(28, 29, 29);
+    color: rgb(249, 239, 211);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-resource .unity-progress-bar__background {
+    background-color: rgb(28, 29, 29);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(77, 70, 57);
+    border-right-color: rgb(77, 70, 57);
+    border-top-color: rgb(77, 70, 57);
+    border-bottom-color: rgb(77, 70, 57);
+}
+
+.combat-hud-health .unity-progress-bar__progress {
+    background-color: rgb(147, 48, 43);
+}
+
+.combat-hud-stamina .unity-progress-bar__progress {
+    background-color: rgb(190, 151, 28);
+}
+
+.combat-hud-mana .unity-progress-bar__progress {
+    background-color: rgb(54, 93, 159);
+}
+
+.combat-hud-resource .unity-progress-bar__title {
+    color: rgb(249, 239, 211);
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-status-row {
+    min-height: 34px;
+    margin-top: 3px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-enemy-status-row {
+    justify-content: flex-end;
+}
+
+.combat-hud-status-chip {
+    height: 27px;
+    max-width: 112px;
+    margin-right: 5px;
+    padding-left: 7px;
+    padding-right: 7px;
+    background-color: rgb(61, 52, 38);
+    color: rgb(224, 205, 160);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(139, 105, 54);
+    border-right-color: rgb(139, 105, 54);
+    border-top-color: rgb(139, 105, 54);
+    border-bottom-color: rgb(139, 105, 54);
+    -unity-text-align: middle-center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.combat-hud-status-overflow {
+    max-width: 45px;
+    background-color: rgb(41, 40, 37);
+}
+
+.combat-hud-round-panel {
+    width: 20%;
+    height: 54px;
+    margin-top: 4px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(14, 16, 19, 0.84);
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(141, 107, 59);
+}
+
+.combat-hud-round-label {
+    font-size: 25px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(229, 205, 148);
+}
+
+.combat-hud-item-rail {
+    position: absolute;
+    left: 3%;
+    top: 225px;
+    width: 150px;
+    padding: 8px;
+    background-color: rgba(14, 16, 19, 0.80);
+    border-left-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+}
+
+.combat-hud-item-row {
+    height: 44px;
+    margin-bottom: 5px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-item-icon {
+    width: 42px;
+    height: 38px;
+    margin-right: 8px;
+    background-color: rgb(55, 49, 39);
+    color: rgb(231, 207, 150);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(139, 105, 54);
+    border-right-color: rgb(139, 105, 54);
+    border-top-color: rgb(139, 105, 54);
+    border-bottom-color: rgb(139, 105, 54);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.combat-hud-item-count {
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-bottom-row {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    bottom: 3%;
+    height: 255px;
+    flex-direction: row;
+}
+
+.combat-hud-timeline-panel,
+.combat-hud-combo-panel {
+    background-color: rgba(14, 16, 19, 0.90);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+    border-right-color: rgb(132, 101, 56);
+    border-top-color: rgb(132, 101, 56);
+    border-bottom-color: rgb(132, 101, 56);
+}
+
+.combat-hud-timeline-panel {
+    flex-grow: 1;
+    margin-right: 14px;
+    padding: 12px 16px;
+}
+
+.combat-hud-timeline-header,
+.combat-hud-combo-header {
+    height: 34px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.combat-hud-timeline-page,
+.combat-hud-section-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(229, 205, 148);
+}
+
+.combat-hud-timeline-state {
+    color: rgb(181, 169, 140);
+    font-size: 14px;
+}
+
+.combat-hud-timeline-row {
+    height: 66px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-timeline-side {
+    width: 74px;
+    color: rgb(207, 190, 151);
+    -unity-font-style: bold;
+}
+
+.combat-hud-timeline-cells {
+    flex-grow: 1;
+    height: 42px;
+    flex-direction: row;
+}
+
+.combat-hud-timeline-cell {
+    flex-grow: 1;
+    height: 42px;
+    margin-right: 2px;
+    background-color: rgba(50, 48, 42, 0.88);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(74, 67, 54);
+    border-right-color: rgb(74, 67, 54);
+    border-top-color: rgb(74, 67, 54);
+    border-bottom-color: rgb(74, 67, 54);
+}
+
+.combat-hud-timeline-major-cell {
+    border-right-width: 2px;
+    border-right-color: rgb(147, 111, 58);
+}
+
+.combat-hud-timeline-current {
+    background-color: rgb(76, 116, 126);
+    border-left-color: rgb(129, 205, 217);
+    border-right-color: rgb(129, 205, 217);
+    border-top-color: rgb(129, 205, 217);
+    border-bottom-color: rgb(129, 205, 217);
+}
+
+.combat-hud-combo-panel {
+    width: 33%;
+    min-width: 420px;
+    padding: 12px 14px 10px 14px;
+}
+
+.combat-hud-clear-button {
+    height: 28px;
+    background-color: rgb(49, 44, 36);
+    color: rgb(201, 185, 148);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-combo-list {
+    flex-grow: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combat-hud-combo-card {
+    width: 49%;
+    height: 78px;
+    margin-right: 1%;
+    margin-bottom: 5px;
+    padding: 6px 8px;
+    background-color: rgb(43, 41, 36);
+    color: rgb(218, 204, 169);
+    font-size: 13px;
+    -unity-text-align: middle-left;
+    white-space: normal;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(100, 80, 51);
+    border-right-color: rgb(100, 80, 51);
+    border-top-color: rgb(100, 80, 51);
+    border-bottom-color: rgb(100, 80, 51);
+}
+
+.combat-hud-combo-card:hover,
+.combat-hud-combo-card:focus {
+    background-color: rgb(72, 59, 39);
+    color: rgb(255, 235, 184);
+    border-left-color: rgb(195, 147, 68);
+    border-right-color: rgb(195, 147, 68);
+    border-top-color: rgb(195, 147, 68);
+    border-bottom-color: rgb(195, 147, 68);
+}
+
+.combat-hud-combo-previewed {
+    background-color: rgb(85, 63, 34);
+    color: rgb(255, 228, 160);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(219, 166, 76);
+    border-right-color: rgb(219, 166, 76);
+    border-top-color: rgb(219, 166, 76);
+    border-bottom-color: rgb(219, 166, 76);
+}
+
+.combat-hud-combo-card:disabled {
+    opacity: 0.42;
+}
+
+.combat-hud-input-hint {
+    height: 20px;
+    color: rgb(132, 123, 102);
+    font-size: 11px;
+    -unity-text-align: middle-right;
+}

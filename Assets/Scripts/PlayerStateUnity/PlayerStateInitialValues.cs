@@ -47,7 +47,7 @@ namespace SER494.Gameplay.PlayerState.Unity
         };
 
         [SerializeField, Min(1)]
-        private int maximumHealth = 100;
+        private int maximumHealth = 500;
 
         [SerializeField, Min(0)]
         private int maximumMana = 30;
