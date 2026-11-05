@@ -46,7 +46,10 @@
                         <ui:Label name="timelinePageLabel" text="T1–T30" class="combat-hud-timeline-page" />
                         <ui:Button name="nextTimelinePageButton" text="›" class="combat-hud-timeline-page-button" />
                     </ui:VisualElement>
-                    <ui:Label name="timelineStateLabel" class="combat-hud-timeline-state" />
+                    <ui:VisualElement class="combat-hud-timeline-intent-controls">
+                        <ui:Label name="timelineStateLabel" class="combat-hud-timeline-state" />
+                        <ui:Button name="enemyIntentDetailsButton" text="Intent Details" class="combat-hud-intent-button" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="combat-hud-timeline-row">
                     <ui:Label text="PLAYER" class="combat-hud-timeline-side" />
@@ -92,6 +95,21 @@
                     <ui:Label name="statusDetailsEmpty" text="No active statuses." class="combat-hud-status-dialog-empty" />
                 </ui:ScrollView>
                 <ui:Label text="W / S, Arrows, Right Stick or Wheel: Scroll    Esc / Right Click / B: Close" class="combat-hud-status-dialog-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="enemyIntentDetailsOverlay" class="combat-hud-status-overlay">
+            <ui:VisualElement class="combat-hud-status-dialog combat-hud-intent-dialog">
+                <ui:VisualElement class="combat-hud-status-dialog-header">
+                    <ui:Label name="enemyIntentDetailsTitle" text="Enemy Intent" class="combat-hud-status-dialog-title" />
+                    <ui:Button name="enemyIntentDetailsCloseButton" text="Close" class="combat-hud-status-dialog-close" />
+                </ui:VisualElement>
+                <ui:Label name="enemyIntentDetailsSummary" class="combat-hud-status-dialog-summary" />
+                <ui:ScrollView name="enemyIntentDetailsScrollView" class="combat-hud-status-dialog-scroll">
+                    <ui:VisualElement name="enemyIntentDetailsList" class="combat-hud-status-dialog-list" />
+                    <ui:Label name="enemyIntentDetailsEmpty" text="No locked Enemy Intent is available." class="combat-hud-status-dialog-empty" />
+                </ui:ScrollView>
+                <ui:Label text="I / R3: Open    W / S, Arrows, Right Stick or Wheel: Scroll    Esc / Right Click / B: Close" class="combat-hud-status-dialog-hint" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

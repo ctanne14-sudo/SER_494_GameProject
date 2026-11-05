@@ -284,6 +284,35 @@
     font-size: 14px;
 }
 
+.combat-hud-timeline-intent-controls {
+    height: 32px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-intent-button {
+    height: 28px;
+    margin-left: 12px;
+    padding-left: 13px;
+    padding-right: 13px;
+    background-color: rgb(49, 44, 36);
+    color: rgb(229, 205, 148);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-intent-button:hover,
+.combat-hud-intent-button:focus {
+    background-color: rgb(81, 62, 36);
+    color: rgb(255, 235, 184);
+}
+
+.combat-hud-intent-button:disabled {
+    opacity: 0.38;
+}
+
 .combat-hud-timeline-row {
     height: 66px;
     flex-direction: row;
@@ -732,4 +761,57 @@
     color: rgb(132, 123, 102);
     font-size: 11px;
     -unity-text-align: middle-right;
+}
+
+.combat-hud-intent-dialog {
+    width: 820px;
+}
+
+.combat-hud-intent-entry {
+    min-height: 118px;
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    background-color: rgb(38, 35, 30);
+    border-left-width: 3px;
+    border-left-color: rgb(166, 74, 59);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(79, 65, 43);
+}
+
+.combat-hud-intent-entry-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.combat-hud-intent-entry-name {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: rgb(235, 214, 166);
+}
+
+.combat-hud-intent-entry-time {
+    color: rgb(199, 163, 92);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-intent-event {
+    margin-top: 8px;
+    padding-left: 10px;
+    border-left-width: 2px;
+    border-left-color: rgb(118, 88, 50);
+}
+
+.combat-hud-intent-event-title {
+    color: rgb(222, 202, 158);
+    font-size: 15px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-intent-event-detail {
+    margin-top: 3px;
+    color: rgb(174, 164, 140);
+    font-size: 13px;
+    white-space: normal;
 }

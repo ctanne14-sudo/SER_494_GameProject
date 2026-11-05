@@ -44,6 +44,7 @@ namespace SER494.Gameplay.CombatHud.Unity
         private Label _timelineStateLabel;
         private Button _previousTimelinePageButton;
         private Button _nextTimelinePageButton;
+        private Button _enemyIntentDetailsButton;
         private VisualElement _comboList;
         private Button _clearPreviewButton;
         private VisualElement _statusDetailsOverlay;
@@ -53,6 +54,13 @@ namespace SER494.Gameplay.CombatHud.Unity
         private VisualElement _statusDetailsList;
         private Label _statusDetailsEmpty;
         private Button _statusDetailsCloseButton;
+        private VisualElement _enemyIntentDetailsOverlay;
+        private Label _enemyIntentDetailsTitle;
+        private Label _enemyIntentDetailsSummary;
+        private ScrollView _enemyIntentDetailsScrollView;
+        private VisualElement _enemyIntentDetailsList;
+        private Label _enemyIntentDetailsEmpty;
+        private Button _enemyIntentDetailsCloseButton;
         private VisualElement _qteOverlay;
         private Label _qteType;
         private Label _qteActionName;
@@ -73,6 +81,7 @@ namespace SER494.Gameplay.CombatHud.Unity
         private string _statusDetailsSignature;
         private TimelineActorSide _statusDetailsSide;
         private bool _isStatusDetailsOpen;
+        private bool _isEnemyIntentDetailsOpen;
         private string _qteLayoutSignature;
         private bool _isQteVisible;
 
@@ -101,6 +110,8 @@ namespace SER494.Gameplay.CombatHud.Unity
                 documentRoot.Q<Button>("previousTimelinePageButton");
             _nextTimelinePageButton =
                 documentRoot.Q<Button>("nextTimelinePageButton");
+            _enemyIntentDetailsButton =
+                documentRoot.Q<Button>("enemyIntentDetailsButton");
             _comboList = documentRoot.Q<VisualElement>("comboList");
             _clearPreviewButton = documentRoot.Q<Button>("clearPreviewButton");
             _statusDetailsOverlay =
@@ -114,6 +125,20 @@ namespace SER494.Gameplay.CombatHud.Unity
             _statusDetailsEmpty = documentRoot.Q<Label>("statusDetailsEmpty");
             _statusDetailsCloseButton =
                 documentRoot.Q<Button>("statusDetailsCloseButton");
+            _enemyIntentDetailsOverlay =
+                documentRoot.Q<VisualElement>("enemyIntentDetailsOverlay");
+            _enemyIntentDetailsTitle =
+                documentRoot.Q<Label>("enemyIntentDetailsTitle");
+            _enemyIntentDetailsSummary =
+                documentRoot.Q<Label>("enemyIntentDetailsSummary");
+            _enemyIntentDetailsScrollView =
+                documentRoot.Q<ScrollView>("enemyIntentDetailsScrollView");
+            _enemyIntentDetailsList =
+                documentRoot.Q<VisualElement>("enemyIntentDetailsList");
+            _enemyIntentDetailsEmpty =
+                documentRoot.Q<Label>("enemyIntentDetailsEmpty");
+            _enemyIntentDetailsCloseButton =
+                documentRoot.Q<Button>("enemyIntentDetailsCloseButton");
             _qteOverlay = documentRoot.Q<VisualElement>("qteOverlay");
             _qteType = documentRoot.Q<Label>("qteType");
             _qteActionName = documentRoot.Q<Label>("qteActionName");
@@ -125,7 +150,9 @@ namespace SER494.Gameplay.CombatHud.Unity
             _clearPreviewButton.clicked += ClearPreview;
             _previousTimelinePageButton.clicked += ShowPreviousTimelinePage;
             _nextTimelinePageButton.clicked += ShowNextTimelinePage;
+            _enemyIntentDetailsButton.clicked += OpenEnemyIntentDetails;
             _statusDetailsCloseButton.clicked += CloseStatusDetails;
+            _enemyIntentDetailsCloseButton.clicked += CloseEnemyIntentDetails;
             _qteActionButton.clicked += OnQteActionClicked;
             _qteActionButton.RegisterCallback<PointerDownEvent>(OnQtePointerDown);
             _qteActionButton.RegisterCallback<PointerUpEvent>(OnQtePointerUp);
@@ -144,6 +171,7 @@ namespace SER494.Gameplay.CombatHud.Unity
                 _enemyTimelineCells);
             _root.style.display = DisplayStyle.None;
             _statusDetailsOverlay.style.display = DisplayStyle.None;
+            _enemyIntentDetailsOverlay.style.display = DisplayStyle.None;
             _qteOverlay.style.display = DisplayStyle.None;
             _isVisible = false;
         }
@@ -165,9 +193,19 @@ namespace SER494.Gameplay.CombatHud.Unity
                 _nextTimelinePageButton.clicked -= ShowNextTimelinePage;
             }
 
+            if (_enemyIntentDetailsButton != null)
+            {
+                _enemyIntentDetailsButton.clicked -= OpenEnemyIntentDetails;
+            }
+
             if (_statusDetailsCloseButton != null)
             {
                 _statusDetailsCloseButton.clicked -= CloseStatusDetails;
+            }
+
+            if (_enemyIntentDetailsCloseButton != null)
+            {
+                _enemyIntentDetailsCloseButton.clicked -= CloseEnemyIntentDetails;
             }
 
             if (_qteActionButton != null)
@@ -204,7 +242,14 @@ namespace SER494.Gameplay.CombatHud.Unity
             RefreshPresentation();
             if (RefreshQtePresentation())
             {
+                CloseEnemyIntentDetails();
                 HandleQteInput();
+                return;
+            }
+
+            if (_isEnemyIntentDetailsOpen)
+            {
+                HandleEnemyIntentDetailsInput();
                 return;
             }
 
@@ -216,6 +261,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             }
 
             HandleStatusDetailsShortcuts();
+            HandleEnemyIntentDetailsShortcut();
             HandleComboShortcuts();
         }
 
@@ -231,6 +277,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             if (!visible)
             {
                 CloseStatusDetails();
+                CloseEnemyIntentDetails();
                 HideQte();
             }
         }
@@ -266,6 +313,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             }
 
             _roundLabel.text = $"ROUND {_sandbox.CurrentRoundNumber}";
+            _enemyIntentDetailsButton.SetEnabled(!_sandbox.IsTimelinePlaying);
             SetCombatantPresentation(
                 battle.Player,
                 _playerName,
@@ -737,6 +785,267 @@ namespace SER494.Gameplay.CombatHud.Unity
             }
         }
 
+        private void HandleEnemyIntentDetailsShortcut()
+        {
+            if (_sandbox.IsTimelinePlaying || _isStatusDetailsOpen)
+            {
+                return;
+            }
+
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            if ((keyboard != null && keyboard.iKey.wasPressedThisFrame)
+                || (gamepad != null && gamepad.rightStickButton.wasPressedThisFrame))
+            {
+                OpenEnemyIntentDetails();
+            }
+        }
+
+        private void HandleEnemyIntentDetailsInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            Mouse mouse = Mouse.current;
+            Gamepad gamepad = Gamepad.current;
+            if ((keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+                || (mouse != null && mouse.rightButton.wasPressedThisFrame)
+                || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame))
+            {
+                CloseEnemyIntentDetails();
+                return;
+            }
+
+            float scrollDirection = 0f;
+            if (keyboard != null)
+            {
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
+                {
+                    scrollDirection -= 1f;
+                }
+                else if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed)
+                {
+                    scrollDirection += 1f;
+                }
+            }
+
+            if (gamepad != null)
+            {
+                scrollDirection -= gamepad.rightStick.y.ReadValue();
+            }
+
+            if (Mathf.Abs(scrollDirection) < 0.1f)
+            {
+                return;
+            }
+
+            Vector2 offset = _enemyIntentDetailsScrollView.scrollOffset;
+            offset.y = Mathf.Max(
+                0f,
+                offset.y + scrollDirection * 480f * Time.unscaledDeltaTime);
+            _enemyIntentDetailsScrollView.scrollOffset = offset;
+        }
+
+        private void OpenEnemyIntentDetails()
+        {
+            SoloComboBattleState battle = _sandbox?.CurrentBattle;
+            if (battle == null || _sandbox.IsTimelinePlaying)
+            {
+                return;
+            }
+
+            CloseStatusDetails();
+            _isEnemyIntentDetailsOpen = true;
+            _enemyIntentDetailsOverlay.style.display = DisplayStyle.Flex;
+            _enemyIntentDetailsScrollView.scrollOffset = Vector2.zero;
+            RebuildEnemyIntentDetails(battle);
+            _enemyIntentDetailsCloseButton.Focus();
+        }
+
+        private void CloseEnemyIntentDetails()
+        {
+            _isEnemyIntentDetailsOpen = false;
+            if (_enemyIntentDetailsOverlay != null)
+            {
+                _enemyIntentDetailsOverlay.style.display = DisplayStyle.None;
+            }
+        }
+
+        private void RebuildEnemyIntentDetails(SoloComboBattleState battle)
+        {
+            InitialTimelineSchedule intent = battle.EnemyIntent;
+            _enemyIntentDetailsTitle.text =
+                $"{battle.Enemy.DisplayName} — Enemy Intent";
+            _enemyIntentDetailsList.Clear();
+
+            int actionCount = intent?.Actions.Count ?? 0;
+            string sequenceName = battle.EnemySequence?.DisplayName ?? "Locked Sequence";
+            _enemyIntentDetailsSummary.text = actionCount == 1
+                ? $"{sequenceName}  •  1 locked Action"
+                : $"{sequenceName}  •  {actionCount} locked Actions";
+            _enemyIntentDetailsEmpty.style.display = actionCount == 0
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+
+            for (int index = 0; index < actionCount; index++)
+            {
+                _enemyIntentDetailsList.Add(CreateEnemyIntentEntry(
+                    intent.Actions[index],
+                    index));
+            }
+        }
+
+        private static VisualElement CreateEnemyIntentEntry(
+            ScheduledTimelineAction action,
+            int actionIndex)
+        {
+            var entry = new VisualElement();
+            entry.AddToClassList("combat-hud-intent-entry");
+
+            var header = new VisualElement();
+            header.AddToClassList("combat-hud-intent-entry-header");
+            var name = new Label($"{actionIndex + 1}. {action.DisplayName}");
+            name.AddToClassList("combat-hud-intent-entry-name");
+            var time = new Label(
+                $"Global T{action.StartTime + 1}–T{action.EndTime}");
+            time.AddToClassList("combat-hud-intent-entry-time");
+            header.Add(name);
+            header.Add(time);
+            entry.Add(header);
+
+            for (int index = 0; index < action.ResolutionEvents.Count; index++)
+            {
+                entry.Add(CreateEnemyIntentEvent(action, action.ResolutionEvents[index]));
+            }
+
+            for (int index = 0; index < action.ActiveWindows.Count; index++)
+            {
+                ScheduledActiveWindow window = action.ActiveWindows[index];
+                var windowBlock = new VisualElement();
+                windowBlock.AddToClassList("combat-hud-intent-event");
+                var windowTitle = new Label(
+                    $"T{window.StartTime}–T{window.EndTime} — Active Window");
+                windowTitle.AddToClassList("combat-hud-intent-event-title");
+                var windowDetail = new Label(FormatActiveWindow(window));
+                windowDetail.AddToClassList("combat-hud-intent-event-detail");
+                windowBlock.Add(windowTitle);
+                windowBlock.Add(windowDetail);
+                entry.Add(windowBlock);
+            }
+
+            return entry;
+        }
+
+        private static VisualElement CreateEnemyIntentEvent(
+            ScheduledTimelineAction action,
+            ScheduledResolutionEvent resolution)
+        {
+            var eventBlock = new VisualElement();
+            eventBlock.AddToClassList("combat-hud-intent-event");
+            int localTime = resolution.Time - action.StartTime;
+            var title = new Label(
+                $"T{resolution.Time} (Local T{localTime}) — "
+                + FormatIntentEffectName(resolution.Effect));
+            title.AddToClassList("combat-hud-intent-event-title");
+            var detail = new Label(FormatIntentEventDetails(resolution));
+            detail.AddToClassList("combat-hud-intent-event-detail");
+            eventBlock.Add(title);
+            eventBlock.Add(detail);
+            return eventBlock;
+        }
+
+        private static string FormatIntentEffectName(ActionResolutionEffect effect)
+        {
+            switch (effect)
+            {
+                case ActionResolutionEffect.ApplyBuff:
+                    return "Apply Buff";
+                case ActionResolutionEffect.ApplyDebuff:
+                    return "Apply Debuff";
+                case ActionResolutionEffect.RestoreStamina:
+                    return "Restore Stamina";
+                default:
+                    return effect.ToString();
+            }
+        }
+
+        private static string FormatIntentEventDetails(
+            ScheduledResolutionEvent resolution)
+        {
+            var details = new List<string>
+            {
+                $"Target: {FormatIntentTarget(resolution)}"
+            };
+
+            if (resolution.DamageEffect != null)
+            {
+                details.Add($"Damage: {FormatDamageTypes(resolution.DamageEffect)}");
+            }
+
+            if (resolution.DamageTags != DamageResolutionTag.None)
+            {
+                details.Add($"Tags: {resolution.DamageTags}");
+            }
+
+            if (resolution.StatusEffect != null)
+            {
+                details.Add($"Status: {resolution.StatusEffect.DisplayName}");
+            }
+
+            if (resolution.OnEvadedDisruption != null)
+            {
+                details.Add(
+                    "If Evaded: self-"
+                    + $"{resolution.OnEvadedDisruption.Type} for "
+                    + $"{resolution.OnEvadedDisruption.Duration} Time Steps");
+            }
+
+            return string.Join("  •  ", details);
+        }
+
+        private static string FormatIntentTarget(ScheduledResolutionEvent resolution)
+        {
+            switch (resolution.Effect)
+            {
+                case ActionResolutionEffect.Damage:
+                case ActionResolutionEffect.ApplyDebuff:
+                    return resolution.StatusEffect != null
+                        && resolution.StatusTarget == ActionStatusTarget.Self
+                            ? "Enemy"
+                            : "Player";
+                case ActionResolutionEffect.ApplyBuff:
+                    return resolution.StatusTarget == ActionStatusTarget.Opponent
+                        ? "Player"
+                        : "Enemy";
+                default:
+                    return "Enemy";
+            }
+        }
+
+        private static string FormatDamageTypes(DamageEffectDefinition damage)
+        {
+            var types = new List<string>();
+            for (int index = 0; index < damage.Components.Count; index++)
+            {
+                string type = damage.Components[index].Type.ToString();
+                if (!types.Contains(type))
+                {
+                    types.Add(type);
+                }
+            }
+
+            return string.Join(", ", types);
+        }
+
+        private static string FormatActiveWindow(ScheduledActiveWindow window)
+        {
+            if (window.Effect == ActiveWindowEffect.SuperArmor)
+            {
+                return $"{window.DisplayName}: Super Armor Lv.{window.SuperArmorLevel}";
+            }
+
+            return $"{window.DisplayName}: Damage taken -"
+                + $"{window.DamageReduction * 100d:0.#}%";
+        }
+
         private void HandleStatusDetailsInput()
         {
             Keyboard keyboard = Keyboard.current;
@@ -801,6 +1110,7 @@ namespace SER494.Gameplay.CombatHud.Unity
                 return;
             }
 
+            CloseEnemyIntentDetails();
             _statusDetailsSide = side;
             _isStatusDetailsOpen = true;
             _statusDetailsSignature = null;
