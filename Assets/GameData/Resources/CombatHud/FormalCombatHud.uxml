@@ -2,22 +2,24 @@
     <ui:Style src="FormalCombatHud.uss" />
     <ui:VisualElement name="combatHudRoot" class="combat-hud-root" picking-mode="Ignore">
         <ui:VisualElement class="combat-hud-top-row" picking-mode="Ignore">
-            <ui:VisualElement class="combat-hud-combatant-panel combat-hud-player-panel">
+            <ui:VisualElement name="playerStatusPanel" class="combat-hud-combatant-panel combat-hud-player-panel">
                 <ui:Label name="playerName" class="combat-hud-name" />
                 <ui:ProgressBar name="playerHealth" class="combat-hud-resource combat-hud-health" />
                 <ui:ProgressBar name="playerStamina" class="combat-hud-resource combat-hud-stamina" />
                 <ui:ProgressBar name="playerMana" class="combat-hud-resource combat-hud-mana" />
                 <ui:VisualElement name="playerStatuses" class="combat-hud-status-row" />
+                <ui:Label text="Q / LB  Status Details" class="combat-hud-status-details-hint" />
             </ui:VisualElement>
 
             <ui:VisualElement class="combat-hud-round-panel" picking-mode="Ignore">
                 <ui:Label name="roundLabel" text="ROUND 1" class="combat-hud-round-label" />
             </ui:VisualElement>
 
-            <ui:VisualElement class="combat-hud-combatant-panel combat-hud-enemy-panel">
+            <ui:VisualElement name="enemyStatusPanel" class="combat-hud-combatant-panel combat-hud-enemy-panel">
                 <ui:Label name="enemyName" class="combat-hud-name combat-hud-enemy-name" />
                 <ui:ProgressBar name="enemyHealth" class="combat-hud-resource combat-hud-health" />
                 <ui:VisualElement name="enemyStatuses" class="combat-hud-status-row combat-hud-enemy-status-row" />
+                <ui:Label text="E / RB  Status Details" class="combat-hud-status-details-hint combat-hud-enemy-details-hint" />
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -63,6 +65,21 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="comboList" class="combat-hud-combo-list" />
                 <ui:Label text="1–4 / D-pad: Preview, repeat: Confirm" class="combat-hud-input-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="statusDetailsOverlay" class="combat-hud-status-overlay">
+            <ui:VisualElement class="combat-hud-status-dialog">
+                <ui:VisualElement class="combat-hud-status-dialog-header">
+                    <ui:Label name="statusDetailsTitle" text="Status Details" class="combat-hud-status-dialog-title" />
+                    <ui:Button name="statusDetailsCloseButton" text="Close" class="combat-hud-status-dialog-close" />
+                </ui:VisualElement>
+                <ui:Label name="statusDetailsSummary" class="combat-hud-status-dialog-summary" />
+                <ui:ScrollView name="statusDetailsScrollView" class="combat-hud-status-dialog-scroll">
+                    <ui:VisualElement name="statusDetailsList" class="combat-hud-status-dialog-list" />
+                    <ui:Label name="statusDetailsEmpty" text="No active statuses." class="combat-hud-status-dialog-empty" />
+                </ui:ScrollView>
+                <ui:Label text="W / S, Arrows, Right Stick or Wheel: Scroll    Esc / Right Click / B: Close" class="combat-hud-status-dialog-hint" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

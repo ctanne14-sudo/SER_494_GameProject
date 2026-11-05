@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatSandbox;
 using SER494.Gameplay.PlayerState.Unity;
@@ -23,6 +25,8 @@ namespace SER494.Gameplay.CombatHud.Unity
             new List<VisualElement>();
 
         private VisualElement _root;
+        private VisualElement _playerStatusPanel;
+        private VisualElement _enemyStatusPanel;
         private Label _roundLabel;
         private Label _playerName;
         private ProgressBar _playerHealth;
@@ -41,6 +45,13 @@ namespace SER494.Gameplay.CombatHud.Unity
         private Button _nextTimelinePageButton;
         private VisualElement _comboList;
         private Button _clearPreviewButton;
+        private VisualElement _statusDetailsOverlay;
+        private Label _statusDetailsTitle;
+        private Label _statusDetailsSummary;
+        private ScrollView _statusDetailsScrollView;
+        private VisualElement _statusDetailsList;
+        private Label _statusDetailsEmpty;
+        private Button _statusDetailsCloseButton;
         private CombatSandboxController _sandbox;
         private CombatSandboxController _builtForSandbox;
         private bool _isVisible;
@@ -50,11 +61,16 @@ namespace SER494.Gameplay.CombatHud.Unity
         private InitialTimelineSchedule _renderedTimelineSchedule;
         private string _lastPlayerStatusSignature;
         private string _lastEnemyStatusSignature;
+        private string _statusDetailsSignature;
+        private TimelineActorSide _statusDetailsSide;
+        private bool _isStatusDetailsOpen;
 
         private void Awake()
         {
             VisualElement documentRoot = GetComponent<UIDocument>().rootVisualElement;
             _root = documentRoot.Q<VisualElement>("combatHudRoot");
+            _playerStatusPanel = documentRoot.Q<VisualElement>("playerStatusPanel");
+            _enemyStatusPanel = documentRoot.Q<VisualElement>("enemyStatusPanel");
             _roundLabel = documentRoot.Q<Label>("roundLabel");
             _playerName = documentRoot.Q<Label>("playerName");
             _playerHealth = documentRoot.Q<ProgressBar>("playerHealth");
@@ -76,9 +92,27 @@ namespace SER494.Gameplay.CombatHud.Unity
                 documentRoot.Q<Button>("nextTimelinePageButton");
             _comboList = documentRoot.Q<VisualElement>("comboList");
             _clearPreviewButton = documentRoot.Q<Button>("clearPreviewButton");
+            _statusDetailsOverlay =
+                documentRoot.Q<VisualElement>("statusDetailsOverlay");
+            _statusDetailsTitle = documentRoot.Q<Label>("statusDetailsTitle");
+            _statusDetailsSummary = documentRoot.Q<Label>("statusDetailsSummary");
+            _statusDetailsScrollView =
+                documentRoot.Q<ScrollView>("statusDetailsScrollView");
+            _statusDetailsList =
+                documentRoot.Q<VisualElement>("statusDetailsList");
+            _statusDetailsEmpty = documentRoot.Q<Label>("statusDetailsEmpty");
+            _statusDetailsCloseButton =
+                documentRoot.Q<Button>("statusDetailsCloseButton");
             _clearPreviewButton.clicked += ClearPreview;
             _previousTimelinePageButton.clicked += ShowPreviousTimelinePage;
             _nextTimelinePageButton.clicked += ShowNextTimelinePage;
+            _statusDetailsCloseButton.clicked += CloseStatusDetails;
+            _playerStatusPanel.RegisterCallback<ClickEvent>(OnPlayerStatusClicked);
+            _enemyStatusPanel.RegisterCallback<ClickEvent>(OnEnemyStatusClicked);
+            _playerStatusPanel.focusable = true;
+            _enemyStatusPanel.focusable = true;
+            _playerStatusPanel.tooltip = "Player status details (Q / LB)";
+            _enemyStatusPanel.tooltip = "Enemy status details (E / RB)";
 
             CreateTimelineCells(
                 documentRoot.Q<VisualElement>("playerTimelineCells"),
@@ -87,6 +121,7 @@ namespace SER494.Gameplay.CombatHud.Unity
                 documentRoot.Q<VisualElement>("enemyTimelineCells"),
                 _enemyTimelineCells);
             _root.style.display = DisplayStyle.None;
+            _statusDetailsOverlay.style.display = DisplayStyle.None;
             _isVisible = false;
         }
 
@@ -106,13 +141,21 @@ namespace SER494.Gameplay.CombatHud.Unity
             {
                 _nextTimelinePageButton.clicked -= ShowNextTimelinePage;
             }
+
+            if (_statusDetailsCloseButton != null)
+            {
+                _statusDetailsCloseButton.clicked -= CloseStatusDetails;
+            }
+
+            _playerStatusPanel?.UnregisterCallback<ClickEvent>(OnPlayerStatusClicked);
+            _enemyStatusPanel?.UnregisterCallback<ClickEvent>(OnEnemyStatusClicked);
         }
 
         private void Update()
         {
             if (_sandbox == null)
             {
-                _sandbox = Object.FindAnyObjectByType<CombatSandboxController>();
+                _sandbox = UnityEngine.Object.FindAnyObjectByType<CombatSandboxController>();
             }
 
             bool shouldShow = _sandbox != null && _sandbox.ShouldShowFormalBattleHud;
@@ -128,8 +171,16 @@ namespace SER494.Gameplay.CombatHud.Unity
                 _builtForSandbox = _sandbox;
             }
 
-            HandleComboShortcuts();
             RefreshPresentation();
+            if (_isStatusDetailsOpen)
+            {
+                HandleStatusDetailsInput();
+                RefreshStatusDetails();
+                return;
+            }
+
+            HandleStatusDetailsShortcuts();
+            HandleComboShortcuts();
         }
 
         private void SetVisible(bool visible)
@@ -141,6 +192,10 @@ namespace SER494.Gameplay.CombatHud.Unity
 
             _isVisible = visible;
             _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!visible)
+            {
+                CloseStatusDetails();
+            }
         }
 
         private void BuildComboCards()
@@ -403,6 +458,250 @@ namespace SER494.Gameplay.CombatHud.Unity
             else if (gamepad.dpad.right.wasPressedThisFrame) SelectCombo(1);
             else if (gamepad.dpad.down.wasPressedThisFrame) SelectCombo(2);
             else if (gamepad.dpad.left.wasPressedThisFrame) SelectCombo(3);
+        }
+
+        private void HandleStatusDetailsShortcuts()
+        {
+            if (_sandbox.IsTimelinePlaying)
+            {
+                return;
+            }
+
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null)
+            {
+                if (keyboard.qKey.wasPressedThisFrame)
+                {
+                    OpenStatusDetails(TimelineActorSide.Player);
+                    return;
+                }
+
+                if (keyboard.eKey.wasPressedThisFrame)
+                {
+                    OpenStatusDetails(TimelineActorSide.Enemy);
+                    return;
+                }
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad == null)
+            {
+                return;
+            }
+
+            if (gamepad.leftShoulder.wasPressedThisFrame)
+            {
+                OpenStatusDetails(TimelineActorSide.Player);
+            }
+            else if (gamepad.rightShoulder.wasPressedThisFrame)
+            {
+                OpenStatusDetails(TimelineActorSide.Enemy);
+            }
+        }
+
+        private void HandleStatusDetailsInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            Mouse mouse = Mouse.current;
+            Gamepad gamepad = Gamepad.current;
+            if ((keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+                || (mouse != null && mouse.rightButton.wasPressedThisFrame)
+                || (gamepad != null && gamepad.buttonEast.wasPressedThisFrame))
+            {
+                CloseStatusDetails();
+                return;
+            }
+
+            float scrollDirection = 0f;
+            if (keyboard != null)
+            {
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
+                {
+                    scrollDirection -= 1f;
+                }
+                else if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed)
+                {
+                    scrollDirection += 1f;
+                }
+            }
+
+            if (gamepad != null)
+            {
+                scrollDirection -= gamepad.rightStick.y.ReadValue();
+            }
+
+            if (Mathf.Abs(scrollDirection) < 0.1f)
+            {
+                return;
+            }
+
+            Vector2 offset = _statusDetailsScrollView.scrollOffset;
+            offset.y = Mathf.Max(
+                0f,
+                offset.y + scrollDirection * 480f * Time.unscaledDeltaTime);
+            _statusDetailsScrollView.scrollOffset = offset;
+        }
+
+        private void OnPlayerStatusClicked(ClickEvent evt)
+        {
+            OpenStatusDetails(TimelineActorSide.Player);
+            evt.StopPropagation();
+        }
+
+        private void OnEnemyStatusClicked(ClickEvent evt)
+        {
+            OpenStatusDetails(TimelineActorSide.Enemy);
+            evt.StopPropagation();
+        }
+
+        private void OpenStatusDetails(TimelineActorSide side)
+        {
+            if (_sandbox == null
+                || _sandbox.CurrentBattle == null
+                || _sandbox.IsTimelinePlaying)
+            {
+                return;
+            }
+
+            _statusDetailsSide = side;
+            _isStatusDetailsOpen = true;
+            _statusDetailsSignature = null;
+            _statusDetailsOverlay.style.display = DisplayStyle.Flex;
+            _statusDetailsScrollView.scrollOffset = Vector2.zero;
+            RefreshStatusDetails();
+            _statusDetailsCloseButton.Focus();
+        }
+
+        private void CloseStatusDetails()
+        {
+            if (!_isStatusDetailsOpen && _statusDetailsOverlay == null)
+            {
+                return;
+            }
+
+            _isStatusDetailsOpen = false;
+            _statusDetailsSignature = null;
+            if (_statusDetailsOverlay != null)
+            {
+                _statusDetailsOverlay.style.display = DisplayStyle.None;
+            }
+        }
+
+        private void RefreshStatusDetails()
+        {
+            SoloComboBattleState battle = _sandbox?.CurrentBattle;
+            if (!_isStatusDetailsOpen || battle == null)
+            {
+                return;
+            }
+
+            CombatantState combatant = _statusDetailsSide == TimelineActorSide.Player
+                ? battle.Player
+                : battle.Enemy;
+            string signature = $"{_statusDetailsSide}:"
+                + BuildStatusSignature(combatant.ActiveStatuses);
+            if (signature == _statusDetailsSignature)
+            {
+                return;
+            }
+
+            _statusDetailsSignature = signature;
+            _statusDetailsTitle.text = $"{combatant.DisplayName} — Status Details";
+            int statusCount = combatant.ActiveStatuses.Count;
+            _statusDetailsSummary.text = statusCount == 1
+                ? "1 active status"
+                : $"{statusCount} active statuses";
+            _statusDetailsList.Clear();
+            _statusDetailsEmpty.style.display = statusCount == 0
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            for (int index = 0; index < statusCount; index++)
+            {
+                _statusDetailsList.Add(CreateStatusEntry(
+                    combatant.ActiveStatuses[index]));
+            }
+        }
+
+        private static VisualElement CreateStatusEntry(CombatStatusInstance status)
+        {
+            CombatStatusDefinition definition = status.Definition;
+            var entry = new VisualElement();
+            entry.AddToClassList("combat-hud-status-entry");
+
+            var header = new VisualElement();
+            header.AddToClassList("combat-hud-status-entry-header");
+            var name = new Label(definition.DisplayName);
+            name.AddToClassList("combat-hud-status-entry-name");
+            var duration = new Label(FormatRemainingDuration(status));
+            duration.AddToClassList("combat-hud-status-entry-duration");
+            header.Add(name);
+            header.Add(duration);
+            entry.Add(header);
+
+            var effect = new Label(FormatStatusEffect(definition));
+            effect.AddToClassList("combat-hud-status-entry-effect");
+            entry.Add(effect);
+
+            string stackingText = definition.StackingPolicy
+                == CombatStatusStackingPolicy.IndependentInstances
+                ? "Independent stacking instance"
+                : "Reapplying this status refreshes its duration";
+            var stacking = new Label(stackingText);
+            stacking.AddToClassList("combat-hud-status-entry-stacking");
+            entry.Add(stacking);
+            return entry;
+        }
+
+        private static string FormatRemainingDuration(CombatStatusInstance status)
+        {
+            string unit = status.Definition.DurationType
+                == CombatStatusDurationType.TimeSteps
+                ? (status.RemainingDuration == 1 ? "Time Step" : "Time Steps")
+                : (status.RemainingDuration == 1 ? "Round" : "Rounds");
+            return $"{status.RemainingDuration} {unit} remaining";
+        }
+
+        private static string FormatStatusEffect(CombatStatusDefinition definition)
+        {
+            var effects = new List<string>();
+            if (Math.Abs(definition.Modifier.Amount) > double.Epsilon)
+            {
+                string direction = definition.ModifierDirection
+                    == CombatStatusModifierDirection.DamageDealt
+                    ? "Damage dealt"
+                    : "Damage taken";
+                string target = FormatModifierTarget(definition.Modifier);
+                string sign = definition.Modifier.Amount > 0d ? "+" : string.Empty;
+                effects.Add(
+                    $"{direction} ({target}) {sign}"
+                    + $"{definition.Modifier.Amount * 100d:0.#}%");
+            }
+
+            if (definition.StaminaRecoveryMultiplierBonus > double.Epsilon)
+            {
+                effects.Add(
+                    "Base Stamina recovery +"
+                    + $"{definition.StaminaRecoveryMultiplierBonus * 100d:0.#}%");
+            }
+
+            return effects.Count > 0
+                ? string.Join("\n", effects)
+                : "No additional passive modifier.";
+        }
+
+        private static string FormatModifierTarget(DamageModifier modifier)
+        {
+            switch (modifier.Scope)
+            {
+                case DamageModifierScope.All:
+                    return "all damage";
+                case DamageModifierScope.Family:
+                    return $"{modifier.Family} damage";
+                case DamageModifierScope.Type:
+                    return $"{modifier.Type} damage";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private static void SetCombatantPresentation(
