@@ -138,6 +138,72 @@ namespace SER494.Gameplay.CombatSandbox
 
         public int PlaybackEndTimeStep => _playbackEndTimeStep;
 
+        public bool HasFormalTimingQte => _timingRequest != null;
+
+        public bool HasFormalChargeQte => _chargeRequest != null;
+
+        public string FormalQteDisplayName => _timingRequest?.DisplayName
+            ?? _chargeRequest?.DisplayName
+            ?? string.Empty;
+
+        public int FormalTimingMinimumTimeStep =>
+            _timingRequest?.MinimumTimeStep ?? 0;
+
+        public int FormalTimingMaximumTimeStep =>
+            _timingRequest?.MaximumTimeStep ?? 0;
+
+        public int FormalTimingCandidate => _timingRequest != null
+            ? CurrentTimingCandidate()
+            : 0;
+
+        public int FormalChargeMaximumLevel =>
+            _chargeRequest?.MaximumChargeLevel ?? 0;
+
+        public int FormalChargeCandidateLevel => _chargeRequest != null
+            ? (_chargeEngaged ? CurrentChargeLevel() : 0)
+            : 0;
+
+        public bool IsFormalChargeEngaged => _chargeEngaged;
+
+        public float FormalQteSecondsRemaining
+        {
+            get
+            {
+                if (_timingRequest != null)
+                {
+                    return Mathf.Max(0f, timingInputLimit - _timingElapsed);
+                }
+
+                if (_chargeRequest != null)
+                {
+                    return _chargeEngaged
+                        ? Mathf.Max(0f, chargeHoldLimit - _chargeHoldElapsed)
+                        : Mathf.Max(0f, chargeInputLimit - _chargeInputElapsed);
+                }
+
+                return 0f;
+            }
+        }
+
+        public float FormalQteNormalizedTimeRemaining
+        {
+            get
+            {
+                if (_timingRequest != null)
+                {
+                    return Mathf.Clamp01(FormalQteSecondsRemaining / timingInputLimit);
+                }
+
+                if (_chargeRequest != null)
+                {
+                    float limit = _chargeEngaged ? chargeHoldLimit : chargeInputLimit;
+                    return Mathf.Clamp01(FormalQteSecondsRemaining / limit);
+                }
+
+                return 0f;
+            }
+        }
+
         /// <summary>
         /// The schedule the formal HUD should present. A committed live schedule
         /// takes priority over the player's preview; before either exists, the
@@ -1175,6 +1241,43 @@ namespace SER494.Gameplay.CombatSandbox
             {
                 ClearComboPreview();
             }
+        }
+
+        public bool TrySelectFormalTimingCandidate()
+        {
+            if (_timingRequest == null || _timingSelectionRequested)
+            {
+                return false;
+            }
+
+            RequestTimingSelection(CurrentTimingCandidate());
+            return true;
+        }
+
+        public bool TryBeginFormalCharge()
+        {
+            if (_chargeRequest == null
+                || _chargeEngaged
+                || _chargeSelectionRequested)
+            {
+                return false;
+            }
+
+            BeginCharging();
+            return true;
+        }
+
+        public bool TryReleaseFormalCharge()
+        {
+            if (_chargeRequest == null
+                || !_chargeEngaged
+                || _chargeSelectionRequested)
+            {
+                return false;
+            }
+
+            RequestChargeRelease();
+            return true;
         }
 
         public string GetFormalComboAvailabilityText(int comboIndex)

@@ -451,6 +451,156 @@
     -unity-text-align: middle-right;
 }
 
+.combat-hud-qte-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(4, 5, 6, 0.24);
+}
+
+.combat-hud-qte-card {
+    width: 620px;
+    max-width: 74%;
+    min-height: 300px;
+    padding: 20px 26px 18px 26px;
+    background-color: rgba(22, 21, 18, 0.97);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(177, 130, 63);
+    border-right-color: rgb(177, 130, 63);
+    border-top-color: rgb(177, 130, 63);
+    border-bottom-color: rgb(177, 130, 63);
+    align-items: stretch;
+}
+
+.combat-hud-qte-type {
+    color: rgb(184, 145, 78);
+    font-size: 13px;
+    letter-spacing: 2px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-action {
+    margin-top: 4px;
+    color: rgb(244, 226, 180);
+    font-size: 27px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-prompt {
+    margin-top: 7px;
+    margin-bottom: 12px;
+    color: rgb(191, 180, 151);
+    font-size: 15px;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-options {
+    height: 54px;
+    margin-bottom: 12px;
+    flex-direction: row;
+}
+
+.combat-hud-qte-option {
+    flex-grow: 1;
+    height: 48px;
+    margin-right: 5px;
+    background-color: rgb(48, 45, 38);
+    color: rgb(171, 158, 128);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(91, 76, 51);
+    border-right-color: rgb(91, 76, 51);
+    border-top-color: rgb(91, 76, 51);
+    border-bottom-color: rgb(91, 76, 51);
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-option-current {
+    background-color: rgb(119, 78, 31);
+    color: rgb(255, 235, 184);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(224, 169, 75);
+    border-right-color: rgb(224, 169, 75);
+    border-top-color: rgb(224, 169, 75);
+    border-bottom-color: rgb(224, 169, 75);
+}
+
+.combat-hud-qte-time {
+    height: 26px;
+    margin-bottom: 12px;
+    color: rgb(242, 228, 194);
+    -unity-font-style: bold;
+}
+
+.combat-hud-qte-time .unity-progress-bar__background {
+    background-color: rgb(31, 30, 27);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(83, 70, 49);
+    border-right-color: rgb(83, 70, 49);
+    border-top-color: rgb(83, 70, 49);
+    border-bottom-color: rgb(83, 70, 49);
+}
+
+.combat-hud-qte-time .unity-progress-bar__progress {
+    background-color: rgb(174, 123, 47);
+}
+
+.combat-hud-qte-time .unity-progress-bar__title {
+    color: rgb(242, 228, 194);
+}
+
+.combat-hud-qte-button {
+    height: 46px;
+    background-color: rgb(74, 57, 34);
+    color: rgb(246, 224, 174);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(168, 124, 61);
+    border-right-color: rgb(168, 124, 61);
+    border-top-color: rgb(168, 124, 61);
+    border-bottom-color: rgb(168, 124, 61);
+    font-size: 17px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-qte-button:hover,
+.combat-hud-qte-button:focus {
+    background-color: rgb(105, 76, 38);
+    border-left-color: rgb(224, 169, 75);
+    border-right-color: rgb(224, 169, 75);
+    border-top-color: rgb(224, 169, 75);
+    border-bottom-color: rgb(224, 169, 75);
+}
+
+.combat-hud-qte-hint {
+    height: 25px;
+    margin-top: 8px;
+    color: rgb(135, 125, 104);
+    font-size: 11px;
+    -unity-text-align: middle-center;
+}
+
 .combat-hud-status-overlay {
     position: absolute;
     left: 0;

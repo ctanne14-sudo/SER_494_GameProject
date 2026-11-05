@@ -68,6 +68,18 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <ui:VisualElement name="qteOverlay" class="combat-hud-qte-overlay">
+            <ui:VisualElement class="combat-hud-qte-card">
+                <ui:Label name="qteType" text="TIMING INPUT" class="combat-hud-qte-type" />
+                <ui:Label name="qteActionName" class="combat-hud-qte-action" />
+                <ui:Label name="qtePrompt" class="combat-hud-qte-prompt" />
+                <ui:VisualElement name="qteOptions" class="combat-hud-qte-options" />
+                <ui:ProgressBar name="qteTimeRemaining" class="combat-hud-qte-time" />
+                <ui:Button name="qteActionButton" text="CONFIRM" class="combat-hud-qte-button" />
+                <ui:Label name="qteInputHint" class="combat-hud-qte-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:VisualElement name="statusDetailsOverlay" class="combat-hud-status-overlay">
             <ui:VisualElement class="combat-hud-status-dialog">
                 <ui:VisualElement class="combat-hud-status-dialog-header">

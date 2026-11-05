@@ -23,6 +23,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             new List<VisualElement>();
         private readonly List<VisualElement> _enemyTimelineCells =
             new List<VisualElement>();
+        private readonly List<Label> _qteOptionLabels = new List<Label>();
 
         private VisualElement _root;
         private VisualElement _playerStatusPanel;
@@ -52,6 +53,14 @@ namespace SER494.Gameplay.CombatHud.Unity
         private VisualElement _statusDetailsList;
         private Label _statusDetailsEmpty;
         private Button _statusDetailsCloseButton;
+        private VisualElement _qteOverlay;
+        private Label _qteType;
+        private Label _qteActionName;
+        private Label _qtePrompt;
+        private VisualElement _qteOptions;
+        private ProgressBar _qteTimeRemaining;
+        private Button _qteActionButton;
+        private Label _qteInputHint;
         private CombatSandboxController _sandbox;
         private CombatSandboxController _builtForSandbox;
         private bool _isVisible;
@@ -64,6 +73,8 @@ namespace SER494.Gameplay.CombatHud.Unity
         private string _statusDetailsSignature;
         private TimelineActorSide _statusDetailsSide;
         private bool _isStatusDetailsOpen;
+        private string _qteLayoutSignature;
+        private bool _isQteVisible;
 
         private void Awake()
         {
@@ -103,10 +114,21 @@ namespace SER494.Gameplay.CombatHud.Unity
             _statusDetailsEmpty = documentRoot.Q<Label>("statusDetailsEmpty");
             _statusDetailsCloseButton =
                 documentRoot.Q<Button>("statusDetailsCloseButton");
+            _qteOverlay = documentRoot.Q<VisualElement>("qteOverlay");
+            _qteType = documentRoot.Q<Label>("qteType");
+            _qteActionName = documentRoot.Q<Label>("qteActionName");
+            _qtePrompt = documentRoot.Q<Label>("qtePrompt");
+            _qteOptions = documentRoot.Q<VisualElement>("qteOptions");
+            _qteTimeRemaining = documentRoot.Q<ProgressBar>("qteTimeRemaining");
+            _qteActionButton = documentRoot.Q<Button>("qteActionButton");
+            _qteInputHint = documentRoot.Q<Label>("qteInputHint");
             _clearPreviewButton.clicked += ClearPreview;
             _previousTimelinePageButton.clicked += ShowPreviousTimelinePage;
             _nextTimelinePageButton.clicked += ShowNextTimelinePage;
             _statusDetailsCloseButton.clicked += CloseStatusDetails;
+            _qteActionButton.clicked += OnQteActionClicked;
+            _qteActionButton.RegisterCallback<PointerDownEvent>(OnQtePointerDown);
+            _qteActionButton.RegisterCallback<PointerUpEvent>(OnQtePointerUp);
             _playerStatusPanel.RegisterCallback<ClickEvent>(OnPlayerStatusClicked);
             _enemyStatusPanel.RegisterCallback<ClickEvent>(OnEnemyStatusClicked);
             _playerStatusPanel.focusable = true;
@@ -122,6 +144,7 @@ namespace SER494.Gameplay.CombatHud.Unity
                 _enemyTimelineCells);
             _root.style.display = DisplayStyle.None;
             _statusDetailsOverlay.style.display = DisplayStyle.None;
+            _qteOverlay.style.display = DisplayStyle.None;
             _isVisible = false;
         }
 
@@ -145,6 +168,13 @@ namespace SER494.Gameplay.CombatHud.Unity
             if (_statusDetailsCloseButton != null)
             {
                 _statusDetailsCloseButton.clicked -= CloseStatusDetails;
+            }
+
+            if (_qteActionButton != null)
+            {
+                _qteActionButton.clicked -= OnQteActionClicked;
+                _qteActionButton.UnregisterCallback<PointerDownEvent>(OnQtePointerDown);
+                _qteActionButton.UnregisterCallback<PointerUpEvent>(OnQtePointerUp);
             }
 
             _playerStatusPanel?.UnregisterCallback<ClickEvent>(OnPlayerStatusClicked);
@@ -172,6 +202,12 @@ namespace SER494.Gameplay.CombatHud.Unity
             }
 
             RefreshPresentation();
+            if (RefreshQtePresentation())
+            {
+                HandleQteInput();
+                return;
+            }
+
             if (_isStatusDetailsOpen)
             {
                 HandleStatusDetailsInput();
@@ -195,6 +231,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             if (!visible)
             {
                 CloseStatusDetails();
+                HideQte();
             }
         }
 
@@ -380,6 +417,207 @@ namespace SER494.Gameplay.CombatHud.Unity
             else
             {
                 _timelineStateLabel.text = "Select a Combo to preview this Round";
+            }
+        }
+
+        private bool RefreshQtePresentation()
+        {
+            bool hasTiming = _sandbox != null && _sandbox.HasFormalTimingQte;
+            bool hasCharge = _sandbox != null && _sandbox.HasFormalChargeQte;
+            if (!hasTiming && !hasCharge)
+            {
+                HideQte();
+                return false;
+            }
+
+            if (!_isQteVisible)
+            {
+                _isQteVisible = true;
+                _qteOverlay.style.display = DisplayStyle.Flex;
+                CloseStatusDetails();
+            }
+
+            string signature = hasTiming
+                ? $"timing:{_sandbox.FormalQteDisplayName}:"
+                    + $"{_sandbox.FormalTimingMinimumTimeStep}:"
+                    + $"{_sandbox.FormalTimingMaximumTimeStep}"
+                : $"charge:{_sandbox.FormalQteDisplayName}:"
+                    + $"{_sandbox.FormalChargeMaximumLevel}";
+            if (signature != _qteLayoutSignature)
+            {
+                BuildQteOptions(hasTiming);
+                _qteLayoutSignature = signature;
+            }
+
+            int currentOption = hasTiming
+                ? _sandbox.FormalTimingCandidate
+                    - _sandbox.FormalTimingMinimumTimeStep
+                : _sandbox.FormalChargeCandidateLevel;
+            for (int index = 0; index < _qteOptionLabels.Count; index++)
+            {
+                _qteOptionLabels[index].EnableInClassList(
+                    "combat-hud-qte-option-current",
+                    index == currentOption);
+            }
+
+            _qteActionName.text = _sandbox.FormalQteDisplayName;
+            _qteTimeRemaining.lowValue = 0f;
+            _qteTimeRemaining.highValue = 1f;
+            _qteTimeRemaining.value = _sandbox.FormalQteNormalizedTimeRemaining;
+            _qteTimeRemaining.title =
+                $"{_sandbox.FormalQteSecondsRemaining:0.0}s remaining";
+
+            if (hasTiming)
+            {
+                int candidate = _sandbox.FormalTimingCandidate;
+                _qteType.text = "RESOLUTION TIMING";
+                _qtePrompt.text =
+                    $"The timing marker is moving. Lock this effect to T{candidate}.";
+                _qteActionButton.text = $"LOCK T{candidate}";
+                _qteInputHint.text = "Space / Enter / A / Click: Lock timing";
+            }
+            else if (_sandbox.IsFormalChargeEngaged)
+            {
+                int level = _sandbox.FormalChargeCandidateLevel;
+                _qteType.text = "CHARGE";
+                _qtePrompt.text =
+                    $"Charging at Level {level}. Release on the level you want.";
+                _qteActionButton.text = $"RELEASE AT LEVEL {level}";
+                _qteInputHint.text = "Release Space / A / Mouse: Confirm charge level";
+            }
+            else
+            {
+                _qteType.text = "CHARGE";
+                _qtePrompt.text =
+                    "Begin charging, then release on the level you want.";
+                _qteActionButton.text = "BEGIN CHARGING";
+                _qteInputHint.text = "Hold Space / A / Mouse: Begin charging";
+            }
+
+            return true;
+        }
+
+        private void BuildQteOptions(bool timing)
+        {
+            _qteOptions.Clear();
+            _qteOptionLabels.Clear();
+            int first = timing ? _sandbox.FormalTimingMinimumTimeStep : 0;
+            int last = timing
+                ? _sandbox.FormalTimingMaximumTimeStep
+                : _sandbox.FormalChargeMaximumLevel;
+            for (int value = first; value <= last; value++)
+            {
+                var label = new Label(timing ? $"T{value}" : $"LEVEL {value}");
+                label.AddToClassList("combat-hud-qte-option");
+                _qteOptionLabels.Add(label);
+                _qteOptions.Add(label);
+            }
+        }
+
+        private void HideQte()
+        {
+            if (!_isQteVisible)
+            {
+                return;
+            }
+
+            _isQteVisible = false;
+            _qteLayoutSignature = null;
+            _qteOptionLabels.Clear();
+            if (_qteOptions != null)
+            {
+                _qteOptions.Clear();
+            }
+
+            if (_qteOverlay != null)
+            {
+                _qteOverlay.style.display = DisplayStyle.None;
+            }
+        }
+
+        private void HandleQteInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            bool timingPressed = (keyboard != null
+                    && (keyboard.spaceKey.wasPressedThisFrame
+                        || keyboard.enterKey.wasPressedThisFrame))
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+            bool chargePressed = (keyboard != null
+                    && keyboard.spaceKey.wasPressedThisFrame)
+                || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+            bool released = (keyboard != null
+                    && keyboard.spaceKey.wasReleasedThisFrame)
+                || (gamepad != null && gamepad.buttonSouth.wasReleasedThisFrame);
+
+            if (_sandbox.HasFormalTimingQte)
+            {
+                if (timingPressed)
+                {
+                    _sandbox.TrySelectFormalTimingCandidate();
+                }
+
+                return;
+            }
+
+            if (!_sandbox.HasFormalChargeQte)
+            {
+                return;
+            }
+
+            if (!_sandbox.IsFormalChargeEngaged && chargePressed)
+            {
+                _sandbox.TryBeginFormalCharge();
+            }
+            else if (_sandbox.IsFormalChargeEngaged && released)
+            {
+                _sandbox.TryReleaseFormalCharge();
+            }
+        }
+
+        private void OnQteActionClicked()
+        {
+            if (_sandbox == null)
+            {
+                return;
+            }
+
+            if (_sandbox.HasFormalTimingQte)
+            {
+                _sandbox.TrySelectFormalTimingCandidate();
+            }
+            else if (_sandbox.HasFormalChargeQte)
+            {
+                if (_sandbox.IsFormalChargeEngaged)
+                {
+                    _sandbox.TryReleaseFormalCharge();
+                }
+                else
+                {
+                    _sandbox.TryBeginFormalCharge();
+                }
+            }
+        }
+
+        private void OnQtePointerDown(PointerDownEvent evt)
+        {
+            if (evt.button == 0
+                && _sandbox != null
+                && _sandbox.HasFormalChargeQte
+                && !_sandbox.IsFormalChargeEngaged)
+            {
+                _sandbox.TryBeginFormalCharge();
+            }
+        }
+
+        private void OnQtePointerUp(PointerUpEvent evt)
+        {
+            if (evt.button == 0
+                && _sandbox != null
+                && _sandbox.HasFormalChargeQte
+                && _sandbox.IsFormalChargeEngaged)
+            {
+                _sandbox.TryReleaseFormalCharge();
             }
         }
 
