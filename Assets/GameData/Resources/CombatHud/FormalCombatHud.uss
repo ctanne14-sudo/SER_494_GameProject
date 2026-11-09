@@ -770,6 +770,15 @@
     border-bottom-color: rgb(224, 169, 75);
 }
 
+.combat-hud-qte-option-reached {
+    background-color: rgb(77, 61, 38);
+    color: rgb(216, 193, 145);
+    border-left-color: rgb(141, 105, 54);
+    border-right-color: rgb(141, 105, 54);
+    border-top-color: rgb(141, 105, 54);
+    border-bottom-color: rgb(141, 105, 54);
+}
+
 .combat-hud-qte-time {
     height: 26px;
     margin-bottom: 12px;

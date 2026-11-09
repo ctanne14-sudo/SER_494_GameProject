@@ -503,6 +503,12 @@ namespace SER494.Gameplay.CombatHud.Unity
                 : _sandbox.FormalChargeCandidateLevel;
             for (int index = 0; index < _qteOptionLabels.Count; index++)
             {
+                bool chargeLevelReached = hasCharge
+                    && _sandbox.IsFormalChargeEngaged
+                    && index < currentOption;
+                _qteOptionLabels[index].EnableInClassList(
+                    "combat-hud-qte-option-reached",
+                    chargeLevelReached);
                 _qteOptionLabels[index].EnableInClassList(
                     "combat-hud-qte-option-current",
                     index == currentOption);
@@ -542,21 +548,27 @@ namespace SER494.Gameplay.CombatHud.Unity
             else if (_sandbox.IsFormalChargeEngaged)
             {
                 int level = _sandbox.FormalChargeCandidateLevel;
+                _qteTimeRemaining.title =
+                    $"Hold limit: {_sandbox.FormalQteSecondsRemaining:0.0}s";
                 _qteActionButton.SetEnabled(true);
                 _qteType.text = "CHARGE";
                 _qtePrompt.text =
                     $"Charging at Level {level}. Release on the level you want.";
                 _qteActionButton.text = $"RELEASE AT LEVEL {level}";
-                _qteInputHint.text = "Release Space / A / Mouse: Confirm charge level";
+                _qteInputHint.text =
+                    "Release F / Space / A / Left Mouse: Confirm charge level";
             }
             else
             {
+                _qteTimeRemaining.title =
+                    $"Start within: {_sandbox.FormalQteSecondsRemaining:0.0}s";
                 _qteActionButton.SetEnabled(true);
                 _qteType.text = "CHARGE";
                 _qtePrompt.text =
                     "Begin charging, then release on the level you want.";
-                _qteActionButton.text = "BEGIN CHARGING";
-                _qteInputHint.text = "Hold Space / A / Mouse: Begin charging";
+                _qteActionButton.text = "HOLD TO CHARGE";
+                _qteInputHint.text =
+                    "Hold F / Space / A / Left Mouse: Begin charging";
             }
 
             return true;
@@ -654,17 +666,11 @@ namespace SER494.Gameplay.CombatHud.Unity
             {
                 _sandbox.TrySelectFormalTimingCandidate();
             }
-            else if (_sandbox.HasFormalChargeQte)
-            {
-                if (_sandbox.IsFormalChargeEngaged)
-                {
-                    _sandbox.TryReleaseFormalCharge();
-                }
-                else
-                {
-                    _sandbox.TryBeginFormalCharge();
-                }
-            }
+
+            // Charge uses pointer down/up so a mouse press behaves like a real
+            // hold. Keyboard and gamepad charge input is handled in Update.
+            // Handling Button.clicked here as well would run after PointerUp
+            // and could immediately start a second charge.
         }
 
         private void OnQtePointerDown(PointerDownEvent evt)
