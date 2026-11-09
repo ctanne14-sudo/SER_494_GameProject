@@ -204,6 +204,206 @@
     -unity-font-style: bold;
 }
 
+.combat-feedback-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.combat-feedback-lane {
+    position: absolute;
+    top: 34%;
+    width: 320px;
+    min-height: 160px;
+}
+
+.combat-feedback-player-lane {
+    left: 16%;
+    align-items: flex-start;
+}
+
+.combat-feedback-enemy-lane {
+    right: 16%;
+    align-items: flex-end;
+}
+
+.combat-feedback-cue {
+    min-width: 145px;
+    min-height: 38px;
+    margin-bottom: 3px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-feedback-symbol {
+    width: 35px;
+    margin-right: 7px;
+    font-size: 25px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 2px;
+}
+
+.combat-feedback-copy {
+    flex-grow: 1;
+}
+
+.combat-feedback-primary {
+    font-size: 20px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 2px;
+}
+
+.combat-feedback-detail {
+    margin-top: 1px;
+    font-size: 11px;
+    color: rgb(238, 231, 211);
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 1px;
+}
+
+.combat-feedback-impact {
+    --combat-impact-strong: rgba(255, 255, 255, 0.65);
+    --combat-impact-medium: rgba(255, 255, 255, 0.22);
+    --combat-impact-soft: rgba(255, 255, 255, 0.07);
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.combat-feedback-impact-band {
+    position: absolute;
+    border-left-color: var(--combat-impact-strong);
+    border-right-color: var(--combat-impact-strong);
+    border-top-color: var(--combat-impact-strong);
+    border-bottom-color: var(--combat-impact-strong);
+}
+
+.combat-feedback-impact-band-strong {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+}
+
+.combat-feedback-impact-band-medium {
+    left: 4px;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-top-width: 10px;
+    border-bottom-width: 10px;
+    border-left-color: var(--combat-impact-medium);
+    border-right-color: var(--combat-impact-medium);
+    border-top-color: var(--combat-impact-medium);
+    border-bottom-color: var(--combat-impact-medium);
+}
+
+.combat-feedback-impact-band-soft {
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    bottom: 14px;
+    border-left-width: 22px;
+    border-right-width: 22px;
+    border-top-width: 22px;
+    border-bottom-width: 22px;
+    border-left-color: var(--combat-impact-soft);
+    border-right-color: var(--combat-impact-soft);
+    border-top-color: var(--combat-impact-soft);
+    border-bottom-color: var(--combat-impact-soft);
+}
+
+.combat-feedback--damage {
+    color: rgb(255, 113, 95);
+}
+
+.combat-feedback--guard {
+    color: rgb(116, 179, 255);
+}
+
+.combat-feedback--evade {
+    color: rgb(111, 229, 237);
+}
+
+.combat-feedback--clash {
+    color: rgb(255, 212, 88);
+}
+
+.combat-feedback--heal,
+.combat-feedback--buff {
+    color: rgb(112, 222, 139);
+}
+
+.combat-feedback--debuff {
+    color: rgb(196, 119, 226);
+}
+
+.combat-feedback--stamina {
+    color: rgb(238, 201, 77);
+}
+
+.combat-feedback--flinch {
+    color: rgb(245, 217, 78);
+}
+
+.combat-feedback--stagger {
+    color: rgb(255, 159, 63);
+}
+
+.combat-feedback--knockdown {
+    color: rgb(255, 91, 70);
+}
+
+.combat-feedback--canceled {
+    color: rgb(175, 168, 158);
+}
+
+.combat-feedback-impact.combat-feedback--damage,
+.combat-feedback-impact.combat-feedback--knockdown {
+    --combat-impact-strong: rgba(255, 70, 55, 0.76);
+    --combat-impact-medium: rgba(239, 44, 35, 0.25);
+    --combat-impact-soft: rgba(213, 23, 20, 0.08);
+}
+
+.combat-feedback-impact.combat-feedback--guard {
+    --combat-impact-strong: rgba(95, 167, 255, 0.66);
+    --combat-impact-medium: rgba(50, 123, 217, 0.21);
+    --combat-impact-soft: rgba(32, 91, 168, 0.07);
+}
+
+.combat-feedback-impact.combat-feedback--evade {
+    --combat-impact-strong: rgba(92, 231, 240, 0.60);
+    --combat-impact-medium: rgba(40, 181, 194, 0.19);
+    --combat-impact-soft: rgba(26, 139, 151, 0.06);
+}
+
+.combat-feedback-impact.combat-feedback--clash {
+    --combat-impact-strong: rgba(255, 211, 80, 0.72);
+    --combat-impact-medium: rgba(222, 156, 38, 0.23);
+    --combat-impact-soft: rgba(174, 108, 20, 0.07);
+}
+
+.combat-feedback-impact.combat-feedback--heal {
+    --combat-impact-strong: rgba(94, 226, 128, 0.60);
+    --combat-impact-medium: rgba(43, 173, 79, 0.19);
+    --combat-impact-soft: rgba(25, 126, 55, 0.06);
+}
+
 .combat-hud-bottom-row {
     position: absolute;
     left: 3%;

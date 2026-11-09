@@ -38,6 +38,16 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <ui:VisualElement name="combatFeedbackOverlay" class="combat-feedback-overlay" picking-mode="Ignore">
+            <ui:VisualElement name="combatImpactFlash" class="combat-feedback-impact" picking-mode="Ignore">
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-strong" picking-mode="Ignore" />
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-medium" picking-mode="Ignore" />
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-soft" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="playerFeedbackLane" class="combat-feedback-lane combat-feedback-player-lane" picking-mode="Ignore" />
+            <ui:VisualElement name="enemyFeedbackLane" class="combat-feedback-lane combat-feedback-enemy-lane" picking-mode="Ignore" />
+        </ui:VisualElement>
+
         <ui:VisualElement class="combat-hud-bottom-row">
             <ui:VisualElement class="combat-hud-timeline-panel" picking-mode="Ignore">
                 <ui:VisualElement class="combat-hud-timeline-header">

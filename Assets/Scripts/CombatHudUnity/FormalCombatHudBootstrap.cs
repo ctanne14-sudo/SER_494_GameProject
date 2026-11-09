@@ -13,8 +13,15 @@ namespace SER494.Gameplay.CombatHud.Unity
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureHudExists()
         {
-            if (Object.FindAnyObjectByType<FormalCombatHudController>() != null)
+            FormalCombatHudController existingController =
+                Object.FindAnyObjectByType<FormalCombatHudController>();
+            if (existingController != null)
             {
+                if (existingController.GetComponent<FormalCombatFeedbackController>() == null)
+                {
+                    existingController.gameObject.AddComponent<FormalCombatFeedbackController>();
+                }
+
                 return;
             }
 
@@ -35,6 +42,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             document.visualTreeAsset = visualTree;
             document.sortingOrder = 550;
             gameObject.AddComponent<FormalCombatHudController>();
+            gameObject.AddComponent<FormalCombatFeedbackController>();
         }
     }
 }

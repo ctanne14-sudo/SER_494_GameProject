@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
@@ -121,6 +122,12 @@ namespace SER494.Gameplay.CombatSandbox
         /// Battle commands must still go through this controller.
         /// </summary>
         public SoloComboBattleState CurrentBattle => _battle;
+
+        /// <summary>
+        /// Raised only after an authoritative timeline resolution has completed. HUDs may
+        /// observe this event, but combat commands and state changes remain owned here.
+        /// </summary>
+        public event Action<SoloComboActionResolution> TimelineResolutionPresented;
 
         public bool IsFormalBattlePresentationActive =>
             _battleSession != null && _battle != null;
@@ -1496,7 +1503,10 @@ namespace SER494.Gameplay.CombatSandbox
 
                 for (int index = 0; index < advance.ActionResolutions.Count; index++)
                 {
-                    AppendTimelineResolution(advance.ActionResolutions[index]);
+                    SoloComboActionResolution resolution =
+                        advance.ActionResolutions[index];
+                    AppendTimelineResolution(resolution);
+                    TimelineResolutionPresented?.Invoke(resolution);
                 }
 
                 RefreshPresentation();
