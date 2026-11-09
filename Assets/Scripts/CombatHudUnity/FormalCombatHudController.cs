@@ -519,14 +519,30 @@ namespace SER494.Gameplay.CombatHud.Unity
             {
                 int candidate = _sandbox.FormalTimingCandidate;
                 _qteType.text = "RESOLUTION TIMING";
-                _qtePrompt.text =
-                    $"The timing marker is moving. Lock this effect to T{candidate}.";
-                _qteActionButton.text = $"LOCK T{candidate}";
-                _qteInputHint.text = "Space / Enter / A / Click: Lock timing";
+                if (!_sandbox.IsFormalTimingReady)
+                {
+                    _qtePrompt.text =
+                        "Get ready. The timing marker will move shortly.";
+                    _qteActionButton.text = "GET READY";
+                    _qteActionButton.SetEnabled(false);
+                    _qteInputHint.text =
+                        $"Input unlocks in "
+                        + $"{_sandbox.FormalTimingPreparationSecondsRemaining:0.0}s";
+                }
+                else
+                {
+                    _qtePrompt.text =
+                        $"The timing marker is moving. Lock this effect to T{candidate}.";
+                    _qteActionButton.text = $"LOCK T{candidate}";
+                    _qteActionButton.SetEnabled(true);
+                    _qteInputHint.text =
+                        "F / Space / Enter / A / Left Click: Lock timing";
+                }
             }
             else if (_sandbox.IsFormalChargeEngaged)
             {
                 int level = _sandbox.FormalChargeCandidateLevel;
+                _qteActionButton.SetEnabled(true);
                 _qteType.text = "CHARGE";
                 _qtePrompt.text =
                     $"Charging at Level {level}. Release on the level you want.";
@@ -535,6 +551,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             }
             else
             {
+                _qteActionButton.SetEnabled(true);
                 _qteType.text = "CHARGE";
                 _qtePrompt.text =
                     "Begin charging, then release on the level you want.";
@@ -588,14 +605,17 @@ namespace SER494.Gameplay.CombatHud.Unity
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
             bool timingPressed = (keyboard != null
-                    && (keyboard.spaceKey.wasPressedThisFrame
+                    && (keyboard.fKey.wasPressedThisFrame
+                        || keyboard.spaceKey.wasPressedThisFrame
                         || keyboard.enterKey.wasPressedThisFrame))
                 || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
             bool chargePressed = (keyboard != null
-                    && keyboard.spaceKey.wasPressedThisFrame)
+                    && (keyboard.fKey.wasPressedThisFrame
+                        || keyboard.spaceKey.wasPressedThisFrame))
                 || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
             bool released = (keyboard != null
-                    && keyboard.spaceKey.wasReleasedThisFrame)
+                    && (keyboard.fKey.wasReleasedThisFrame
+                        || keyboard.spaceKey.wasReleasedThisFrame))
                 || (gamepad != null && gamepad.buttonSouth.wasReleasedThisFrame);
 
             if (_sandbox.HasFormalTimingQte)

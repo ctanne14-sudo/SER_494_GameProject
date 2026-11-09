@@ -54,7 +54,11 @@ namespace SER494.Gameplay.CombatSandbox
 
         [SerializeField]
         [Min(0.1f)]
-        private float timingInputLimit = 3f;
+        private float timingInputLimit = 2f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float timingPreparationSeconds = 0.2f;
 
         [SerializeField]
         [Min(0.05f)]
@@ -93,6 +97,7 @@ namespace SER494.Gameplay.CombatSandbox
         private int _playbackEndTimeStep;
         private InitialTimelineSchedule _lastCompletedTimeline;
         private SoloComboTimingRequest _timingRequest;
+        private float _timingPreparationElapsed;
         private float _timingElapsed;
         private bool _timingSelectionRequested;
         private int _timingSelectedTimeStep;
@@ -146,6 +151,14 @@ namespace SER494.Gameplay.CombatSandbox
         public int PlaybackEndTimeStep => _playbackEndTimeStep;
 
         public bool HasFormalTimingQte => _timingRequest != null;
+
+        public bool IsFormalTimingReady => _timingRequest != null
+            && _timingPreparationElapsed >= timingPreparationSeconds;
+
+        public float FormalTimingPreparationSecondsRemaining =>
+            _timingRequest != null
+                ? Mathf.Max(0f, timingPreparationSeconds - _timingPreparationElapsed)
+                : 0f;
 
         public bool HasFormalChargeQte => _chargeRequest != null;
 
@@ -941,18 +954,30 @@ namespace SER494.Gameplay.CombatSandbox
 
             GUI.color = previousColor;
             float remaining = Mathf.Max(0f, timingInputLimit - _timingElapsed);
+            bool isReady = IsFormalTimingReady;
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = isReady;
             if (GUILayout.Button(
-                    $"Lock T{candidate}  |  Space  |  {remaining:0.0}s",
+                    isReady
+                        ? $"Lock T{candidate}  |  F / Space  |  {remaining:0.0}s"
+                        : $"Get Ready  |  {FormalTimingPreparationSecondsRemaining:0.0}s",
                     GUILayout.Height(34f)))
             {
                 RequestTimingSelection(candidate);
             }
 
+            GUI.enabled = previousEnabled;
+
             Event currentEvent = Event.current;
             if (currentEvent.type == EventType.KeyDown
-                && currentEvent.keyCode == KeyCode.Space)
+                && (currentEvent.keyCode == KeyCode.F
+                    || currentEvent.keyCode == KeyCode.Space))
             {
-                RequestTimingSelection(candidate);
+                if (isReady)
+                {
+                    RequestTimingSelection(candidate);
+                }
+
                 currentEvent.Use();
             }
         }
@@ -1252,7 +1277,7 @@ namespace SER494.Gameplay.CombatSandbox
 
         public bool TrySelectFormalTimingCandidate()
         {
-            if (_timingRequest == null || _timingSelectionRequested)
+            if (!IsFormalTimingReady || _timingSelectionRequested)
             {
                 return false;
             }
@@ -1355,6 +1380,7 @@ namespace SER494.Gameplay.CombatSandbox
             _playbackEndTimeStep = 0;
             _lastCompletedTimeline = null;
             _timingRequest = null;
+            _timingPreparationElapsed = 0f;
             _timingElapsed = 0f;
             _timingSelectionRequested = false;
             _chargeRequest = null;
@@ -1520,9 +1546,16 @@ namespace SER494.Gameplay.CombatSandbox
         private IEnumerator RunResolutionTimingQte(SoloComboTimingRequest request)
         {
             _timingRequest = request;
+            _timingPreparationElapsed = 0f;
             _timingElapsed = 0f;
             _timingSelectionRequested = false;
             _timingSelectedTimeStep = request.MinimumTimeStep;
+
+            while (_timingPreparationElapsed < timingPreparationSeconds)
+            {
+                _timingPreparationElapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
 
             while (!_timingSelectionRequested && _timingElapsed < timingInputLimit)
             {
@@ -1541,6 +1574,7 @@ namespace SER494.Gameplay.CombatSandbox
                         + $"T{selectedTimeStep}.",
                 CombatLogTone.System);
             _timingRequest = null;
+            _timingPreparationElapsed = 0f;
             _timingElapsed = 0f;
             _timingSelectionRequested = false;
         }
@@ -1556,7 +1590,7 @@ namespace SER494.Gameplay.CombatSandbox
 
         private void RequestTimingSelection(int timeStep)
         {
-            if (_timingRequest == null || _timingSelectionRequested)
+            if (!IsFormalTimingReady || _timingSelectionRequested)
             {
                 return;
             }

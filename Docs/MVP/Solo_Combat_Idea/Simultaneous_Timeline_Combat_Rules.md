@@ -239,6 +239,9 @@ QTE is the presentation and input layer for a `Timing Interaction`; it is not th
 
 - The Resolution Window is represented as a divided dial or an equivalent interface.
 - Each section corresponds to one possible Resolution Point.
+- When the QTE opens, it first has a `0.2` second preparation period using unscaled time.
+- During this preparation period, player input is ignored and the indicator remains stationary.
+- The Input Time Limit begins only after the preparation period ends.
 - The player stops the indicator to select the actual point.
 - If the player gives no input before timeout, the minimum value of the Resolution Window is selected.
 
