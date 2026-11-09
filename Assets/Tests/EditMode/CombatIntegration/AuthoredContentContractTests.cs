@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.PlayerState;
@@ -33,6 +34,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             "55bd55a713cf4dff91ec67dcc4e51793";
         private const string PersistentWorldObjectScriptGuid =
             "bf66840a4e9985a49a85a9f824ad765b";
+        private const string ExplorationBattleTriggerScriptGuid =
+            "ba2e716a7e2f420aad8ef62f8b885e1a";
 
         [Test]
         public void ActionCatalog_ContainsEveryAuthoredActionExactlyOnce()
@@ -224,6 +227,154 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void ReusableEnemyEncounters_MatchApprovedStatsRewardsAndCycles()
+        {
+            AssertReusableEncounter(
+                "DungeonGuardEncounter.asset",
+                "encounter.dungeon-guard",
+                "Dungeon Guard",
+                maximumHealth: 200,
+                attack: 50,
+                defense: 10,
+                rewardGold: 150,
+                materialRolls: 3,
+                materialIds: new[]
+                {
+                    BattleRewardSummary.BronzeMaterialId,
+                    BattleRewardSummary.BrassMaterialId,
+                    BattleRewardSummary.WhiteCopperMaterialId
+                },
+                materialWeights: new[] { 34, 33, 33 },
+                expectedActionIdsByRound: new[]
+                {
+                    new[]
+                    {
+                        "enemy.dungeon-guard.action-1",
+                        "enemy.dungeon-guard.action-2",
+                        "enemy.dungeon-guard.action-3"
+                    },
+                    new[]
+                    {
+                        "enemy.dungeon-guard.action-4",
+                        "enemy.dungeon-guard.action-5",
+                        "enemy.dungeon-guard.action-6"
+                    },
+                    new[]
+                    {
+                        "enemy.dungeon-guard.action-5",
+                        "enemy.dungeon-guard.action-1",
+                        "enemy.dungeon-guard.action-4"
+                    }
+                });
+
+            AssertReusableEncounter(
+                "ApeBeastEncounter.asset",
+                "encounter.ape-beast",
+                "Ape Beast",
+                maximumHealth: 450,
+                attack: 60,
+                defense: 0,
+                rewardGold: 300,
+                materialRolls: 5,
+                materialIds: new[]
+                {
+                    BattleRewardSummary.ApeBeastPeltMaterialId,
+                    BattleRewardSummary.ApeBeastArmguardMaterialId,
+                    BattleRewardSummary.ApeBeastBlackFurMaterialId,
+                    BattleRewardSummary.ApeBeastBloodMaterialId
+                },
+                materialWeights: new[] { 30, 30, 30, 10 },
+                expectedActionIdsByRound: new[]
+                {
+                    new[]
+                    {
+                        "enemy.ape-beast.action-4",
+                        "enemy.ape-beast.action-2",
+                        "enemy.ape-beast.action-1"
+                    },
+                    new[]
+                    {
+                        "enemy.ape-beast.action-3",
+                        "enemy.ape-beast.action-6",
+                        "enemy.ape-beast.action-3"
+                    },
+                    new[]
+                    {
+                        "enemy.ape-beast.action-3",
+                        "enemy.ape-beast.action-5",
+                        "enemy.ape-beast.action-4"
+                    }
+                });
+
+            AssertReusableEncounter(
+                "ArmoredGuardEncounter.asset",
+                "encounter.armored-guard",
+                "Armored Guard",
+                maximumHealth: 250,
+                attack: 50,
+                defense: 30,
+                rewardGold: 250,
+                materialRolls: 5,
+                materialIds: new[]
+                {
+                    BattleRewardSummary.BronzeMaterialId,
+                    BattleRewardSummary.BrassMaterialId,
+                    BattleRewardSummary.WhiteCopperMaterialId
+                },
+                materialWeights: new[] { 34, 33, 33 },
+                expectedActionIdsByRound: new[]
+                {
+                    new[]
+                    {
+                        "enemy.armored-guard.action-1",
+                        "enemy.armored-guard.action-2",
+                        "enemy.armored-guard.action-3"
+                    },
+                    new[]
+                    {
+                        "enemy.armored-guard.action-4",
+                        "enemy.armored-guard.action-5",
+                        "enemy.armored-guard.action-6"
+                    },
+                    new[]
+                    {
+                        "enemy.armored-guard.action-2",
+                        "enemy.armored-guard.action-6",
+                        "enemy.armored-guard.action-3"
+                    },
+                    new[]
+                    {
+                        "enemy.armored-guard.action-4",
+                        "enemy.armored-guard.action-7"
+                    }
+                });
+        }
+
+        [Test]
+        public void FloorOneScene_ContainsAllReusableEnemyEncounterTriggers()
+        {
+            Assert.That(File.Exists(FloorOneScenePath), Is.True,
+                $"Required exploration scene '{FloorOneScenePath}' is missing.");
+
+            string sceneText = File.ReadAllText(FloorOneScenePath);
+            AssertSceneEncounter(
+                sceneText,
+                "Dungeon Guard Encounter",
+                "floor1.dungeon-guard.01",
+                "1a052278eb0049f45b8555e7513ffd96");
+            AssertSceneEncounter(
+                sceneText,
+                "Ape Beast Encounter",
+                "floor1.ape-beast.01",
+                "353f88149cb05954fa4719ba7229e944");
+            AssertSceneEncounter(
+                sceneText,
+                "Armored Guard Encounter",
+                "floor1.armored-guard.01",
+                "893fa0362ac143148a461c1f64563fc3");
+        }
+
+        [Test]
         public void FloorOneScene_ContainsConfiguredPersistentHealingPotionPickup()
         {
             Assert.That(File.Exists(FloorOneScenePath), Is.True,
@@ -283,6 +434,123 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                         + $"invalid or unregistered Action '{actionId}': {validationError}");
                 }
             }
+        }
+
+        private static void AssertReusableEncounter(
+            string assetName,
+            string expectedEncounterId,
+            string expectedEnemyName,
+            int maximumHealth,
+            int attack,
+            int defense,
+            int rewardGold,
+            int materialRolls,
+            string[] materialIds,
+            int[] materialWeights,
+            string[][] expectedActionIdsByRound)
+        {
+            SoloComboEncounterDefinitionAsset encounter = AssetDatabase.LoadAssetAtPath<
+                SoloComboEncounterDefinitionAsset>(
+                $"{EncounterAssetFolder}/{assetName}");
+            Assert.That(encounter, Is.Not.Null,
+                $"Missing reusable Encounter asset '{assetName}'.");
+            Assert.That(
+                encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition definition,
+                    out string validationError),
+                Is.True,
+                validationError);
+
+            Assert.That(definition.EncounterId, Is.EqualTo(expectedEncounterId));
+            Assert.That(definition.EnemyDisplayName, Is.EqualTo(expectedEnemyName));
+            Assert.That(definition.EnemyStats.MaxHealth, Is.EqualTo(maximumHealth));
+            Assert.That(definition.EnemyStats.Attack, Is.EqualTo(attack));
+            Assert.That(definition.EnemyStats.Defense, Is.EqualTo(defense));
+            Assert.That(definition.Rewards.Gold, Is.EqualTo(rewardGold));
+            Assert.That(definition.Rewards.MaterialRollCount, Is.EqualTo(materialRolls));
+            Assert.That(definition.Rewards.TotalMaterialWeight, Is.EqualTo(100));
+            Assert.That(definition.Rewards.MaterialDrops.Count,
+                Is.EqualTo(materialIds.Length));
+            Assert.That(materialWeights.Length, Is.EqualTo(materialIds.Length),
+                "A reusable Encounter test has mismatched reward expectations.");
+            for (int index = 0; index < materialIds.Length; index++)
+            {
+                Assert.That(definition.Rewards.MaterialDrops[index].ItemId,
+                    Is.EqualTo(materialIds[index]));
+                Assert.That(definition.Rewards.MaterialDrops[index].Weight,
+                    Is.EqualTo(materialWeights[index]));
+            }
+
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 0, 0, 50, 50));
+            var enemy = new CombatantState(
+                definition.EnemyDisplayName,
+                definition.EnemyStats);
+            for (int roundIndex = 0;
+                roundIndex < expectedActionIdsByRound.Length;
+                roundIndex++)
+            {
+                EnemyActionSequence sequence = definition.EnemyBehavior.SelectSequence(
+                    player,
+                    enemy,
+                    previousSequenceId: null,
+                    normalizedRoll: 0d);
+                string[] expectedActionIds = expectedActionIdsByRound[roundIndex];
+                Assert.That(sequence.Actions.Count, Is.EqualTo(expectedActionIds.Length),
+                    $"{expectedEnemyName}, Round {roundIndex + 1} has the wrong Action count.");
+                for (int actionIndex = 0;
+                    actionIndex < expectedActionIds.Length;
+                    actionIndex++)
+                {
+                    Assert.That(sequence.Actions[actionIndex].ActionId,
+                        Is.EqualTo(expectedActionIds[actionIndex]),
+                        $"{expectedEnemyName}, Round {roundIndex + 1}, "
+                        + $"Action {actionIndex + 1} is incorrect.");
+                }
+            }
+
+            EnemyActionSequence repeatedFirstRound =
+                definition.EnemyBehavior.SelectSequence(
+                    player,
+                    enemy,
+                    previousSequenceId: null,
+                    normalizedRoll: 0d);
+            Assert.That(repeatedFirstRound.Actions[0].ActionId,
+                Is.EqualTo(expectedActionIdsByRound[0][0]),
+                $"{expectedEnemyName}'s scripted cycle must repeat after its final Round.");
+        }
+
+        private static void AssertSceneEncounter(
+            string sceneText,
+            string objectName,
+            string encounterInstanceId,
+            string encounterAssetGuid)
+        {
+            string objectMarker = $"m_Name: {objectName}";
+            int objectStart = sceneText.IndexOf(objectMarker, StringComparison.Ordinal);
+            Assert.That(objectStart, Is.GreaterThanOrEqualTo(0),
+                $"Floor 1 is missing '{objectName}'.");
+
+            int nextGameObject = sceneText.IndexOf(
+                "--- !u!1 &",
+                objectStart + objectMarker.Length,
+                StringComparison.Ordinal);
+            string objectBlock = nextGameObject >= 0
+                ? sceneText.Substring(objectStart, nextGameObject - objectStart)
+                : sceneText.Substring(objectStart);
+            Assert.That(objectBlock,
+                Does.Contain($"guid: {ExplorationBattleTriggerScriptGuid}"),
+                $"'{objectName}' must use ExplorationBattleTrigger.");
+            Assert.That(objectBlock,
+                Does.Contain($"encounter: {{fileID: 11400000, guid: {encounterAssetGuid}"),
+                $"'{objectName}' references the wrong Encounter asset.");
+            Assert.That(objectBlock,
+                Does.Contain($"encounterInstanceId: {encounterInstanceId}"),
+                $"'{objectName}' must keep its stable world-state ID.");
+            Assert.That(objectBlock,
+                Does.Contain("battleSceneName: CombatSandbox"),
+                $"'{objectName}' must enter the formal combat scene.");
         }
 
         private static IReadOnlyList<TAsset> LoadAssets<TAsset>(string folder)
