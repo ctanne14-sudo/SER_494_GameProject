@@ -8,6 +8,14 @@ using SER494.Gameplay.PlayerState.Unity;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
 {
+    public enum BattleFlowPhase
+    {
+        Idle = 0,
+        Combat = 1,
+        Result = 2,
+        ReturningToExploration = 3
+    }
+
     [DisallowMultipleComponent]
     public sealed class BattleSessionService : MonoBehaviour
     {
@@ -37,6 +45,26 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public bool HasActiveSession => CurrentSession != null;
 
         public bool IsReturningToSource => _isReturningToSource;
+
+        public BattleFlowPhase FlowPhase
+        {
+            get
+            {
+                if (CurrentSession == null)
+                {
+                    return BattleFlowPhase.Idle;
+                }
+
+                if (_isReturningToSource)
+                {
+                    return BattleFlowPhase.ReturningToExploration;
+                }
+
+                return CurrentSession.IsComplete
+                    ? BattleFlowPhase.Result
+                    : BattleFlowPhase.Combat;
+            }
+        }
 
         public event Action<BattleSession> SessionStarted;
 
@@ -240,7 +268,22 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             _isReturningToSource = true;
             SceneManager.sceneLoaded += HandleSourceSceneLoaded;
-            SceneManager.LoadScene(_returnSceneName);
+            try
+            {
+                SceneManager.LoadScene(_returnSceneName);
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException
+                || exception is InvalidOperationException
+                || exception is UnityException)
+            {
+                string failedSceneName = _returnSceneName;
+                CancelPendingReturn();
+                validationError =
+                    $"Could not return to scene '{failedSceneName}': {exception.Message}";
+                return false;
+            }
+
             validationError = null;
             return true;
         }

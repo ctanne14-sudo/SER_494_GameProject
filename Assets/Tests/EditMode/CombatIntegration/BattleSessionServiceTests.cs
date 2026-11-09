@@ -38,6 +38,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         public void BeginBattle_CapturesEncounterLoadoutAndReturnTransform()
         {
             BattleSessionService service = CreateService("Battle Sessions");
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Idle));
             SoloComboEncounterDefinitionAsset encounter = CreateEncounter("enemy.wanderer");
             SoloComboLoadoutSession loadout = CreatePreparedLoadout();
             var position = new Vector3(3f, 2f, 1f);
@@ -60,6 +61,29 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(service.CurrentSession.SourceSceneName, Is.EqualTo("Floor1_Cell_A"));
             Assert.That(service.CurrentSession.ReturnPosition, Is.EqualTo(position));
             Assert.That(service.CurrentSession.ReturnRotation, Is.EqualTo(rotation));
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Combat));
+        }
+
+        [Test]
+        public void FlowPhase_TracksCombatResultAndClearedSession()
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Idle));
+            BeginValidBattle(service);
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Combat));
+            Assert.That(
+                service.TryCompleteActiveBattle(
+                    BattleOutcome.PlayerVictory,
+                    out string completionError),
+                Is.True,
+                completionError);
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Result));
+
+            service.ClearCurrentSession();
+
+            Assert.That(service.FlowPhase, Is.EqualTo(BattleFlowPhase.Idle));
+            Assert.That(service.CurrentSession, Is.Null);
         }
 
         [Test]

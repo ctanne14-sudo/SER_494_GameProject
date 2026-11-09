@@ -74,10 +74,20 @@ namespace SER494.Gameplay.BattleResult.Unity
         {
             TryBindService();
 
+            if (_isOpen
+                && (_boundService == null
+                    || !ReferenceEquals(_boundService.CurrentSession, _displayedSession)))
+            {
+                CloseAndRestoreInteraction();
+                _displayedSession = null;
+                return;
+            }
+
             if (!_isOpen)
             {
                 BattleSession session = _boundService?.CurrentSession;
-                if (session != null && session.IsComplete)
+                if (session != null
+                    && _boundService.FlowPhase == BattleFlowPhase.Result)
                 {
                     Show(session);
                 }

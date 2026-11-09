@@ -1,5 +1,7 @@
 using System.Collections;
 using NUnit.Framework;
+using SER494.Gameplay.BattleResult.Unity;
+using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.ExplorationMenu.Unity;
@@ -22,6 +24,8 @@ namespace SER494.Gameplay.PlayModeTests
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            Time.timeScale = 1f;
+
             if (BattleSessionService.TryGetActive(out BattleSessionService service)
                 && service.HasActiveSession)
             {
@@ -35,6 +39,122 @@ namespace SER494.Gameplay.PlayModeTests
             }
 
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator FormalBattleFlow_ShowsExclusiveResultAndReturnsToExploration()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            Assert.That(BattleSessionService.TryGetActive(out BattleSessionService battleService),
+                Is.True);
+            if (battleService.HasActiveSession)
+            {
+                battleService.ClearCurrentSession();
+            }
+
+            stateService.StartNewGame();
+            _runtimeLoadoutSession =
+                ScriptableObject.CreateInstance<SoloComboLoadoutSession>();
+            Assert.That(
+                PlayerStateLoadoutSessionBuilder.TryPrepare(
+                    stateService.State,
+                    _runtimeLoadoutSession,
+                    SoloComboTestScenario.GreatswordTrial,
+                    out string loadoutError),
+                Is.True,
+                loadoutError);
+            Assert.That(
+                SoloComboEncounterLibrary.TryLoad(
+                    SoloComboTestScenario.GreatswordTrial,
+                    out SoloComboEncounterDefinitionAsset encounter,
+                    out string encounterError),
+                Is.True,
+                encounterError);
+
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            Assert.That(player, Is.Not.Null);
+            Assert.That(
+                battleService.TryBeginBattle(
+                    encounter,
+                    _runtimeLoadoutSession,
+                    "play-mode-round-trip.enemy",
+                    ExplorationSceneName,
+                    CombatSceneName,
+                    player.transform.position,
+                    player.transform.rotation,
+                    out string beginError),
+                Is.True,
+                beginError);
+            Assert.That(battleService.FlowPhase, Is.EqualTo(BattleFlowPhase.Combat));
+
+            AsyncOperation combatLoad = SceneManager.LoadSceneAsync(
+                CombatSceneName,
+                LoadSceneMode.Additive);
+            Assert.That(combatLoad, Is.Not.Null);
+            while (!combatLoad.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            BattleResultScreenController resultController =
+                Object.FindAnyObjectByType<BattleResultScreenController>();
+            Assert.That(resultController, Is.Not.Null,
+                "The formal battle result screen was not bootstrapped.");
+            Assert.That(
+                battleService.TryCompleteActiveBattle(
+                    BattleOutcome.PlayerVictory,
+                    BattleRewardSummary.None,
+                    out string completionError),
+                Is.True,
+                completionError);
+
+            yield return null;
+            Assert.That(battleService.FlowPhase, Is.EqualTo(BattleFlowPhase.Result));
+            Assert.That(resultController.IsOpen, Is.True,
+                "A completed formal battle must open the result screen.");
+
+            UIDocument resultDocument = resultController.GetComponent<UIDocument>();
+            VisualElement resultOverlay =
+                resultDocument.rootVisualElement.Q<VisualElement>("battleResultOverlay");
+            Assert.That(resultOverlay, Is.Not.Null);
+            Assert.That(resultOverlay.style.display.value, Is.EqualTo(DisplayStyle.Flex));
+
+            GameObject formalHudObject = GameObject.Find("Formal Combat HUD");
+            Assert.That(formalHudObject, Is.Not.Null,
+                "The formal combat HUD was not bootstrapped.");
+            UIDocument formalHudDocument = formalHudObject.GetComponent<UIDocument>();
+            VisualElement formalHudRoot =
+                formalHudDocument.rootVisualElement.Q<VisualElement>("combatHudRoot");
+            Assert.That(formalHudRoot, Is.Not.Null);
+            Assert.That(formalHudRoot.style.display.value, Is.EqualTo(DisplayStyle.None),
+                "The combat HUD must be hidden while the result screen owns presentation.");
+
+            Assert.That(
+                battleService.TryReturnToSourceScene(out string returnError),
+                Is.True,
+                returnError);
+
+            float timeout = Time.realtimeSinceStartup + 10f;
+            while (battleService.HasActiveSession
+                && Time.realtimeSinceStartup < timeout)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            Assert.That(battleService.HasActiveSession, Is.False,
+                "Returning to exploration did not clear the completed Battle Session.");
+            Assert.That(battleService.FlowPhase, Is.EqualTo(BattleFlowPhase.Idle));
+            Assert.That(SceneManager.GetActiveScene().name,
+                Is.EqualTo(ExplorationSceneName));
+            Assert.That(resultController.IsOpen, Is.False,
+                "The result screen remained open after the Battle Session ended.");
+            Assert.That(Time.timeScale, Is.EqualTo(1f));
+            Assert.That(GameObject.FindGameObjectWithTag("Player"), Is.Not.Null);
         }
 
         [UnityTest]

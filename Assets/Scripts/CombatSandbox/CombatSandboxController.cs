@@ -137,8 +137,19 @@ namespace SER494.Gameplay.CombatSandbox
         public bool IsFormalBattlePresentationActive =>
             _battleSession != null && _battle != null;
 
-        public bool ShouldShowFormalBattleHud =>
-            IsFormalBattlePresentationActive && !_battleSession.IsComplete;
+        public bool ShouldShowFormalBattleHud
+        {
+            get
+            {
+                return IsFormalBattlePresentationActive
+                    && BattleSessionService.TryGetActive(
+                        out BattleSessionService battleSessionService)
+                    && ReferenceEquals(
+                        battleSessionService.CurrentSession,
+                        _battleSession)
+                    && battleSessionService.FlowPhase == BattleFlowPhase.Combat;
+            }
+        }
 
         public bool IsTimelinePlaying => _isTimelinePlaying;
 
