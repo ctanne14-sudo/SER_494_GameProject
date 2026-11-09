@@ -3,6 +3,7 @@ using NUnit.Framework;
 using SER494.Gameplay.BattleResult.Unity;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.ExplorationMenu.Unity;
 using SER494.Gameplay.PlayerState.Unity;
@@ -385,6 +386,116 @@ namespace SER494.Gameplay.PlayModeTests
             {
                 yield return null;
             }
+        }
+
+        [UnityTest]
+        public IEnumerator DungeonGuardEncounter_StartsItsAuthoredBattleSession()
+        {
+            yield return VerifyAuthoredExplorationEncounter(
+                "Dungeon Guard Encounter",
+                "encounter.dungeon-guard",
+                "floor1.dungeon-guard.01",
+                "Dungeon Guard");
+        }
+
+        [UnityTest]
+        public IEnumerator ApeBeastEncounter_StartsItsAuthoredBattleSession()
+        {
+            yield return VerifyAuthoredExplorationEncounter(
+                "Ape Beast Encounter",
+                "encounter.ape-beast",
+                "floor1.ape-beast.01",
+                "Ape Beast");
+        }
+
+        [UnityTest]
+        public IEnumerator ArmoredGuardEncounter_StartsItsAuthoredBattleSession()
+        {
+            yield return VerifyAuthoredExplorationEncounter(
+                "Armored Guard Encounter",
+                "encounter.armored-guard",
+                "floor1.armored-guard.01",
+                "Armored Guard");
+        }
+
+        private IEnumerator VerifyAuthoredExplorationEncounter(
+            string triggerObjectName,
+            string expectedEncounterId,
+            string expectedEncounterInstanceId,
+            string expectedEnemyName)
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            Assert.That(BattleSessionService.TryGetActive(out BattleSessionService battleService),
+                Is.True);
+            if (battleService.HasActiveSession)
+            {
+                battleService.ClearCurrentSession();
+            }
+
+            stateService.StartNewGame();
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            Assert.That(player, Is.Not.Null);
+            Collider playerCollider = player.GetComponentInChildren<Collider>();
+            Assert.That(playerCollider, Is.Not.Null);
+
+            GameObject triggerObject = GameObject.Find(triggerObjectName);
+            Assert.That(triggerObject, Is.Not.Null,
+                $"Exploration scene is missing '{triggerObjectName}'.");
+            ExplorationBattleTrigger trigger =
+                triggerObject.GetComponent<ExplorationBattleTrigger>();
+            Assert.That(trigger, Is.Not.Null,
+                $"'{triggerObjectName}' must contain ExplorationBattleTrigger.");
+            triggerObject.SetActive(true);
+            trigger.enabled = true;
+            triggerObject.SendMessage(
+                "OnTriggerEnter",
+                playerCollider,
+                SendMessageOptions.RequireReceiver);
+
+            float timeout = Time.realtimeSinceStartup + 10f;
+            Scene combatScene = SceneManager.GetSceneByName(CombatSceneName);
+            while ((!combatScene.IsValid()
+                    || !combatScene.isLoaded
+                    || !battleService.HasActiveSession)
+                && Time.realtimeSinceStartup < timeout)
+            {
+                yield return null;
+                combatScene = SceneManager.GetSceneByName(CombatSceneName);
+            }
+
+            Assert.That(combatScene.IsValid() && combatScene.isLoaded, Is.True,
+                $"'{triggerObjectName}' did not load the combat scene.");
+            Assert.That(battleService.HasActiveSession, Is.True,
+                $"'{triggerObjectName}' did not create a Battle Session.");
+            Assert.That(SceneManager.GetActiveScene().name,
+                Is.EqualTo(ExplorationSceneName),
+                "Formal combat must retain the exploration scene as its active world.");
+
+            BattleSession session = battleService.CurrentSession;
+            Assert.That(session.EncounterInstanceId,
+                Is.EqualTo(expectedEncounterInstanceId));
+            Assert.That(session.Encounter.EncounterId,
+                Is.EqualTo(expectedEncounterId));
+            Assert.That(
+                session.Encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition definition,
+                    out string encounterError),
+                Is.True,
+                encounterError);
+            Assert.That(definition.EnemyDisplayName, Is.EqualTo(expectedEnemyName));
+
+            AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(combatScene);
+            Assert.That(unloadOperation, Is.Not.Null);
+            while (!unloadOperation.isDone)
+            {
+                yield return null;
+            }
+
+            battleService.ClearCurrentSession();
+            yield return null;
         }
 
         private static IEnumerator LoadScene(string sceneName)
