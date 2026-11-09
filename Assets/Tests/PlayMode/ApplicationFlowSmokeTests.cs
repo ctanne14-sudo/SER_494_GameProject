@@ -186,6 +186,87 @@ namespace SER494.Gameplay.PlayModeTests
             Assert.That(((Behaviour)controller).isActiveAndEnabled, Is.True);
         }
 
+        [UnityTest]
+        public IEnumerator ExplorationEncounter_UsesExplorationWorldForCombatPresentation()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            Assert.That(BattleSessionService.TryGetActive(out BattleSessionService battleService),
+                Is.True);
+            if (battleService.HasActiveSession)
+            {
+                battleService.ClearCurrentSession();
+            }
+
+            stateService.StartNewGame();
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            Assert.That(player, Is.Not.Null);
+            Collider playerCollider = player.GetComponentInChildren<Collider>();
+            Assert.That(playerCollider, Is.Not.Null);
+
+            ExplorationBattleTrigger[] triggers =
+                Object.FindObjectsByType<ExplorationBattleTrigger>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None);
+            Assert.That(triggers, Is.Not.Empty);
+            ExplorationBattleTrigger trigger = triggers[0];
+            trigger.gameObject.SetActive(true);
+            trigger.enabled = true;
+
+            Camera explorationCamera = player.GetComponentInChildren<Camera>(true);
+            Assert.That(explorationCamera, Is.Not.Null);
+            trigger.gameObject.SendMessage(
+                "OnTriggerEnter",
+                playerCollider,
+                SendMessageOptions.RequireReceiver);
+
+            float timeout = Time.realtimeSinceStartup + 10f;
+            Scene combatScene = SceneManager.GetSceneByName(CombatSceneName);
+            while ((!combatScene.IsValid() || !combatScene.isLoaded)
+                && Time.realtimeSinceStartup < timeout)
+            {
+                yield return null;
+                combatScene = SceneManager.GetSceneByName(CombatSceneName);
+            }
+
+            Assert.That(combatScene.IsValid() && combatScene.isLoaded, Is.True,
+                "Exploration encounter did not load the combat scene additively.");
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(ExplorationSceneName),
+                "The exploration scene must remain the active world during combat.");
+            Assert.That(explorationCamera.enabled, Is.True,
+                "The exploration Camera must render the in-world combat presentation.");
+            Assert.That(battleService.HasActiveSession, Is.True);
+
+            GameObject sandbox = null;
+            foreach (GameObject root in combatScene.GetRootGameObjects())
+            {
+                if (root.name == "CombatSandbox")
+                {
+                    sandbox = root;
+                }
+
+                foreach (Camera combatCamera in root.GetComponentsInChildren<Camera>(true))
+                {
+                    Assert.That(combatCamera.enabled, Is.False,
+                        "The additive CombatSandbox Camera must not cover the exploration world.");
+                }
+            }
+
+            Assert.That(sandbox, Is.Not.Null);
+            Component controller = sandbox.GetComponent("CombatSandboxController");
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(((Behaviour)controller).isActiveAndEnabled, Is.True);
+
+            AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(combatScene);
+            Assert.That(unloadOperation, Is.Not.Null);
+            while (!unloadOperation.isDone)
+            {
+                yield return null;
+            }
+        }
+
         private static IEnumerator LoadScene(string sceneName)
         {
             Assert.That(Application.CanStreamedLevelBeLoaded(sceneName), Is.True,
