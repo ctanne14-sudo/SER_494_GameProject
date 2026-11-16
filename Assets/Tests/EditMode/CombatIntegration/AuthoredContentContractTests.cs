@@ -202,6 +202,20 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void ProcessingShop_ApeBeastRecipesUseEncounterRewardMaterialIds()
+        {
+            Assert.That(
+                ProcessingRecipeCatalog.ApeBeastPeltId,
+                Is.EqualTo(BattleRewardSummary.ApeBeastPeltMaterialId));
+            Assert.That(
+                ProcessingRecipeCatalog.ApeBeastArmguardId,
+                Is.EqualTo(BattleRewardSummary.ApeBeastArmguardMaterialId));
+            Assert.That(
+                ProcessingRecipeCatalog.ApeBeastBlackFurId,
+                Is.EqualTo(BattleRewardSummary.ApeBeastBlackFurMaterialId));
+        }
+
+        [Test]
         public void RegisteredTestScenarios_LoadTheExpectedEncounterAssets()
         {
             foreach (SoloComboTestScenario scenario in

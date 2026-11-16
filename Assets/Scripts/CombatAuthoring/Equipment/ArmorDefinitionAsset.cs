@@ -1,7 +1,19 @@
+using System;
+using SER494.Gameplay.Combat.Damage;
 using UnityEngine;
 
 namespace SER494.Gameplay.Combat.Authoring.Equipment
 {
+    public enum ArmorEffectType
+    {
+        None,
+        DamageTakenMultiplier,
+        MaximumHealthMultiplier,
+        HealingPotionMultiplier,
+        GuardCounterPiercingMultiplier,
+        AllDamageDealtMultiplier
+    }
+
     [CreateAssetMenu(
         fileName = "NewArmor",
         menuName = "SER494/Combat/Armor")]
@@ -23,6 +35,21 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         [SerializeField, Min(0)]
         private int defense;
 
+        [Header("Series and Effect")]
+        [SerializeField]
+        [Tooltip("Stable series ID used to determine three-piece set bonuses.")]
+        private string seriesId = string.Empty;
+
+        [SerializeField]
+        private ArmorEffectType effectType;
+
+        [SerializeField]
+        private DamageType effectDamageType;
+
+        [SerializeField, Min(0f)]
+        [Tooltip("Decimal modifier. For example, 0.04 means four percent.")]
+        private float effectAmount;
+
         public string ArmorId => armorId;
 
         public string DisplayName => displayName;
@@ -30,6 +57,14 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         public string SlotId => slotId;
 
         public int Defense => defense;
+
+        public string SeriesId => seriesId;
+
+        public ArmorEffectType EffectType => effectType;
+
+        public DamageType EffectDamageType => effectDamageType;
+
+        public float EffectAmount => effectAmount;
 
         public bool TryValidate(out string validationError)
         {
@@ -57,6 +92,25 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
                 return false;
             }
 
+            if (!Enum.IsDefined(typeof(ArmorEffectType), effectType))
+            {
+                validationError = $"{name} has an unknown Armor Effect Type.";
+                return false;
+            }
+
+            if (effectAmount < 0f || float.IsNaN(effectAmount) || float.IsInfinity(effectAmount))
+            {
+                validationError = $"{name} has an invalid Armor Effect Amount.";
+                return false;
+            }
+
+            if (effectType == ArmorEffectType.DamageTakenMultiplier
+                && !Enum.IsDefined(typeof(DamageType), effectDamageType))
+            {
+                validationError = $"{name} has an unknown Armor Effect Damage Type.";
+                return false;
+            }
+
             validationError = null;
             return true;
         }
@@ -64,6 +118,12 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         private void OnValidate()
         {
             defense = Mathf.Max(0, defense);
+            if (float.IsNaN(effectAmount) || float.IsInfinity(effectAmount))
+            {
+                effectAmount = 0f;
+            }
+
+            effectAmount = Mathf.Max(0f, effectAmount);
         }
     }
 }

@@ -823,6 +823,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
                         ? FindActivatedClashAtStep(step, targetSide)
                         : null;
                 double clashDamageReduction = defendingClash?.DamageReduction ?? 0d;
+                bool attackingClashActivated = action.HasDamage
+                    && avoidance == DamageAvoidanceResult.None
+                    && FindActivatedClashAtStep(step, action.Side) != null;
                 int damage = action.HasDamage
                     && avoidance == DamageAvoidanceResult.None
                         ? CalculateDamage(
@@ -830,7 +833,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             target,
                             action.DamageEffect,
                             defensiveDamageReduction,
-                            clashDamageReduction)
+                            clashDamageReduction,
+                            attackingClashActivated
+                                ? actor.ClashDamageDealtMultiplierBonus
+                                : 0d)
                         : 0;
                 ScheduledTimelineAction disruptedAction = null;
                 ActionDisruptionDefinition attemptedDisruption = null;
@@ -911,6 +917,35 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 else
                 {
                     pendingPlayerDamage = checked(pendingPlayerDamage + damage);
+
+                    if (avoidance == DamageAvoidanceResult.Guarded
+                        && Player.GuardCounterPiercingMultiplier > 0d
+                        && !Player.IsDefeated
+                        && !Enemy.IsDefeated)
+                    {
+                        int counterDamage = CalculateDamage(
+                            Player,
+                            Enemy,
+                            DamageEffectDefinition.Single(
+                                DamageType.Piercing,
+                                Player.GuardCounterPiercingMultiplier),
+                            defensiveDamageReduction: 0d,
+                            clashDamageReduction: 0d,
+                            additionalDamageDealtModifier: 0d);
+                        pendingEnemyDamage = checked(pendingEnemyDamage + counterDamage);
+                        resolutions.Add(new SoloComboActionResolution(
+                            TimelineActorSide.Player,
+                            "equipment.thorn.guard-counter",
+                            "Thorn Guard Counter",
+                            step.TimeStep,
+                            counterDamage,
+                            ActionResolutionEffect.Damage,
+                            DamageAvoidanceResult.None,
+                            DamageResolutionTag.None,
+                            statusDisplayName: null,
+                            statusTarget: ActionStatusTarget.Self,
+                            statusApplied: false));
+                    }
                 }
             }
 
@@ -924,8 +959,18 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     ? Player
                     : Enemy;
                 int healthBefore = recipient.CurrentHealth;
-                recipient.RestoreHealth(
-                    action.Healing.CalculateAmount(recipient.Stats.MaxHealth));
+                int healingAmount = action.Healing.CalculateAmount(recipient.Stats.MaxHealth);
+                if (action.Side == TimelineActorSide.Player
+                    && action.ItemCost != null
+                    && (string.Equals(action.ItemCost.ItemId, "healing-potion", StringComparison.Ordinal)
+                        || string.Equals(action.ItemCost.ItemId, "greater-healing-potion", StringComparison.Ordinal)))
+                {
+                    healingAmount = (int)Math.Round(
+                        healingAmount * (1d + recipient.HealingPotionMultiplierBonus),
+                        MidpointRounding.AwayFromZero);
+                }
+
+                recipient.RestoreHealth(healingAmount);
                 int healingDone = recipient.CurrentHealth - healthBefore;
                 resolutions.Add(new SoloComboActionResolution(
                     action.Side,
@@ -1254,7 +1299,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             CombatantState defender,
             DamageEffectDefinition damageEffect,
             double defensiveDamageReduction,
-            double clashDamageReduction)
+            double clashDamageReduction,
+            double additionalDamageDealtModifier = 0d)
         {
             return DamageCalculator.CalculateEffect(
                 damageEffect,
@@ -1266,7 +1312,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 damageTakenModifiers: defender.DamageTakenModifiers,
                 clashDamageReduction: clashDamageReduction,
                 configuration: _damageConfiguration,
-                additionalApplicableDamageModifier: -defensiveDamageReduction).FinalDamage;
+                additionalApplicableDamageModifier:
+                    additionalDamageDealtModifier - defensiveDamageReduction).FinalDamage;
         }
 
         private static DamageClashDefinition FindActivatedClashAtStep(

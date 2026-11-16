@@ -199,7 +199,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             BattleRewardSummary rewards = CreateRewards(
                 battle.Outcome,
                 encounter.Rewards,
-                rewardRandom);
+                rewardRandom,
+                ResolveRewardEquipmentStats(playerState));
 
             try
             {
@@ -235,7 +236,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         private static BattleRewardSummary CreateRewards(
             BattleOutcome outcome,
             EncounterRewardDefinition definition,
-            Random random)
+            Random random,
+            PlayerEquipmentDerivedStats equipmentStats)
         {
             if (outcome != BattleOutcome.PlayerVictory && outcome != BattleOutcome.Draw)
             {
@@ -243,8 +245,23 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             return new BattleRewardSummary(
-                definition.Gold,
-                definition.RollMaterials(random));
+                (int)Math.Round(
+                    definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
+                    MidpointRounding.AwayFromZero),
+                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls));
+        }
+
+        private static PlayerEquipmentDerivedStats ResolveRewardEquipmentStats(
+            PersistentPlayerState playerState)
+        {
+            PlayerEquipmentCatalogAsset catalog = PlayerEquipmentCatalogAsset.LoadDefault();
+            return PlayerEquipmentDerivedStats.TryResolve(
+                playerState,
+                catalog,
+                out PlayerEquipmentDerivedStats stats,
+                out _)
+                    ? stats
+                    : default;
         }
 
         private static void ValidateRewardCapacity(

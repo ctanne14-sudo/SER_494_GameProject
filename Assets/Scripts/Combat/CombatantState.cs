@@ -82,6 +82,31 @@ namespace SER494.Gameplay.Combat
 
         public IReadOnlyList<CombatStatusInstance> ActiveStatuses => _readOnlyActiveStatuses;
 
+        public double HealingPotionMultiplierBonus { get; private set; }
+
+        public double GuardCounterPiercingMultiplier { get; private set; }
+
+        public double ClashDamageDealtMultiplierBonus { get; private set; }
+
+        public void AddEquipmentBattleBonuses(
+            double healingPotionMultiplierBonus,
+            double guardCounterPiercingMultiplier,
+            double clashDamageDealtMultiplierBonus)
+        {
+            HealingPotionMultiplierBonus = AddFiniteNonNegative(
+                HealingPotionMultiplierBonus,
+                healingPotionMultiplierBonus,
+                nameof(healingPotionMultiplierBonus));
+            GuardCounterPiercingMultiplier = AddFiniteNonNegative(
+                GuardCounterPiercingMultiplier,
+                guardCounterPiercingMultiplier,
+                nameof(guardCounterPiercingMultiplier));
+            ClashDamageDealtMultiplierBonus = AddFiniteNonNegative(
+                ClashDamageDealtMultiplierBonus,
+                clashDamageDealtMultiplierBonus,
+                nameof(clashDamageDealtMultiplierBonus));
+        }
+
         public void AddDamageDealtModifier(DamageModifier modifier)
         {
             _permanentDamageDealtModifiers.Add(modifier);
@@ -264,6 +289,19 @@ namespace SER494.Gameplay.Combat
             }
 
             return Math.Min(maximumValue, currentValue + amount);
+        }
+
+        private static double AddFiniteNonNegative(
+            double current,
+            double amount,
+            string parameterName)
+        {
+            if (double.IsNaN(amount) || double.IsInfinity(amount) || amount < 0d)
+            {
+                throw new ArgumentOutOfRangeException(parameterName);
+            }
+
+            return checked(current + amount);
         }
 
         private static int RequireResourceInRange(
