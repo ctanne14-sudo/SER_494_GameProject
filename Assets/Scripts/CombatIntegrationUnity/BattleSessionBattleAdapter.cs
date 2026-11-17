@@ -1,0 +1,296 @@
+using System;
+using System.Collections.Generic;
+using SER494.Gameplay.Combat;
+using SER494.Gameplay.Combat.Authoring.Equipment;
+using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.SoloCombo;
+using SER494.Gameplay.Combat.Weapons;
+using SER494.Gameplay.PlayerState;
+using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
+
+namespace SER494.Gameplay.CombatIntegration.Unity
+{
+    public static class BattleSessionBattleAdapter
+    {
+        public static bool TryCreateBattle(
+            BattleSession session,
+            PersistentPlayerState playerState,
+            out SoloComboBattleState battle,
+            out string validationError)
+        {
+            return TryCreateBattle(
+                session,
+                playerState,
+                PlayerEquipmentCatalogAsset.LoadDefault(),
+                out battle,
+                out validationError);
+        }
+
+        public static bool TryCreateBattle(
+            BattleSession session,
+            PersistentPlayerState playerState,
+            PlayerEquipmentCatalogAsset equipmentCatalog,
+            out SoloComboBattleState battle,
+            out string validationError)
+        {
+            battle = null;
+            if (session == null)
+            {
+                validationError = "An active Battle Session is required.";
+                return false;
+            }
+
+            if (session.IsComplete)
+            {
+                validationError = "The active Battle Session is already complete.";
+                return false;
+            }
+
+            if (playerState == null)
+            {
+                validationError = "Persistent Player State is unavailable.";
+                return false;
+            }
+
+            if (equipmentCatalog == null)
+            {
+                validationError =
+                    $"Player Equipment Catalog is missing from Resources/{PlayerEquipmentCatalogAsset.DefaultResourcesPath}.asset.";
+                return false;
+            }
+
+            if (!session.LoadoutSession.TryGetPreparedLoadout(
+                    out IReadOnlyList<ComboConfiguration> combos))
+            {
+                validationError = "The Battle Session no longer has a prepared Combo Loadout.";
+                return false;
+            }
+
+            if (!session.Encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition encounter,
+                    out validationError))
+            {
+                return false;
+            }
+
+            if (!equipmentCatalog.TryGetWeapon(
+                    playerState.Equipment.EquippedWeaponId,
+                    out WeaponDefinition weapon,
+                    out validationError)
+                || !equipmentCatalog.TryGetTotalDefense(
+                    playerState.Equipment.EquippedArmorBySlot,
+                    out int defense,
+                    out validationError))
+            {
+                return false;
+            }
+
+            if (!PlayerEquipmentDerivedStats.TryResolve(
+                    playerState,
+                    equipmentCatalog,
+                    out PlayerEquipmentDerivedStats derivedStats,
+                    out validationError))
+            {
+                return false;
+            }
+
+            derivedStats.ApplyPersistentMaximumHealth(playerState);
+
+            try
+            {
+                CombatantState playerCombatant = PlayerBattleStateTransfer.CreateCombatant(
+                        playerState,
+                        "Player",
+                        weapon.WeaponAttack,
+                        defense);
+                derivedStats.ApplyCombatModifiers(playerCombatant);
+                battle = new SoloComboBattleState(
+                    playerCombatant,
+                    new CombatantState(
+                        encounter.EnemyDisplayName,
+                        encounter.EnemyStats),
+                    combos,
+                    encounter.EnemyBehavior,
+                    encounter.ManaRecoveryPerTurn,
+                    playerState.BaseStaminaRecoveryPerRound,
+                    enemyRandom: new Random(594),
+                    startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState));
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException || exception is InvalidOperationException)
+            {
+                validationError = exception.Message;
+                battle = null;
+                return false;
+            }
+
+            validationError = null;
+            return true;
+        }
+
+        public static bool TryCommitBattleResult(
+            BattleSessionService sessionService,
+            BattleSession expectedSession,
+            PersistentPlayerState playerState,
+            SoloComboBattleState battle,
+            out string validationError)
+        {
+            return TryCommitBattleResult(
+                sessionService,
+                expectedSession,
+                playerState,
+                battle,
+                new Random(),
+                out validationError);
+        }
+
+        public static bool TryCommitBattleResult(
+            BattleSessionService sessionService,
+            BattleSession expectedSession,
+            PersistentPlayerState playerState,
+            SoloComboBattleState battle,
+            Random rewardRandom,
+            out string validationError)
+        {
+            if (sessionService == null || !sessionService.IsAuthority)
+            {
+                validationError = "The active BattleSessionService is unavailable.";
+                return false;
+            }
+
+            if (expectedSession == null
+                || !ReferenceEquals(sessionService.CurrentSession, expectedSession))
+            {
+                validationError = "The battle does not match the active Battle Session.";
+                return false;
+            }
+
+            if (playerState == null || battle == null)
+            {
+                validationError = "Player State and Battle State are required.";
+                return false;
+            }
+
+            if (battle.Outcome == BattleOutcome.Ongoing)
+            {
+                validationError = "An ongoing battle cannot be committed.";
+                return false;
+            }
+
+            if (expectedSession.IsComplete)
+            {
+                validationError = "The active Battle Session is already complete.";
+                return false;
+            }
+
+            if (rewardRandom == null)
+            {
+                validationError = "A reward random source is required.";
+                return false;
+            }
+
+            if (!expectedSession.Encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition encounter,
+                    out validationError))
+            {
+                return false;
+            }
+
+            BattleRewardSummary rewards = CreateRewards(
+                battle.Outcome,
+                encounter.Rewards,
+                rewardRandom,
+                ResolveRewardEquipmentStats(playerState));
+
+            try
+            {
+                ValidateRewardCapacity(playerState, rewards);
+            }
+            catch (OverflowException)
+            {
+                validationError = "Battle rewards exceed the supported inventory capacity.";
+                return false;
+            }
+
+            try
+            {
+                PlayerBattleStateTransfer.ApplyBattleResult(
+                    playerState,
+                    battle.Player,
+                    battle.ItemCounts);
+                GrantRewards(playerState, rewards);
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException || exception is InvalidOperationException)
+            {
+                validationError = exception.Message;
+                return false;
+            }
+
+            return sessionService.TryCompleteActiveBattle(
+                battle.Outcome,
+                rewards,
+                out validationError);
+        }
+
+        private static BattleRewardSummary CreateRewards(
+            BattleOutcome outcome,
+            EncounterRewardDefinition definition,
+            Random random,
+            PlayerEquipmentDerivedStats equipmentStats)
+        {
+            if (outcome != BattleOutcome.PlayerVictory && outcome != BattleOutcome.Draw)
+            {
+                return BattleRewardSummary.None;
+            }
+
+            return new BattleRewardSummary(
+                (int)Math.Round(
+                    definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
+                    MidpointRounding.AwayFromZero),
+                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls));
+        }
+
+        private static PlayerEquipmentDerivedStats ResolveRewardEquipmentStats(
+            PersistentPlayerState playerState)
+        {
+            PlayerEquipmentCatalogAsset catalog = PlayerEquipmentCatalogAsset.LoadDefault();
+            return PlayerEquipmentDerivedStats.TryResolve(
+                playerState,
+                catalog,
+                out PlayerEquipmentDerivedStats stats,
+                out _)
+                    ? stats
+                    : default;
+        }
+
+        private static void ValidateRewardCapacity(
+            PersistentPlayerState playerState,
+            BattleRewardSummary rewards)
+        {
+            checked
+            {
+                _ = playerState.Currencies.Gold + rewards.Gold;
+                foreach (KeyValuePair<string, int> material in rewards.Materials)
+                {
+                    _ = playerState.Inventory.GetCount(material.Key) + material.Value;
+                }
+            }
+        }
+
+        private static void GrantRewards(
+            PersistentPlayerState playerState,
+            BattleRewardSummary rewards)
+        {
+            if (rewards.Gold > 0)
+            {
+                playerState.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, rewards.Gold);
+            }
+
+            foreach (KeyValuePair<string, int> material in rewards.Materials)
+            {
+                playerState.Inventory.Add(material.Key, material.Value);
+            }
+        }
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "SER494.Combat",
+  "rootNamespace": "SER494.Gameplay.Combat",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

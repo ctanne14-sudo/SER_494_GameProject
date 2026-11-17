@@ -1,0 +1,29 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="SavePointMenu.uss" />
+    <ui:VisualElement name="savePointOverlay" class="save-overlay">
+        <ui:VisualElement class="save-frame">
+            <ui:VisualElement class="save-header">
+                <ui:Label text="Save Point" class="save-title" />
+                <ui:Label text="PLAYER RECORD" class="save-kicker" />
+            </ui:VisualElement>
+            <ui:Label text="Choose Save Slot" class="save-heading" />
+            <ui:Label name="saveMessage" class="save-message" />
+            <ui:VisualElement class="save-slots">
+                <ui:Button name="saveSlot1" class="save-slot" />
+                <ui:Button name="saveSlot2" class="save-slot" />
+                <ui:Button name="saveSlot3" class="save-slot" />
+            </ui:VisualElement>
+            <ui:Label text="Esc / B / Right Click: Back     F / Enter / A / Left Click: Save" class="save-footer" />
+        </ui:VisualElement>
+        <ui:VisualElement name="overwriteOverlay" class="save-confirm-overlay">
+            <ui:VisualElement class="save-confirm-dialog">
+                <ui:Label text="Overwrite Save?" class="save-confirm-heading" />
+                <ui:Label name="overwritePrompt" class="save-confirm-prompt" />
+                <ui:VisualElement class="save-confirm-actions">
+                    <ui:Button name="confirmOverwriteButton" text="Overwrite" class="save-confirm-button save-danger-button" />
+                    <ui:Button name="cancelOverwriteButton" text="Back to Slots" class="save-confirm-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

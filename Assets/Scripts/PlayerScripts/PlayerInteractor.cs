@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using SER494.Gameplay.ExplorationMenu.Unity;
 
 public class PlayerInteractor : MonoBehaviour
 {
@@ -13,6 +15,17 @@ public class PlayerInteractor : MonoBehaviour
 
     void Update()
     {
+        if (ExplorationMenuInputGate.IsOpen)
+        {
+            if (prevObj != null)
+            {
+                prevObj.showUI(false);
+                prevObj = null;
+            }
+
+            return;
+        }
+
         Vector3 origin = transform.position;
         Action closet = null;
         float distance = Mathf.Infinity;
@@ -47,7 +60,10 @@ public class PlayerInteractor : MonoBehaviour
         
         prevObj.showUI(true);
 
-        if (Input.GetKeyDown(KeyCode.E)) prevObj.action(this);
+        bool keyboardInteract = Input.GetKeyDown(KeyCode.E);
+        bool gamepadInteract = Gamepad.current != null
+            && Gamepad.current.buttonSouth.wasPressedThisFrame;
+        if (keyboardInteract || gamepadInteract) prevObj.action(this);
     }
 
     void OnDrawGizmosSelected()

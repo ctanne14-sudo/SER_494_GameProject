@@ -1,0 +1,211 @@
+.battle-result-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(11, 14, 19);
+    color: rgb(230, 216, 177);
+}
+
+.battle-result-frame {
+    width: 72%;
+    min-width: 640px;
+    max-width: 960px;
+    min-height: 520px;
+    max-height: 760px;
+    padding: 42px 54px 34px 54px;
+    background-color: rgba(24, 22, 18, 0.98);
+    background-image: url("project://database/Assets/ThirdParty/Kenney/FantasyUIBorders/PNG/Default/Panel/panel-000.png");
+    -unity-slice-left: 16;
+    -unity-slice-top: 16;
+    -unity-slice-right: 16;
+    -unity-slice-bottom: 16;
+    -unity-slice-scale: 1px;
+    -unity-background-image-tint-color: rgb(139, 110, 70);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(142, 109, 61);
+    border-right-color: rgb(142, 109, 61);
+    border-top-color: rgb(142, 109, 61);
+    border-bottom-color: rgb(142, 109, 61);
+}
+
+.battle-result-header {
+    align-items: center;
+}
+
+.battle-result-outcome-title {
+    font-size: 42px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(222, 191, 111);
+    -unity-text-align: middle-center;
+}
+
+.battle-result-victory .battle-result-outcome-title {
+    color: rgb(153, 202, 126);
+}
+
+.battle-result-defeat .battle-result-outcome-title {
+    color: rgb(203, 104, 91);
+}
+
+.battle-result-mutual .battle-result-outcome-title {
+    color: rgb(221, 168, 84);
+}
+
+.battle-result-enemy-name {
+    margin-top: 8px;
+    font-size: 19px;
+    color: rgb(190, 176, 143);
+    -unity-text-align: middle-center;
+}
+
+.battle-result-divider {
+    height: 2px;
+    margin-top: 22px;
+    margin-bottom: 24px;
+    background-color: rgb(123, 92, 50);
+}
+
+.battle-result-content {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.battle-result-card {
+    flex-grow: 1;
+    width: 50%;
+    min-height: 245px;
+    padding: 22px 24px;
+    background-color: rgba(13, 14, 13, 0.82);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(83, 67, 43);
+    border-right-color: rgb(83, 67, 43);
+    border-top-color: rgb(83, 67, 43);
+    border-bottom-color: rgb(83, 67, 43);
+}
+
+.battle-result-rewards-card {
+    margin-right: 10px;
+}
+
+.battle-result-consequence-card {
+    margin-left: 10px;
+}
+
+.battle-result-card-heading {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(225, 207, 160);
+}
+
+.battle-result-card-divider {
+    height: 1px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    background-color: rgb(87, 69, 43);
+}
+
+.battle-result-reward-row,
+.battle-result-material-row {
+    height: 38px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 12px;
+    padding-right: 12px;
+    margin-bottom: 7px;
+    background-color: rgba(40, 38, 32, 0.9);
+    border-left-width: 2px;
+    border-left-color: rgb(151, 114, 57);
+}
+
+.battle-result-gold-row {
+    background-color: rgba(68, 53, 27, 0.85);
+}
+
+.battle-result-reward-name,
+.battle-result-material-name {
+    font-size: 17px;
+    color: rgb(213, 199, 162);
+}
+
+.battle-result-reward-value,
+.battle-result-material-quantity {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(231, 192, 90);
+}
+
+.battle-result-material-list {
+    flex-grow: 1;
+}
+
+.battle-result-empty-rewards {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    color: rgb(155, 145, 125);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.battle-result-consequence-body {
+    flex-grow: 1;
+    font-size: 18px;
+    color: rgb(199, 188, 159);
+    white-space: normal;
+    -unity-text-align: upper-left;
+}
+
+.battle-result-error {
+    margin-top: 12px;
+    font-size: 15px;
+    color: rgb(216, 102, 91);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.battle-result-continue-button {
+    height: 56px;
+    margin-top: 20px;
+    background-color: rgb(62, 52, 37);
+    color: rgb(231, 215, 174);
+    font-size: 19px;
+    -unity-font-style: bold;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(148, 111, 57);
+    border-right-color: rgb(148, 111, 57);
+    border-top-color: rgb(148, 111, 57);
+    border-bottom-color: rgb(148, 111, 57);
+}
+
+.battle-result-continue-button:hover,
+.battle-result-continue-button:focus {
+    background-color: rgb(91, 69, 39);
+    color: rgb(255, 235, 180);
+    border-left-color: rgb(211, 164, 79);
+    border-right-color: rgb(211, 164, 79);
+    border-top-color: rgb(211, 164, 79);
+    border-bottom-color: rgb(211, 164, 79);
+}
+
+.battle-result-input-hint {
+    margin-top: 9px;
+    font-size: 12px;
+    color: rgb(125, 116, 96);
+    -unity-text-align: middle-center;
+}

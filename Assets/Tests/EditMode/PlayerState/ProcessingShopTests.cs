@@ -1,0 +1,111 @@
+using System.Linq;
+using NUnit.Framework;
+
+namespace SER494.Gameplay.PlayerState.Tests
+{
+    [Category("PlayerState")]
+    public sealed class ProcessingShopTests
+    {
+        [Test]
+        public void RecipeCatalog_DefinesThirtyUniqueArmorRecipesAcrossTenSeries()
+        {
+            Assert.That(ProcessingRecipeCatalog.All.Count, Is.EqualTo(30));
+            Assert.That(
+                ProcessingRecipeCatalog.All.Select(recipe => recipe.RecipeId).Distinct().Count(),
+                Is.EqualTo(30));
+            Assert.That(
+                ProcessingRecipeCatalog.All.Select(recipe => recipe.EquipmentId).Distinct().Count(),
+                Is.EqualTo(30));
+            Assert.That(
+                ProcessingRecipeCatalog.All.Select(recipe => recipe.SeriesDisplayName).Distinct().Count(),
+                Is.EqualTo(10));
+        }
+
+        [Test]
+        public void TryCraft_ConsumesExactCostsAndGrantsOwnedArmorWithoutEquippingIt()
+        {
+            PlayerState state = CreateState();
+            ProcessingRecipe recipe = FindRecipe("armor.white-copper.head");
+            state.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, 75);
+            state.Inventory.Add(ProcessingRecipeCatalog.WhiteCopperId, 3);
+
+            bool crafted = ProcessingShopService.TryCraft(state, recipe, out ProcessingCraftFailure failure);
+
+            Assert.That(crafted, Is.True);
+            Assert.That(failure, Is.EqualTo(ProcessingCraftFailure.None));
+            Assert.That(state.Currencies.Gold, Is.EqualTo(25));
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.WhiteCopperId), Is.EqualTo(1));
+            Assert.That(state.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId), Is.True);
+            Assert.That(state.Equipment.EquippedArmorBySlot.Count, Is.Zero);
+        }
+
+        [Test]
+        public void TryCraft_MixedMaterialRecipeConsumesEveryRequiredMaterial()
+        {
+            PlayerState state = CreateState();
+            ProcessingRecipe recipe = FindRecipe("armor.ape-beast.upper");
+            state.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, 60);
+            state.Inventory.Add(ProcessingRecipeCatalog.ApeBeastPeltId, 1);
+            state.Inventory.Add(ProcessingRecipeCatalog.ApeBeastArmguardId, 2);
+
+            bool crafted = ProcessingShopService.TryCraft(state, recipe, out ProcessingCraftFailure failure);
+
+            Assert.That(crafted, Is.True);
+            Assert.That(failure, Is.EqualTo(ProcessingCraftFailure.None));
+            Assert.That(state.Currencies.Gold, Is.Zero);
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.ApeBeastPeltId), Is.Zero);
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.ApeBeastArmguardId), Is.Zero);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void TryCraft_WhenAnyCostIsMissing_DoesNotPartiallyConsumeResources(bool omitGold)
+        {
+            PlayerState state = CreateState();
+            ProcessingRecipe recipe = FindRecipe("armor.ape-beast.upper");
+            state.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, omitGold ? 59 : 60);
+            state.Inventory.Add(ProcessingRecipeCatalog.ApeBeastPeltId, 1);
+            state.Inventory.Add(ProcessingRecipeCatalog.ApeBeastArmguardId, omitGold ? 2 : 1);
+
+            bool crafted = ProcessingShopService.TryCraft(state, recipe, out ProcessingCraftFailure failure);
+
+            Assert.That(crafted, Is.False);
+            Assert.That(
+                failure,
+                Is.EqualTo(omitGold
+                    ? ProcessingCraftFailure.InsufficientGold
+                    : ProcessingCraftFailure.InsufficientMaterials));
+            Assert.That(state.Currencies.Gold, Is.EqualTo(omitGold ? 59 : 60));
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.ApeBeastPeltId), Is.EqualTo(1));
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.ApeBeastArmguardId), Is.EqualTo(omitGold ? 2 : 1));
+            Assert.That(state.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId), Is.False);
+        }
+
+        [Test]
+        public void TryCraft_WhenArmorIsAlreadyOwned_DoesNotConsumeResources()
+        {
+            PlayerState state = CreateState();
+            ProcessingRecipe recipe = FindRecipe("armor.slime.lower");
+            state.Equipment.Grant(EquipmentCategory.Armor, recipe.EquipmentId);
+            state.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, 80);
+            state.Inventory.Add(ProcessingRecipeCatalog.SlimeChunkId, 2);
+
+            bool crafted = ProcessingShopService.TryCraft(state, recipe, out ProcessingCraftFailure failure);
+
+            Assert.That(crafted, Is.False);
+            Assert.That(failure, Is.EqualTo(ProcessingCraftFailure.AlreadyOwned));
+            Assert.That(state.Currencies.Gold, Is.EqualTo(80));
+            Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.SlimeChunkId), Is.EqualTo(2));
+        }
+
+        private static ProcessingRecipe FindRecipe(string equipmentId)
+        {
+            return ProcessingRecipeCatalog.All.Single(recipe => recipe.EquipmentId == equipmentId);
+        }
+
+        private static PlayerState CreateState()
+        {
+            return new PlayerState(100, 30, 100);
+        }
+    }
+}

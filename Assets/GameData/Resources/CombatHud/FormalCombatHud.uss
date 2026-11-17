@@ -1,0 +1,1026 @@
+.combat-hud-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    color: rgb(231, 217, 181);
+}
+
+.combat-hud-top-row {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    top: 3%;
+    height: 190px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.combat-hud-combatant-panel {
+    position: relative;
+    width: 36%;
+    min-width: 360px;
+    padding: 12px 16px 14px 16px;
+    background-color: rgba(14, 16, 19, 0.88);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+    border-right-color: rgb(132, 101, 56);
+    border-top-color: rgb(132, 101, 56);
+    border-bottom-color: rgb(132, 101, 56);
+}
+
+.combat-hud-combatant-panel:hover,
+.combat-hud-combatant-panel:focus {
+    background-color: rgba(28, 27, 24, 0.94);
+    border-left-color: rgb(195, 147, 68);
+    border-right-color: rgb(195, 147, 68);
+    border-top-color: rgb(195, 147, 68);
+    border-bottom-color: rgb(195, 147, 68);
+}
+
+.combat-hud-enemy-panel {
+    align-items: stretch;
+}
+
+.combat-hud-name {
+    margin-bottom: 6px;
+    font-size: 23px;
+    -unity-font-style: bold;
+    color: rgb(239, 222, 177);
+}
+
+.combat-hud-enemy-name {
+    -unity-text-align: middle-right;
+}
+
+.combat-hud-resource {
+    height: 30px;
+    margin-bottom: 5px;
+    background-color: rgb(28, 29, 29);
+    color: rgb(249, 239, 211);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-resource .unity-progress-bar__background {
+    background-color: rgb(28, 29, 29);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(77, 70, 57);
+    border-right-color: rgb(77, 70, 57);
+    border-top-color: rgb(77, 70, 57);
+    border-bottom-color: rgb(77, 70, 57);
+}
+
+.combat-hud-health .unity-progress-bar__progress {
+    background-color: rgb(147, 48, 43);
+}
+
+.combat-hud-stamina .unity-progress-bar__progress {
+    background-color: rgb(190, 151, 28);
+}
+
+.combat-hud-mana .unity-progress-bar__progress {
+    background-color: rgb(54, 93, 159);
+}
+
+.combat-hud-resource .unity-progress-bar__title {
+    color: rgb(249, 239, 211);
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-status-row {
+    min-height: 34px;
+    margin-top: 3px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-enemy-status-row {
+    justify-content: flex-end;
+}
+
+.combat-hud-status-details-hint {
+    position: absolute;
+    left: 16px;
+    bottom: 3px;
+    color: rgb(126, 116, 94);
+    font-size: 10px;
+}
+
+.combat-hud-enemy-details-hint {
+    left: auto;
+    right: 16px;
+}
+
+.combat-hud-status-chip {
+    height: 27px;
+    max-width: 112px;
+    margin-right: 5px;
+    padding-left: 7px;
+    padding-right: 7px;
+    background-color: rgb(61, 52, 38);
+    color: rgb(224, 205, 160);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(139, 105, 54);
+    border-right-color: rgb(139, 105, 54);
+    border-top-color: rgb(139, 105, 54);
+    border-bottom-color: rgb(139, 105, 54);
+    -unity-text-align: middle-center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.combat-hud-status-overflow {
+    max-width: 45px;
+    background-color: rgb(41, 40, 37);
+}
+
+.combat-hud-round-panel {
+    width: 20%;
+    height: 54px;
+    margin-top: 4px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(14, 16, 19, 0.84);
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(141, 107, 59);
+}
+
+.combat-hud-round-label {
+    font-size: 25px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(229, 205, 148);
+}
+
+.combat-hud-item-rail {
+    position: absolute;
+    left: 3%;
+    top: 225px;
+    width: 150px;
+    padding: 8px;
+    background-color: rgba(14, 16, 19, 0.80);
+    border-left-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+}
+
+.combat-hud-item-row {
+    height: 44px;
+    margin-bottom: 5px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-item-icon {
+    width: 42px;
+    height: 38px;
+    margin-right: 8px;
+    background-color: rgb(55, 49, 39);
+    color: rgb(231, 207, 150);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(139, 105, 54);
+    border-right-color: rgb(139, 105, 54);
+    border-top-color: rgb(139, 105, 54);
+    border-bottom-color: rgb(139, 105, 54);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.combat-hud-item-count {
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+.combat-feedback-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.combat-feedback-lane {
+    position: absolute;
+    top: 34%;
+    width: 320px;
+    min-height: 160px;
+}
+
+.combat-feedback-player-lane {
+    left: 16%;
+    align-items: flex-start;
+}
+
+.combat-feedback-enemy-lane {
+    right: 16%;
+    align-items: flex-end;
+}
+
+.combat-feedback-cue {
+    min-width: 145px;
+    min-height: 38px;
+    margin-bottom: 3px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-feedback-symbol {
+    width: 35px;
+    margin-right: 7px;
+    font-size: 25px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 2px;
+}
+
+.combat-feedback-copy {
+    flex-grow: 1;
+}
+
+.combat-feedback-primary {
+    font-size: 20px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 2px;
+}
+
+.combat-feedback-detail {
+    margin-top: 1px;
+    font-size: 11px;
+    color: rgb(238, 231, 211);
+    -unity-text-outline-color: rgba(5, 5, 5, 0.96);
+    -unity-text-outline-width: 1px;
+}
+
+.combat-feedback-impact {
+    --combat-impact-strong: rgba(255, 255, 255, 0.65);
+    --combat-impact-medium: rgba(255, 255, 255, 0.22);
+    --combat-impact-soft: rgba(255, 255, 255, 0.07);
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.combat-feedback-impact-band {
+    position: absolute;
+    border-left-color: var(--combat-impact-strong);
+    border-right-color: var(--combat-impact-strong);
+    border-top-color: var(--combat-impact-strong);
+    border-bottom-color: var(--combat-impact-strong);
+}
+
+.combat-feedback-impact-band-strong {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+}
+
+.combat-feedback-impact-band-medium {
+    left: 4px;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-top-width: 10px;
+    border-bottom-width: 10px;
+    border-left-color: var(--combat-impact-medium);
+    border-right-color: var(--combat-impact-medium);
+    border-top-color: var(--combat-impact-medium);
+    border-bottom-color: var(--combat-impact-medium);
+}
+
+.combat-feedback-impact-band-soft {
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    bottom: 14px;
+    border-left-width: 22px;
+    border-right-width: 22px;
+    border-top-width: 22px;
+    border-bottom-width: 22px;
+    border-left-color: var(--combat-impact-soft);
+    border-right-color: var(--combat-impact-soft);
+    border-top-color: var(--combat-impact-soft);
+    border-bottom-color: var(--combat-impact-soft);
+}
+
+.combat-feedback--damage {
+    color: rgb(255, 113, 95);
+}
+
+.combat-feedback--guard {
+    color: rgb(116, 179, 255);
+}
+
+.combat-feedback--evade {
+    color: rgb(111, 229, 237);
+}
+
+.combat-feedback--clash {
+    color: rgb(255, 212, 88);
+}
+
+.combat-feedback--heal,
+.combat-feedback--buff {
+    color: rgb(112, 222, 139);
+}
+
+.combat-feedback--debuff {
+    color: rgb(196, 119, 226);
+}
+
+.combat-feedback--stamina {
+    color: rgb(238, 201, 77);
+}
+
+.combat-feedback--flinch {
+    color: rgb(245, 217, 78);
+}
+
+.combat-feedback--stagger {
+    color: rgb(255, 159, 63);
+}
+
+.combat-feedback--knockdown {
+    color: rgb(255, 91, 70);
+}
+
+.combat-feedback--canceled {
+    color: rgb(175, 168, 158);
+}
+
+.combat-feedback-impact.combat-feedback--damage,
+.combat-feedback-impact.combat-feedback--knockdown {
+    --combat-impact-strong: rgba(255, 70, 55, 0.76);
+    --combat-impact-medium: rgba(239, 44, 35, 0.25);
+    --combat-impact-soft: rgba(213, 23, 20, 0.08);
+}
+
+.combat-feedback-impact.combat-feedback--guard {
+    --combat-impact-strong: rgba(95, 167, 255, 0.66);
+    --combat-impact-medium: rgba(50, 123, 217, 0.21);
+    --combat-impact-soft: rgba(32, 91, 168, 0.07);
+}
+
+.combat-feedback-impact.combat-feedback--evade {
+    --combat-impact-strong: rgba(92, 231, 240, 0.60);
+    --combat-impact-medium: rgba(40, 181, 194, 0.19);
+    --combat-impact-soft: rgba(26, 139, 151, 0.06);
+}
+
+.combat-feedback-impact.combat-feedback--clash {
+    --combat-impact-strong: rgba(255, 211, 80, 0.72);
+    --combat-impact-medium: rgba(222, 156, 38, 0.23);
+    --combat-impact-soft: rgba(174, 108, 20, 0.07);
+}
+
+.combat-feedback-impact.combat-feedback--heal {
+    --combat-impact-strong: rgba(94, 226, 128, 0.60);
+    --combat-impact-medium: rgba(43, 173, 79, 0.19);
+    --combat-impact-soft: rgba(25, 126, 55, 0.06);
+}
+
+.combat-hud-bottom-row {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    bottom: 3%;
+    height: 255px;
+    flex-direction: row;
+}
+
+.combat-hud-timeline-panel,
+.combat-hud-combo-panel {
+    background-color: rgba(14, 16, 19, 0.90);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(132, 101, 56);
+    border-right-color: rgb(132, 101, 56);
+    border-top-color: rgb(132, 101, 56);
+    border-bottom-color: rgb(132, 101, 56);
+}
+
+.combat-hud-timeline-panel {
+    flex-grow: 1;
+    margin-right: 14px;
+    padding: 12px 16px;
+}
+
+.combat-hud-timeline-header,
+.combat-hud-combo-header {
+    height: 34px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.combat-hud-timeline-page,
+.combat-hud-section-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(229, 205, 148);
+}
+
+.combat-hud-timeline-page-controls {
+    height: 32px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-timeline-page-button {
+    width: 30px;
+    height: 27px;
+    margin-right: 7px;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: rgb(49, 44, 36);
+    color: rgb(229, 205, 148);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+    font-size: 19px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-timeline-page-button:disabled {
+    opacity: 0.28;
+}
+
+.combat-hud-timeline-page-controls .combat-hud-timeline-page {
+    min-width: 82px;
+    margin-right: 7px;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-timeline-state {
+    color: rgb(181, 169, 140);
+    font-size: 14px;
+}
+
+.combat-hud-timeline-intent-controls {
+    height: 32px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-intent-button {
+    height: 28px;
+    margin-left: 12px;
+    padding-left: 13px;
+    padding-right: 13px;
+    background-color: rgb(49, 44, 36);
+    color: rgb(229, 205, 148);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-intent-button:hover,
+.combat-hud-intent-button:focus {
+    background-color: rgb(81, 62, 36);
+    color: rgb(255, 235, 184);
+}
+
+.combat-hud-intent-button:disabled {
+    opacity: 0.38;
+}
+
+.combat-hud-timeline-row {
+    height: 66px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-timeline-side {
+    width: 74px;
+    color: rgb(207, 190, 151);
+    -unity-font-style: bold;
+}
+
+.combat-hud-timeline-cells {
+    flex-grow: 1;
+    height: 42px;
+    flex-direction: row;
+}
+
+.combat-hud-timeline-cell {
+    position: relative;
+    flex-grow: 1;
+    height: 42px;
+    margin-right: 2px;
+    background-color: rgba(50, 48, 42, 0.88);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(74, 67, 54);
+    border-right-color: rgb(74, 67, 54);
+    border-top-color: rgb(74, 67, 54);
+    border-bottom-color: rgb(74, 67, 54);
+}
+
+.combat-hud-timeline-action {
+    background-color: rgb(72, 65, 52);
+}
+
+.combat-hud-timeline-marker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    color: rgb(255, 249, 232);
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-timeline-damage {
+    background-color: rgb(155, 58, 49);
+}
+
+.combat-hud-timeline-guard {
+    background-color: rgb(49, 91, 153);
+}
+
+.combat-hud-timeline-evade {
+    background-color: rgb(48, 137, 157);
+}
+
+.combat-hud-timeline-status {
+    background-color: rgb(112, 69, 139);
+}
+
+.combat-hud-timeline-heal {
+    background-color: rgb(55, 128, 75);
+}
+
+.combat-hud-timeline-stamina {
+    background-color: rgb(156, 124, 36);
+}
+
+.combat-hud-timeline-major-cell {
+    border-right-width: 2px;
+    border-right-color: rgb(147, 111, 58);
+}
+
+.combat-hud-timeline-current {
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(129, 205, 217);
+    border-right-color: rgb(129, 205, 217);
+    border-top-color: rgb(129, 205, 217);
+    border-bottom-color: rgb(129, 205, 217);
+}
+
+.combat-hud-combo-panel {
+    width: 33%;
+    min-width: 420px;
+    padding: 12px 14px 10px 14px;
+}
+
+.combat-hud-clear-button {
+    height: 28px;
+    background-color: rgb(49, 44, 36);
+    color: rgb(201, 185, 148);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-combo-list {
+    flex-grow: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combat-hud-combo-card {
+    width: 49%;
+    height: 78px;
+    margin-right: 1%;
+    margin-bottom: 5px;
+    padding: 6px 8px;
+    background-color: rgb(43, 41, 36);
+    color: rgb(218, 204, 169);
+    font-size: 13px;
+    -unity-text-align: middle-left;
+    white-space: normal;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(100, 80, 51);
+    border-right-color: rgb(100, 80, 51);
+    border-top-color: rgb(100, 80, 51);
+    border-bottom-color: rgb(100, 80, 51);
+}
+
+.combat-hud-combo-card:hover,
+.combat-hud-combo-card:focus {
+    background-color: rgb(72, 59, 39);
+    color: rgb(255, 235, 184);
+    border-left-color: rgb(195, 147, 68);
+    border-right-color: rgb(195, 147, 68);
+    border-top-color: rgb(195, 147, 68);
+    border-bottom-color: rgb(195, 147, 68);
+}
+
+.combat-hud-combo-previewed {
+    background-color: rgb(85, 63, 34);
+    color: rgb(255, 228, 160);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(219, 166, 76);
+    border-right-color: rgb(219, 166, 76);
+    border-top-color: rgb(219, 166, 76);
+    border-bottom-color: rgb(219, 166, 76);
+}
+
+.combat-hud-combo-card:disabled {
+    opacity: 0.42;
+}
+
+.combat-hud-input-hint {
+    height: 20px;
+    color: rgb(132, 123, 102);
+    font-size: 11px;
+    -unity-text-align: middle-right;
+}
+
+.combat-hud-qte-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(4, 5, 6, 0.24);
+}
+
+.combat-hud-qte-card {
+    width: 620px;
+    max-width: 74%;
+    min-height: 300px;
+    padding: 20px 26px 18px 26px;
+    background-color: rgba(22, 21, 18, 0.97);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(177, 130, 63);
+    border-right-color: rgb(177, 130, 63);
+    border-top-color: rgb(177, 130, 63);
+    border-bottom-color: rgb(177, 130, 63);
+    align-items: stretch;
+}
+
+.combat-hud-qte-type {
+    color: rgb(184, 145, 78);
+    font-size: 13px;
+    letter-spacing: 2px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-action {
+    margin-top: 4px;
+    color: rgb(244, 226, 180);
+    font-size: 27px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-prompt {
+    margin-top: 7px;
+    margin-bottom: 12px;
+    color: rgb(191, 180, 151);
+    font-size: 15px;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-options {
+    height: 54px;
+    margin-bottom: 12px;
+    flex-direction: row;
+}
+
+.combat-hud-qte-option {
+    flex-grow: 1;
+    height: 48px;
+    margin-right: 5px;
+    background-color: rgb(48, 45, 38);
+    color: rgb(171, 158, 128);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(91, 76, 51);
+    border-right-color: rgb(91, 76, 51);
+    border-top-color: rgb(91, 76, 51);
+    border-bottom-color: rgb(91, 76, 51);
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-qte-option-current {
+    background-color: rgb(119, 78, 31);
+    color: rgb(255, 235, 184);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(224, 169, 75);
+    border-right-color: rgb(224, 169, 75);
+    border-top-color: rgb(224, 169, 75);
+    border-bottom-color: rgb(224, 169, 75);
+}
+
+.combat-hud-qte-option-reached {
+    background-color: rgb(77, 61, 38);
+    color: rgb(216, 193, 145);
+    border-left-color: rgb(141, 105, 54);
+    border-right-color: rgb(141, 105, 54);
+    border-top-color: rgb(141, 105, 54);
+    border-bottom-color: rgb(141, 105, 54);
+}
+
+.combat-hud-qte-time {
+    height: 26px;
+    margin-bottom: 12px;
+    color: rgb(242, 228, 194);
+    -unity-font-style: bold;
+}
+
+.combat-hud-qte-time .unity-progress-bar__background {
+    background-color: rgb(31, 30, 27);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(83, 70, 49);
+    border-right-color: rgb(83, 70, 49);
+    border-top-color: rgb(83, 70, 49);
+    border-bottom-color: rgb(83, 70, 49);
+}
+
+.combat-hud-qte-time .unity-progress-bar__progress {
+    background-color: rgb(174, 123, 47);
+}
+
+.combat-hud-qte-time .unity-progress-bar__title {
+    color: rgb(242, 228, 194);
+}
+
+.combat-hud-qte-button {
+    height: 46px;
+    background-color: rgb(74, 57, 34);
+    color: rgb(246, 224, 174);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(168, 124, 61);
+    border-right-color: rgb(168, 124, 61);
+    border-top-color: rgb(168, 124, 61);
+    border-bottom-color: rgb(168, 124, 61);
+    font-size: 17px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-qte-button:hover,
+.combat-hud-qte-button:focus {
+    background-color: rgb(105, 76, 38);
+    border-left-color: rgb(224, 169, 75);
+    border-right-color: rgb(224, 169, 75);
+    border-top-color: rgb(224, 169, 75);
+    border-bottom-color: rgb(224, 169, 75);
+}
+
+.combat-hud-qte-hint {
+    height: 25px;
+    margin-top: 8px;
+    color: rgb(135, 125, 104);
+    font-size: 11px;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-status-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(4, 5, 6, 0.72);
+}
+
+.combat-hud-status-dialog {
+    width: 720px;
+    max-width: 86%;
+    height: 600px;
+    max-height: 78%;
+    padding: 20px 24px 16px 24px;
+    background-color: rgb(27, 25, 22);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(151, 113, 61);
+    border-right-color: rgb(151, 113, 61);
+    border-top-color: rgb(151, 113, 61);
+    border-bottom-color: rgb(151, 113, 61);
+}
+
+.combat-hud-status-dialog-header {
+    height: 48px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-status-dialog-title {
+    font-size: 25px;
+    -unity-font-style: bold;
+    color: rgb(239, 222, 177);
+}
+
+.combat-hud-status-dialog-close {
+    width: 110px;
+    height: 34px;
+    background-color: rgb(49, 44, 36);
+    color: rgb(229, 205, 148);
+    border-left-color: rgb(121, 91, 49);
+    border-right-color: rgb(121, 91, 49);
+    border-top-color: rgb(121, 91, 49);
+    border-bottom-color: rgb(121, 91, 49);
+}
+
+.combat-hud-status-dialog-close:hover,
+.combat-hud-status-dialog-close:focus {
+    background-color: rgb(81, 62, 36);
+    color: rgb(255, 235, 184);
+}
+
+.combat-hud-status-dialog-summary {
+    height: 36px;
+    padding-top: 9px;
+    color: rgb(181, 169, 140);
+    font-size: 14px;
+}
+
+.combat-hud-status-dialog-scroll {
+    flex-grow: 1;
+    margin-top: 5px;
+    margin-bottom: 8px;
+}
+
+.combat-hud-status-dialog-list {
+    padding-right: 8px;
+}
+
+.combat-hud-status-entry {
+    min-height: 105px;
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    background-color: rgb(38, 35, 30);
+    border-left-width: 3px;
+    border-left-color: rgb(151, 113, 61);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(79, 65, 43);
+}
+
+.combat-hud-status-entry-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.combat-hud-status-entry-name {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: rgb(235, 214, 166);
+}
+
+.combat-hud-status-entry-duration {
+    color: rgb(199, 163, 92);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-status-entry-effect {
+    margin-top: 9px;
+    color: rgb(207, 196, 169);
+    font-size: 15px;
+    white-space: normal;
+}
+
+.combat-hud-status-entry-stacking {
+    margin-top: 5px;
+    color: rgb(137, 127, 105);
+    font-size: 12px;
+}
+
+.combat-hud-status-dialog-empty {
+    margin-top: 70px;
+    color: rgb(156, 145, 120);
+    font-size: 18px;
+    -unity-text-align: middle-center;
+}
+
+.combat-hud-status-dialog-hint {
+    height: 22px;
+    color: rgb(132, 123, 102);
+    font-size: 11px;
+    -unity-text-align: middle-right;
+}
+
+.combat-hud-intent-dialog {
+    width: 820px;
+}
+
+.combat-hud-intent-entry {
+    min-height: 118px;
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    background-color: rgb(38, 35, 30);
+    border-left-width: 3px;
+    border-left-color: rgb(166, 74, 59);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(79, 65, 43);
+}
+
+.combat-hud-intent-entry-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.combat-hud-intent-entry-name {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: rgb(235, 214, 166);
+}
+
+.combat-hud-intent-entry-time {
+    color: rgb(199, 163, 92);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-intent-event {
+    margin-top: 8px;
+    padding-left: 10px;
+    border-left-width: 2px;
+    border-left-color: rgb(118, 88, 50);
+}
+
+.combat-hud-intent-event-title {
+    color: rgb(222, 202, 158);
+    font-size: 15px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-intent-event-detail {
+    margin-top: 3px;
+    color: rgb(174, 164, 140);
+    font-size: 13px;
+    white-space: normal;
+}

@@ -1,0 +1,126 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="FormalCombatHud.uss" />
+    <ui:VisualElement name="combatHudRoot" class="combat-hud-root" picking-mode="Ignore">
+        <ui:VisualElement class="combat-hud-top-row" picking-mode="Ignore">
+            <ui:VisualElement name="playerStatusPanel" class="combat-hud-combatant-panel combat-hud-player-panel">
+                <ui:Label name="playerName" class="combat-hud-name" />
+                <ui:ProgressBar name="playerHealth" class="combat-hud-resource combat-hud-health" />
+                <ui:ProgressBar name="playerStamina" class="combat-hud-resource combat-hud-stamina" />
+                <ui:ProgressBar name="playerMana" class="combat-hud-resource combat-hud-mana" />
+                <ui:VisualElement name="playerStatuses" class="combat-hud-status-row" />
+                <ui:Label text="Q / LB  Status Details" class="combat-hud-status-details-hint" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="combat-hud-round-panel" picking-mode="Ignore">
+                <ui:Label name="roundLabel" text="ROUND 1" class="combat-hud-round-label" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="enemyStatusPanel" class="combat-hud-combatant-panel combat-hud-enemy-panel">
+                <ui:Label name="enemyName" class="combat-hud-name combat-hud-enemy-name" />
+                <ui:ProgressBar name="enemyHealth" class="combat-hud-resource combat-hud-health" />
+                <ui:VisualElement name="enemyStatuses" class="combat-hud-status-row combat-hud-enemy-status-row" />
+                <ui:Label text="E / RB  Status Details" class="combat-hud-status-details-hint combat-hud-enemy-details-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="combat-hud-item-rail">
+            <ui:VisualElement class="combat-hud-item-row">
+                <ui:Label text="P" class="combat-hud-item-icon" tooltip="Healing Potion" />
+                <ui:Label name="healingPotionCount" text="0" class="combat-hud-item-count" />
+            </ui:VisualElement>
+            <ui:VisualElement class="combat-hud-item-row">
+                <ui:Label text="P+" class="combat-hud-item-icon" tooltip="Greater Healing Potion" />
+                <ui:Label name="greaterHealingPotionCount" text="0" class="combat-hud-item-count" />
+            </ui:VisualElement>
+            <ui:VisualElement class="combat-hud-item-row">
+                <ui:Label text="V" class="combat-hud-item-icon" tooltip="Vitality Tonic" />
+                <ui:Label name="vitalityTonicCount" text="0" class="combat-hud-item-count" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="combatFeedbackOverlay" class="combat-feedback-overlay" picking-mode="Ignore">
+            <ui:VisualElement name="combatImpactFlash" class="combat-feedback-impact" picking-mode="Ignore">
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-strong" picking-mode="Ignore" />
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-medium" picking-mode="Ignore" />
+                <ui:VisualElement class="combat-feedback-impact-band combat-feedback-impact-band-soft" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="playerFeedbackLane" class="combat-feedback-lane combat-feedback-player-lane" picking-mode="Ignore" />
+            <ui:VisualElement name="enemyFeedbackLane" class="combat-feedback-lane combat-feedback-enemy-lane" picking-mode="Ignore" />
+        </ui:VisualElement>
+
+        <ui:VisualElement class="combat-hud-bottom-row">
+            <ui:VisualElement class="combat-hud-timeline-panel" picking-mode="Ignore">
+                <ui:VisualElement class="combat-hud-timeline-header">
+                    <ui:VisualElement class="combat-hud-timeline-page-controls">
+                        <ui:Button name="previousTimelinePageButton" text="‹" class="combat-hud-timeline-page-button" />
+                        <ui:Label name="timelinePageLabel" text="T1–T30" class="combat-hud-timeline-page" />
+                        <ui:Button name="nextTimelinePageButton" text="›" class="combat-hud-timeline-page-button" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="combat-hud-timeline-intent-controls">
+                        <ui:Label name="timelineStateLabel" class="combat-hud-timeline-state" />
+                        <ui:Button name="enemyIntentDetailsButton" text="Intent Details" class="combat-hud-intent-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="combat-hud-timeline-row">
+                    <ui:Label text="PLAYER" class="combat-hud-timeline-side" />
+                    <ui:VisualElement name="playerTimelineCells" class="combat-hud-timeline-cells" />
+                </ui:VisualElement>
+                <ui:VisualElement class="combat-hud-timeline-row">
+                    <ui:Label text="ENEMY" class="combat-hud-timeline-side" />
+                    <ui:VisualElement name="enemyTimelineCells" class="combat-hud-timeline-cells" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="combat-hud-combo-panel">
+                <ui:VisualElement class="combat-hud-combo-header">
+                    <ui:Label text="COMBOS" class="combat-hud-section-title" />
+                    <ui:Button name="clearPreviewButton" text="Clear Preview" class="combat-hud-clear-button" />
+                </ui:VisualElement>
+                <ui:VisualElement name="comboList" class="combat-hud-combo-list" />
+                <ui:Label text="1–4 / D-pad: Preview, repeat: Confirm" class="combat-hud-input-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="qteOverlay" class="combat-hud-qte-overlay">
+            <ui:VisualElement class="combat-hud-qte-card">
+                <ui:Label name="qteType" text="TIMING INPUT" class="combat-hud-qte-type" />
+                <ui:Label name="qteActionName" class="combat-hud-qte-action" />
+                <ui:Label name="qtePrompt" class="combat-hud-qte-prompt" />
+                <ui:VisualElement name="qteOptions" class="combat-hud-qte-options" />
+                <ui:ProgressBar name="qteTimeRemaining" class="combat-hud-qte-time" />
+                <ui:Button name="qteActionButton" text="CONFIRM" class="combat-hud-qte-button" />
+                <ui:Label name="qteInputHint" class="combat-hud-qte-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="statusDetailsOverlay" class="combat-hud-status-overlay">
+            <ui:VisualElement class="combat-hud-status-dialog">
+                <ui:VisualElement class="combat-hud-status-dialog-header">
+                    <ui:Label name="statusDetailsTitle" text="Status Details" class="combat-hud-status-dialog-title" />
+                    <ui:Button name="statusDetailsCloseButton" text="Close" class="combat-hud-status-dialog-close" />
+                </ui:VisualElement>
+                <ui:Label name="statusDetailsSummary" class="combat-hud-status-dialog-summary" />
+                <ui:ScrollView name="statusDetailsScrollView" class="combat-hud-status-dialog-scroll">
+                    <ui:VisualElement name="statusDetailsList" class="combat-hud-status-dialog-list" />
+                    <ui:Label name="statusDetailsEmpty" text="No active statuses." class="combat-hud-status-dialog-empty" />
+                </ui:ScrollView>
+                <ui:Label text="W / S, Arrows, Right Stick or Wheel: Scroll    Esc / Right Click / B: Close" class="combat-hud-status-dialog-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="enemyIntentDetailsOverlay" class="combat-hud-status-overlay">
+            <ui:VisualElement class="combat-hud-status-dialog combat-hud-intent-dialog">
+                <ui:VisualElement class="combat-hud-status-dialog-header">
+                    <ui:Label name="enemyIntentDetailsTitle" text="Enemy Intent" class="combat-hud-status-dialog-title" />
+                    <ui:Button name="enemyIntentDetailsCloseButton" text="Close" class="combat-hud-status-dialog-close" />
+                </ui:VisualElement>
+                <ui:Label name="enemyIntentDetailsSummary" class="combat-hud-status-dialog-summary" />
+                <ui:ScrollView name="enemyIntentDetailsScrollView" class="combat-hud-status-dialog-scroll">
+                    <ui:VisualElement name="enemyIntentDetailsList" class="combat-hud-status-dialog-list" />
+                    <ui:Label name="enemyIntentDetailsEmpty" text="No locked Enemy Intent is available." class="combat-hud-status-dialog-empty" />
+                </ui:ScrollView>
+                <ui:Label text="I / R3: Open    W / S, Arrows, Right Stick or Wheel: Scroll    Esc / Right Click / B: Close" class="combat-hud-status-dialog-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

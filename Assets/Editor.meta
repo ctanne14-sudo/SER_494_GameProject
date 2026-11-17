@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Textures.meta
+guid: 7956c17c39f301246bacb571747003bb
+========
+guid: 0ba2091f5b0e71541b1912e91c9a2846
+>>>>>>>> prototype/combat-intergration:Assets/Editor.meta
+folderAsset: yes
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

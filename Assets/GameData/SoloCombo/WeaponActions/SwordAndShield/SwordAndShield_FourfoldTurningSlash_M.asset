@@ -1,0 +1,256 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 174921bd35b696a4785fee160c193375, type: 3}
+  m_Name: SwordAndShield_FourfoldTurningSlash_M
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.ComboActionAsset
+  actionId: sword-and-shield.main.fourfold-turning-slash
+  displayName: 'Fourfold Turning Slash [M]'
+  category: 1
+  compatibleWeaponTypes: 2
+  requiredPreviousActionStatusId: 
+  requiredPreviousActionStatusDisplayName: 
+  timelineCost: 8
+  resolutionOffset: 2
+  useResolutionWindow: 0
+  resolutionWindowStart: 2
+  resolutionWindowEnd: 2
+  chargeLevels: []
+  activeWindows: []
+  useSustainedAttack: 0
+  sustainedWindowStartOffset: 1
+  sustainedWindowEndOffset: 1
+  sustainedFirstHitOffset: 1
+  sustainedHitInterval: 1
+  sustainedMaximumHitCount: 1
+  manaCost: 0
+  staminaCost: 8
+  cooldown: 0
+  resolutionEvents:
+  - offset: 2
+    effect: 1
+    damageMultiplier: 0.2
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 3
+    effect: 3
+    damageMultiplier: 0
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 4
+    effect: 1
+    damageMultiplier: 0.2
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 5
+    effect: 2
+    damageMultiplier: 0
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 6
+    effect: 1
+    damageMultiplier: 0.3
+    damageType: 1
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  - offset: 7
+    effect: 1
+    damageMultiplier: 0.3
+    damageType: 0
+    damageTags: 0
+    healingType: 0
+    healingAmount: 0
+    maximumHealthHealingPercentage: 0
+    consumedItemId: 
+    consumedItemDisplayName: 
+    consumedItemAmount: 0
+    statusId: 
+    statusDisplayName: 
+    statusTarget: 0
+    statusDurationType: 0
+    statusDuration: 1
+    statusModifierDirection: 0
+    statusModifierScope: 0
+    statusModifierFamily: 0
+    statusModifierType: 0
+    statusModifierAmount: 0
+    statusStackingPolicy: 0
+    clashDamageReduction: 0
+    clashSuperArmorLevel: 0
+    appliesOnHitDisruption: 0
+    onHitDisruptionType: 1
+    onHitDisruptionDuration: 1
+    appliesOnGuardedDisruption: 0
+    onGuardedDisruptionType: 1
+    onGuardedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 0
+    onEvadedDisruptionType: 1
+    onEvadedDisruptionDuration: 1
+  disruptionResponseSegments:
+  - startOffset: 1
+    endOffset: 8
+    flinchResponse: 1
+    staggerResponse: 1
+    knockdownResponse: 1
+  damageMultiplier: 0
+  damageType: 0
+  resolutionEffect: 0
+  damageTags: 0
+  clashDamageReduction: 0
+  clashSuperArmorLevel: 0
+  appliesOnHitDisruption: 0
+  onHitDisruptionType: 1
+  onHitDisruptionDuration: 1
+  appliesOnGuardedDisruption: 0
+  onGuardedDisruptionType: 1
+  onGuardedDisruptionDuration: 1
+  appliesOnEvadedDisruption: 0
+  onEvadedDisruptionType: 2
+  onEvadedDisruptionDuration: 1
