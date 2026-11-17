@@ -18,17 +18,17 @@ MonoBehaviour:
   compatibleWeaponTypes: 1
   requiredPreviousActionStatusId: 
   requiredPreviousActionStatusDisplayName: 
-  timelineCost: 8
-  resolutionOffset: 5
+  timelineCost: 9
+  resolutionOffset: 6
   useResolutionWindow: 0
-  resolutionWindowStart: 5
-  resolutionWindowEnd: 5
+  resolutionWindowStart: 6
+  resolutionWindowEnd: 6
   chargeLevels: []
   activeWindows:
   - windowId: greatsword.leaping-sweep.armor
     displayName: Leaping Sweep Armor
     startOffset: 4
-    endOffset: 5
+    endOffset: 6
     effect: 1
     damageReduction: 0.01
     superArmorLevel: 3
@@ -44,14 +44,18 @@ MonoBehaviour:
   staminaCost: 5
   cooldown: 0
   resolutionEvents:
-  - offset: 5
+  - offset: 6
     effect: 1
-    damageMultiplier: 1.1
+    damageMultiplier: 1.2
     damageType: 0
     damageTags: 4
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 6
+    resolutionWindowEnd: 6
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -66,6 +70,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 1
@@ -74,12 +79,12 @@ MonoBehaviour:
     appliesOnGuardedDisruption: 0
     onGuardedDisruptionType: 1
     onGuardedDisruptionDuration: 1
-    appliesOnEvadedDisruption: 0
-    onEvadedDisruptionType: 1
-    onEvadedDisruptionDuration: 1
+    appliesOnEvadedDisruption: 1
+    onEvadedDisruptionType: 2
+    onEvadedDisruptionDuration: 2
   disruptionResponseSegments:
   - startOffset: 1
-    endOffset: 8
+    endOffset: 9
     flinchResponse: 1
     staggerResponse: 1
     knockdownResponse: 1

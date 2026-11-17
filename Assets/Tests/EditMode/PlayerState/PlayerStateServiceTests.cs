@@ -72,7 +72,7 @@ namespace SER494.Gameplay.PlayerState.Tests
         }
 
         [Test]
-        public void InitialValues_CreateConfiguredStartingEquipmentActionsItemsAndLoadout()
+        public void InitialValues_CreateStartingEquipmentItemsActionsAndEmptyLoadout()
         {
             PlayerState state = new PlayerStateInitialValues().CreateState();
 
@@ -95,32 +95,38 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(state.Inventory.GetCount(PlayerStateInitialValues.VitalityTonicId),
                 Is.EqualTo(3));
 
-            Assert.That(state.ActionLibrary.OwnedActionIds, Has.Count.EqualTo(21));
-            Assert.That(state.ActionLibrary.Owns("greatsword.main.charged-slash"), Is.True);
-            Assert.That(state.ActionLibrary.Owns("common.opening.prepare"), Is.True);
-            Assert.That(state.ActionLibrary.Owns("common.main.focused-guard-1"), Is.True);
-            Assert.That(state.ActionLibrary.Owns("common.closing.breather-1"), Is.True);
-            Assert.That(state.ActionLibrary.Owns("common.linked.use-healing-potion"), Is.True);
-            Assert.That(state.ActionLibrary.Owns("common.linked.use-vitality-tonic"), Is.True);
+            string[] expectedActionIds =
+            {
+                "greatsword.opening.sweeping-slash",
+                "greatsword.opening.draw-slash",
+                "greatsword.opening.vertical-slash",
+                "common.opening.prepare",
+                "greatsword.main.charged-slash",
+                "greatsword.main.clash-slash",
+                "greatsword.main.rising-strong-strike",
+                "common.main.use-healing-potion",
+                "greatsword.closing.empowered-sheathe",
+                "greatsword.closing.sidestep-sheathe",
+                "greatsword.closing.double-sweep",
+                "common.closing.breather-1",
+                "greatsword.linked.shoulder-tackle",
+                "greatsword.linked.guarding-charge",
+                "greatsword.linked.vertical-slash",
+                "common.linked.use-vitality-tonic"
+            };
+            Assert.That(state.ActionLibrary.OwnedActionIds, Has.Count.EqualTo(16));
+            CollectionAssert.AreEquivalent(
+                expectedActionIds,
+                state.ActionLibrary.OwnedActionIds);
 
             PlayerComboLoadoutState loadout = state.ComboLoadouts.ActiveLoadout;
-            Assert.That(loadout.Name, Is.EqualTo("Greatsword Loadout"));
             Assert.That(loadout.Combos, Has.Count.EqualTo(4));
-
-            var assignedActions = new HashSet<string>(StringComparer.Ordinal);
             for (int comboIndex = 0; comboIndex < loadout.Combos.Count; comboIndex++)
             {
                 IReadOnlyList<string> comboActions =
                     loadout.Combos[comboIndex].GetAssignedActionIds();
-                Assert.That(comboActions, Has.Count.EqualTo(4));
-                for (int actionIndex = 0; actionIndex < comboActions.Count; actionIndex++)
-                {
-                    Assert.That(
-                        assignedActions.Add(comboActions[actionIndex]),
-                        Is.True,
-                        $"Starting Action '{comboActions[actionIndex]}' is assigned to more than one Combo.");
-                    Assert.That(state.ActionLibrary.Owns(comboActions[actionIndex]), Is.True);
-                }
+                Assert.That(comboActions, Is.Empty,
+                    $"Starting Combo {comboIndex + 1} should be configured by the player.");
             }
         }
 

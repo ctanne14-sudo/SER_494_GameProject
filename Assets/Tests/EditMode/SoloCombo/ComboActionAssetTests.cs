@@ -750,6 +750,35 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void TryCreateDefinition_UnityEverythingWeaponFlags_NormalizesToAllWeapons()
+        {
+            ConfigureAsset(
+                actionId: "all-weapons-main",
+                displayName: "All Weapons Main",
+                category: ComboActionCategory.Main,
+                timelineCost: 2,
+                resolutionOffset: 2,
+                manaCost: 0,
+                staminaCost: 1,
+                cooldown: 0,
+                damageMultiplier: 0.30f,
+                damageType: DamageType.Slashing,
+                resolutionEffect: ActionResolutionEffect.Damage,
+                damageTags: DamageResolutionTag.None);
+            var serializedAsset = new SerializedObject(_asset);
+            serializedAsset.FindProperty("compatibleWeaponTypes").intValue = -1;
+            serializedAsset.ApplyModifiedPropertiesWithoutUndo();
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out ComboActionDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.True);
+            Assert.That(validationError, Is.Null);
+            Assert.That(definition.CompatibleWeaponTypes, Is.EqualTo(CompatibleWeaponTypes.All));
+        }
+
+        [Test]
         public void MultiEventAuthoring_CreatesPercentageHealingItemAndSequenceRequirementData()
         {
             ConfigureAsset(

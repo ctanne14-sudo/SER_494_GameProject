@@ -449,9 +449,11 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                 return false;
             }
 
-            if ((compatibleWeaponTypes & ~CompatibleWeaponTypes.All) != 0)
+            CompatibleWeaponTypes normalizedCompatibleWeaponTypes =
+                NormalizedCompatibleWeaponTypes;
+            if ((normalizedCompatibleWeaponTypes & ~CompatibleWeaponTypes.All) != 0)
             {
-                validationError = $"{name} must support at least one known Weapon Type.";
+                validationError = $"{name} contains an unknown compatible Weapon Type.";
                 return false;
             }
 
@@ -740,7 +742,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         private void OnValidate()
         {
-            if (compatibleWeaponTypes == CompatibleWeaponTypes.None)
+            if (compatibleWeaponTypes == CompatibleWeaponTypes.None
+                || (int)compatibleWeaponTypes == -1)
             {
                 compatibleWeaponTypes = CompatibleWeaponTypes.All;
             }
@@ -872,6 +875,7 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
 
         private CompatibleWeaponTypes NormalizedCompatibleWeaponTypes =>
             compatibleWeaponTypes == CompatibleWeaponTypes.None
+                || (int)compatibleWeaponTypes == -1
                 ? CompatibleWeaponTypes.All
                 : compatibleWeaponTypes;
 

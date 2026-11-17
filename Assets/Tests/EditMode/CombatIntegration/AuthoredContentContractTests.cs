@@ -4,6 +4,7 @@ using System.IO;
 using NUnit.Framework;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
@@ -94,7 +95,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
-        public void InitialPlayerState_ActionSetAndLoadoutsResolveThroughDefaultCatalog()
+        public void InitialPlayerState_ActionSetResolvesAndLoadoutsStartEmpty()
         {
             ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
             Assert.That(catalog, Is.Not.Null,
@@ -120,7 +121,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                 "Initial Player State must unlock at least one Combo Loadout.");
             foreach (PlayerComboLoadoutState loadout in state.ComboLoadouts.Loadouts)
             {
-                AssertLoadoutReferencesOwnedActions(loadout, state, catalog);
                 Assert.That(
                     PlayerStateComboConfigurationBuilder.TryBuildLoadout(
                         loadout,
@@ -130,22 +130,92 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                         out string buildError),
                     Is.True,
                     $"Initial Loadout '{loadout.Name}' cannot be built: {buildError}");
-
-                ComboValidationResult result = ComboLoadoutValidator.Validate(
-                    configurations,
-                    new ComboValidationLimits(
-                        PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
-                        state.MaximumMana,
-                        state.MaximumCombatStamina));
-                Assert.That(result.IsValid, Is.True,
-                    $"Initial Loadout '{loadout.Name}' violates battle rules: "
-                    + DescribeIssues(result.Issues));
+                Assert.That(configurations, Is.Empty,
+                    $"Initial Loadout '{loadout.Name}' should be configured by the player.");
+                for (int comboIndex = 0; comboIndex < loadout.Combos.Count; comboIndex++)
+                {
+                    Assert.That(loadout.Combos[comboIndex].GetAssignedActionIds(), Is.Empty,
+                        $"Initial Loadout '{loadout.Name}', Combo {comboIndex + 1} is not empty.");
+                }
             }
 
             Assert.That(
                 state.ComboLoadouts.Find(state.ComboLoadouts.ActiveLoadoutId),
                 Is.Not.Null,
                 "Initial Active Loadout ID must reference an unlocked Loadout.");
+        }
+
+        [Test]
+        public void GreatswordActions_ContainApprovedNewActionsAndOvercommitPenalty()
+        {
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            Assert.That(catalog, Is.Not.Null);
+
+            string[] newActionIds =
+            {
+                "greatsword.opening.vertical-slash",
+                "greatsword.opening.leaping-slash",
+                "greatsword.opening.double-draw-slash",
+                "greatsword.main.rising-strong-strike",
+                "greatsword.main.horizontal-strike",
+                "greatsword.main.rage-slash",
+                "greatsword.closing.overcommit-thrust",
+                "greatsword.closing.leaping-sweep",
+                "greatsword.closing.horizontal-strike",
+                "greatsword.linked.shoulder-tackle-ii",
+                "greatsword.linked.horizontal-strike",
+                "greatsword.linked.vertical-horizontal-strike"
+            };
+            for (int index = 0; index < newActionIds.Length; index++)
+            {
+                Assert.That(
+                    catalog.TryCreateDefinition(
+                        newActionIds[index],
+                        out _,
+                        out string validationError),
+                    Is.True,
+                    $"New Greatsword Action '{newActionIds[index]}' is missing or invalid: "
+                    + validationError);
+            }
+
+            ComboActionDefinition shoulderTackle =
+                CreateAction(catalog, "greatsword.linked.shoulder-tackle");
+            Assert.That(shoulderTackle.DisplayName, Is.EqualTo("Shoulder Tackle I [L]"));
+
+            ComboActionDefinition leapingSweep =
+                CreateAction(catalog, "greatsword.opening.leaping-sweep");
+            Assert.That(leapingSweep.TimelineCost, Is.EqualTo(9));
+            Assert.That(leapingSweep.StaminaCost, Is.EqualTo(5));
+            AssertDamage(leapingSweep.ResolutionEvents[0], 6, 1.20d, DamageType.Slashing);
+            Assert.That(
+                leapingSweep.ResolutionEvents[0].DamageTags
+                & DamageResolutionTag.Overcommit,
+                Is.Not.EqualTo(DamageResolutionTag.None));
+            AssertDisruption(
+                leapingSweep.ResolutionEvents[0].OnHitDisruption,
+                ActionDisruptionType.Flinch,
+                2);
+            AssertOvercommitPenalty(leapingSweep.ResolutionEvents[0]);
+            Assert.That(leapingSweep.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(leapingSweep.ActiveWindows[0].StartOffset, Is.EqualTo(4));
+            Assert.That(leapingSweep.ActiveWindows[0].EndOffset, Is.EqualTo(6));
+            Assert.That(leapingSweep.ActiveWindows[0].SuperArmorLevel, Is.EqualTo(3));
+
+            ComboActionDefinition leapingSlash =
+                CreateAction(catalog, "greatsword.opening.leaping-slash");
+            AssertOvercommitPenalty(leapingSlash.ResolutionEvents[0]);
+            ComboActionDefinition overcommitThrust =
+                CreateAction(catalog, "greatsword.closing.overcommit-thrust");
+            AssertOvercommitPenalty(overcommitThrust.ResolutionEvents[0]);
+
+            ComboActionDefinition rageSlash =
+                CreateAction(catalog, "greatsword.main.rage-slash");
+            ActionResolutionDefinition rageBuff = rageSlash.ResolutionEvents[0];
+            Assert.That(rageBuff.Offset, Is.EqualTo(3));
+            Assert.That(rageBuff.StatusEffect, Is.Not.Null);
+            Assert.That(rageBuff.StatusEffect.DurationType,
+                Is.EqualTo(CombatStatusDurationType.Rounds));
+            Assert.That(rageBuff.StatusEffect.Duration, Is.EqualTo(1));
         }
 
         [Test]
@@ -565,6 +635,56 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             Assert.That(objectBlock,
                 Does.Contain("battleSceneName: CombatSandbox"),
                 $"'{objectName}' must enter the formal combat scene.");
+        }
+
+        private static ComboActionDefinition CreateAction(
+            ComboActionCatalogAsset catalog,
+            string actionId)
+        {
+            Assert.That(
+                catalog.TryCreateDefinition(
+                    actionId,
+                    out ComboActionDefinition definition,
+                    out string validationError),
+                Is.True,
+                validationError);
+            return definition;
+        }
+
+        private static void AssertDamage(
+            ActionResolutionDefinition resolution,
+            int offset,
+            double multiplier,
+            DamageType damageType)
+        {
+            Assert.That(resolution.Offset, Is.EqualTo(offset));
+            Assert.That(resolution.DamageEffect, Is.Not.Null);
+            Assert.That(resolution.DamageEffect.Components, Has.Count.EqualTo(1));
+            Assert.That(resolution.DamageEffect.Components[0].Type,
+                Is.EqualTo(damageType));
+            Assert.That(resolution.DamageEffect.Components[0].ActionMultiplier,
+                Is.EqualTo(multiplier).Within(0.0001d));
+        }
+
+        private static void AssertOvercommitPenalty(ActionResolutionDefinition resolution)
+        {
+            Assert.That(
+                resolution.DamageTags & DamageResolutionTag.Overcommit,
+                Is.Not.EqualTo(DamageResolutionTag.None));
+            AssertDisruption(
+                resolution.OnEvadedDisruption,
+                ActionDisruptionType.Stagger,
+                2);
+        }
+
+        private static void AssertDisruption(
+            ActionDisruptionDefinition disruption,
+            ActionDisruptionType type,
+            int duration)
+        {
+            Assert.That(disruption, Is.Not.Null);
+            Assert.That(disruption.Type, Is.EqualTo(type));
+            Assert.That(disruption.Duration, Is.EqualTo(duration));
         }
 
         private static IReadOnlyList<TAsset> LoadAssets<TAsset>(string folder)

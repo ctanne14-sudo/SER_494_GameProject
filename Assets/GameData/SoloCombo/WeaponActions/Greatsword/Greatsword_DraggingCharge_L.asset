@@ -52,6 +52,10 @@ MonoBehaviour:
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 4
+    resolutionWindowEnd: 4
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -66,6 +70,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 0
@@ -85,6 +90,10 @@ MonoBehaviour:
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 6
+    resolutionWindowEnd: 6
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -99,6 +108,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 0

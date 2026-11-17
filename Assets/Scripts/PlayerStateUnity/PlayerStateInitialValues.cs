@@ -21,28 +21,23 @@ namespace SER494.Gameplay.PlayerState.Unity
         {
             "greatsword.opening.sweeping-slash",
             "greatsword.opening.draw-slash",
-            "greatsword.opening.quick-draw-slash",
-            "greatsword.opening.leaping-sweep",
+            "greatsword.opening.vertical-slash",
             "greatsword.main.charged-slash",
-            "greatsword.main.vertical-slash",
             "greatsword.main.clash-slash",
-            "greatsword.main.strong-charged-slash",
+            "greatsword.main.rising-strong-strike",
             "greatsword.closing.empowered-sheathe",
-            "greatsword.closing.double-sweep",
-            "greatsword.closing.steadfast-slash",
             "greatsword.closing.sidestep-sheathe",
+            "greatsword.closing.double-sweep",
             "greatsword.linked.shoulder-tackle",
             "greatsword.linked.guarding-charge",
-            "greatsword.linked.dragging-charge",
             "greatsword.linked.vertical-slash"
         };
 
         private static readonly string[] InitialCommonActionIds =
         {
             "common.opening.prepare",
-            "common.main.focused-guard-1",
+            "common.main.use-healing-potion",
             "common.closing.breather-1",
-            "common.linked.use-healing-potion",
             "common.linked.use-vitality-tonic"
         };
 
@@ -101,7 +96,6 @@ namespace SER494.Gameplay.PlayerState.Unity
             ApplyStartingEquipment(state);
             ApplyStartingInventory(state);
             ApplyStartingActions(state);
-            ApplyStartingGreatswordLoadout(state);
             return state;
         }
 
@@ -129,57 +123,6 @@ namespace SER494.Gameplay.PlayerState.Unity
         {
             LearnAll(state, InitialGreatswordActionIds);
             LearnAll(state, InitialCommonActionIds);
-        }
-
-        private static void ApplyStartingGreatswordLoadout(PlayerState state)
-        {
-            PlayerComboLoadoutState loadout = state.ComboLoadouts.ActiveLoadout;
-            loadout.Rename("Greatsword Loadout");
-            loadout.SetCombo(0, CreateCombo(
-                "Charge Timing",
-                "greatsword.opening.quick-draw-slash",
-                "greatsword.main.charged-slash",
-                "greatsword.closing.empowered-sheathe",
-                "greatsword.linked.shoulder-tackle",
-                PreparedLinkedActionPlacement.AfterMain));
-            loadout.SetCombo(1, CreateCombo(
-                "Clash and Guard",
-                "greatsword.opening.leaping-sweep",
-                "greatsword.main.clash-slash",
-                "greatsword.closing.sidestep-sheathe",
-                "greatsword.linked.guarding-charge",
-                PreparedLinkedActionPlacement.AfterMain));
-            loadout.SetCombo(2, CreateCombo(
-                "Armor and Recovery",
-                "greatsword.opening.sweeping-slash",
-                "greatsword.main.strong-charged-slash",
-                "greatsword.closing.steadfast-slash",
-                "common.linked.use-healing-potion",
-                PreparedLinkedActionPlacement.AfterClosing));
-            loadout.SetCombo(3, CreateCombo(
-                "Split Damage",
-                "greatsword.opening.draw-slash",
-                "greatsword.main.vertical-slash",
-                "greatsword.closing.double-sweep",
-                "greatsword.linked.vertical-slash",
-                PreparedLinkedActionPlacement.AfterMain));
-        }
-
-        private static PreparedComboState CreateCombo(
-            string name,
-            string openingActionId,
-            string mainActionId,
-            string closingActionId,
-            string linkedActionId,
-            PreparedLinkedActionPlacement linkedPlacement)
-        {
-            return new PreparedComboState(
-                name,
-                openingActionId,
-                mainActionId,
-                closingActionId,
-                linkedActionId,
-                linkedPlacement);
         }
 
         private static void LearnAll(PlayerState state, string[] actionIds)

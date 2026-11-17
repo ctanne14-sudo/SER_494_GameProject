@@ -226,8 +226,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             RecordCurrentMousePosition();
             SetNavigationInputMode(openedWithNavigationInput);
 
-            ExplorationMenuEditorPreviewContent.GrantTestEquipment();
-            ExplorationMenuEditorPreviewContent.GrantComboLoadouts();
             ShowStatus();
             if (_usesNavigationInput)
             {
@@ -854,16 +852,23 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     actionCatalog,
                     out IReadOnlyList<ComboConfiguration> configurations,
                     out _);
+                int configurationIndex = 0;
                 for (int index = 0; index < loadout.Combos.Count; index++)
                 {
+                    PreparedComboState preparedCombo = loadout.Combos[index];
                     var previewRow = new VisualElement();
                     previewRow.AddToClassList("loadout-combo-preview-row");
-                    var comboName = new Label($"{index + 1}. {loadout.Combos[index].Name}");
+                    var comboName = new Label($"{index + 1}. {preparedCombo.Name}");
                     comboName.AddToClassList("loadout-combo-name");
                     previewRow.Add(comboName);
-                    if (built)
+                    if (built
+                        && preparedCombo.GetAssignedActionIds().Count > 0
+                        && configurationIndex < configurations.Count)
                     {
-                        AddCompactTimelinePreview(previewRow, configurations[index]);
+                        AddCompactTimelinePreview(
+                            previewRow,
+                            configurations[configurationIndex]);
+                        configurationIndex++;
                     }
 
                     card.Add(previewRow);
@@ -1106,21 +1111,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void AddDraftEditorControls(PersistentPlayerState state)
         {
-            bool built = TryBuildDraftLoadout(
-                _selectedLoadoutDraft,
-                state,
-                ComboActionCatalogAsset.LoadDefault(),
-                out IReadOnlyList<ComboConfiguration> configurations,
-                out _);
-            ComboValidationResult validation = built
-                ? ComboLoadoutValidator.Validate(
-                    configurations,
-                    new ComboValidationLimits(
-                        PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
-                        state.MaximumMana,
-                        state.MaximumCombatStamina))
-                : null;
-            bool isValid = validation != null && validation.IsValid;
+            bool isValid = TryValidateCurrentCombo(out _, out _);
 
             bool hasComboChanges = _selectedLoadoutDraft.HasComboChanges(_selectedComboIndex);
             EnsureComboActionHeading();
@@ -1692,13 +1683,70 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private bool TryApplyCurrentCombo(out string validationError)
         {
-            if (!TryValidateSelectedDraft(out _, out validationError))
+            if (!TryValidateCurrentCombo(out _, out validationError))
             {
                 return false;
             }
 
             _selectedLoadoutDraft.ApplyCombo(_selectedComboIndex);
             return true;
+        }
+
+        private bool TryValidateCurrentCombo(
+            out ComboValidationResult validation,
+            out string validationError)
+        {
+            validation = null;
+            validationError = null;
+            if (_selectedLoadoutDraft == null
+                || _selectedComboIndex < 0
+                || _selectedComboIndex >= _selectedLoadoutDraft.Combos.Count)
+            {
+                validationError = "A Combo must be selected before it can be applied.";
+                return false;
+            }
+
+            if (!TryGetContext(out PersistentPlayerState state, out _))
+            {
+                validationError = "Persistent Player State is unavailable.";
+                return false;
+            }
+
+            PreparedComboState prepared;
+            try
+            {
+                prepared = _selectedLoadoutDraft.Combos[_selectedComboIndex]
+                    .CreatePreparedState();
+            }
+            catch (ArgumentException exception)
+            {
+                validationError = exception.Message;
+                return false;
+            }
+
+            if (!PlayerStateComboConfigurationBuilder.TryBuildCombo(
+                    prepared,
+                    state,
+                    ComboActionCatalogAsset.LoadDefault(),
+                    out ComboConfiguration configuration,
+                    out validationError))
+            {
+                return false;
+            }
+
+            validation = ComboValidator.Validate(
+                configuration,
+                new ComboValidationLimits(
+                    PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
+                    state.MaximumMana,
+                    state.MaximumCombatStamina));
+            if (validation.IsValid)
+            {
+                return true;
+            }
+
+            validationError = ExplorationMenuActionTextFormatter.FormatFirstIssue(validation);
+            return false;
         }
 
         private void TryExitCurrentCombo(Action continuation)

@@ -44,6 +44,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         private bool _transitionStarted;
         private string _awaitedBattleSceneName = string.Empty;
+        private string _entryValidationMessage = string.Empty;
+        private float _entryValidationMessageUntil;
 
         private void Reset()
         {
@@ -82,8 +84,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 Debug.LogWarning(
                     $"Battle entry could not prepare the active Player Loadout: {loadoutError}",
                     this);
+                ShowEntryValidationMessage(loadoutError);
                 return;
             }
+
+            _entryValidationMessage = string.Empty;
 
             if (!Application.CanStreamedLevelBeLoaded(battleSceneName))
             {
@@ -121,6 +126,40 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         private void OnDestroy()
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+        }
+
+        private void OnGUI()
+        {
+            if (string.IsNullOrWhiteSpace(_entryValidationMessage)
+                || Time.unscaledTime >= _entryValidationMessageUntil)
+            {
+                return;
+            }
+
+            const float width = 640f;
+            const float height = 58f;
+            Rect area = new Rect(
+                (Screen.width - width) * 0.5f,
+                Screen.height - height - 90f,
+                width,
+                height);
+            GUI.Box(area, GUIContent.none);
+
+            var style = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 18,
+                wordWrap = true
+            };
+            GUI.Label(area, _entryValidationMessage, style);
+        }
+
+        private void ShowEntryValidationMessage(string message)
+        {
+            _entryValidationMessage = string.IsNullOrWhiteSpace(message)
+                ? "Configure at least one Combo before entering battle."
+                : message;
+            _entryValidationMessageUntil = Time.unscaledTime + 4f;
         }
 
         public void Configure(

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Greatsword_ShoulderTackle_L
   m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.ComboActionAsset
   actionId: greatsword.linked.shoulder-tackle
-  displayName: 'Shoulder Tackle [L]'
+  displayName: 'Shoulder Tackle I [L]'
   category: 3
   compatibleWeaponTypes: 1
   requiredPreviousActionStatusId: 
@@ -52,6 +52,10 @@ MonoBehaviour:
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 2
+    resolutionWindowEnd: 2
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -66,6 +70,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 0
