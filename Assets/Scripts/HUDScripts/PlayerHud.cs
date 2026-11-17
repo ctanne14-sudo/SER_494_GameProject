@@ -32,6 +32,7 @@ public class PlayerHud : MonoBehaviour {
     {
         displayHP = hc.playerHP;
         hpText.text = displayHP + " / " + hc.maxHP;
+        hpSlider.maxValue = hc.maxHP;
         hpSlider.value = displayHP;
 
         displayStamina = ps.stamina;
