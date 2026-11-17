@@ -10,16 +10,17 @@ public class Inventory : MonoBehaviour
 
     [Header("Hotbar")]
     [SerializeField] private HotbarSlot[] hotbarSlots;  //List of slots in hotbar
+    public int rowCount;
 
     [Header("Hand")]
     [SerializeField] private GameObject spawnPoint; //Spawn point for held items
     [Header("Inventory Slot")]
 
-    [SerializeField] private GameObject invSlotPrefab;  //Prefab for added slots to inventory
+    [SerializeField] private GameObject invSlotObject;  //Initial Object to clone for added slots to inventory
 
     [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
     private List<Item> inInventory = new List<Item>();  //List of items in inventory/hotbar
-    public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
+    [HideInInspector] public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
     private InvSlot prevInvSlot = null;     //Previous selected inventory slot
 
     private bool openInventory = false;     //True if inventory is opened
@@ -41,7 +42,10 @@ public class Inventory : MonoBehaviour
             hotbarSlots[i].setNum(i + 1);
         }
         for (int i = 0; i < invSlots.Count; i++)
-            invSlots[i].addInventory(this, i);
+        {
+            bool endRow = (i % 8) > 5;
+            invSlots[i].addInventory(this, endRow);
+        }
 
         addInvSlot();
     }
@@ -64,9 +68,10 @@ public class Inventory : MonoBehaviour
             useItem();
 
         //Updates inventory once items have no uses left
-        foreach (Item item in inInventory) 
-            if (item.usesLeft <= 0) {
-                removeItem(item);
+        for (int i = 0; i < inInventory.Count; i++) 
+            if (inInventory[i].usesLeft <= 0) {
+                removeItem(inInventory[i]);
+                i--;
             }
         
         //Opens the inventory with Tab
@@ -150,12 +155,20 @@ public class Inventory : MonoBehaviour
     **/
     private void addInvSlot()
     {
-        while (invSlots.Count <= (((inInventory.Count / 6) + 2) * 6 - 1)) {
-            GameObject spawn = Instantiate(invSlotPrefab, invSlots[0].transform.parent, false);
+        while (invSlots.Count <= (((inInventory.Count / 8) + 2) * 8 - 1)) {
+            GameObject spawn = Instantiate(invSlotObject);
+            spawn.transform.SetParent(invSlotObject.transform.parent);
+            spawn.transform.localScale = Vector3.one;
             InvSlot slot = spawn.GetComponent<InvSlot>();
-            slot.addInventory(this, invSlots.Count);
             invSlots.Add(slot);
+            int index = invSlots.IndexOf(slot);
+            bool endRow = (index % 8) > 5;
+            slot.addInventory(this, endRow);
+            slot.setItem(null);
         }
+        rowCount = (int)Mathf.Ceil(invSlots.Count / 8);
+        RectTransform rect = (RectTransform)invSlots[0].transform.parent.transform;
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 44 + rowCount * 35 + ((rowCount -1) * 25) );
     }
 
     /**
@@ -173,7 +186,6 @@ public class Inventory : MonoBehaviour
                 {
                     addToInvSlot(i);
                 } 
-                i.invSlot.setCount();
                 return;
             }
         }
