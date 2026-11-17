@@ -44,7 +44,6 @@ public class Inventory : MonoBehaviour
         for (int i = 0; i < invSlots.Count; i++)
         {
             bool endRow = (i % 8) > 5;
-            Debug.Log("Slot: " + i + " " + endRow);
             invSlots[i].addInventory(this, endRow);
         }
 

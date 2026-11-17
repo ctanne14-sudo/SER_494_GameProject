@@ -37,8 +37,6 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         this.inventory = inventory;
         offset = endRow ? -offset : offset;
-        Debug.Log("Offset: " + offset + " " + endRow);
-
     }
 
     /**
