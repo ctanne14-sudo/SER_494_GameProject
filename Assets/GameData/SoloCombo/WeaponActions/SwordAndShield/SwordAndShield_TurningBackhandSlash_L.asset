@@ -43,6 +43,10 @@ MonoBehaviour:
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 2
+    resolutionWindowEnd: 2
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -57,6 +61,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 0
@@ -70,12 +75,16 @@ MonoBehaviour:
     onEvadedDisruptionDuration: 1
   - offset: 4
     effect: 1
-    damageMultiplier: 0.6
+    damageMultiplier: 0.5
     damageType: 0
     damageTags: 0
     healingType: 0
     healingAmount: 0
     maximumHealthHealingPercentage: 0
+    staminaRecovery: 0
+    useResolutionWindow: 0
+    resolutionWindowStart: 4
+    resolutionWindowEnd: 4
     consumedItemId: 
     consumedItemDisplayName: 
     consumedItemAmount: 0
@@ -90,6 +99,7 @@ MonoBehaviour:
     statusModifierType: 0
     statusModifierAmount: 0
     statusStackingPolicy: 0
+    statusStaminaRecoveryMultiplierBonus: 0
     clashDamageReduction: 0
     clashSuperArmorLevel: 0
     appliesOnHitDisruption: 0

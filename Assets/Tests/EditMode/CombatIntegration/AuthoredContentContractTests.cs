@@ -219,6 +219,111 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void SwordAndShieldActions_ContainApprovedNewActionsAndUpdatedBehavior()
+        {
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            Assert.That(catalog, Is.Not.Null);
+
+            string[] newActionIds =
+            {
+                "sword-and-shield.opening.double-slash",
+                "sword-and-shield.opening.dashing-shield-bash",
+                "sword-and-shield.opening.sliding-assault",
+                "sword-and-shield.main.precision-slash",
+                "sword-and-shield.main.sword-dance-1",
+                "sword-and-shield.main.sword-dance-2",
+                "sword-and-shield.closing.fourfold-turning-slash",
+                "sword-and-shield.closing.shield-bash-jump",
+                "sword-and-shield.closing.turning-backhand-slash",
+                "sword-and-shield.linked.shield-bash",
+                "sword-and-shield.linked.sword-shield-combo",
+                "sword-and-shield.linked.precision-counter"
+            };
+            for (int index = 0; index < newActionIds.Length; index++)
+            {
+                Assert.That(
+                    catalog.TryCreateDefinition(
+                        newActionIds[index],
+                        out _,
+                        out string validationError),
+                    Is.True,
+                    $"New Sword and Shield Action '{newActionIds[index]}' is missing or invalid: "
+                    + validationError);
+            }
+
+            ComboActionDefinition dashingShieldBash =
+                CreateAction(catalog, "sword-and-shield.opening.dashing-shield-bash");
+            Assert.That(dashingShieldBash.TimelineCost, Is.EqualTo(7));
+            Assert.That(dashingShieldBash.StaminaCost, Is.EqualTo(2));
+            AssertDamage(dashingShieldBash.ResolutionEvents[0], 6, 0.80d, DamageType.Blunt);
+            Assert.That(dashingShieldBash.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(dashingShieldBash.ActiveWindows[0].StartOffset, Is.EqualTo(1));
+            Assert.That(dashingShieldBash.ActiveWindows[0].EndOffset, Is.EqualTo(5));
+            Assert.That(dashingShieldBash.ActiveWindows[0].DamageReduction,
+                Is.EqualTo(0.20d).Within(0.0001d));
+
+            ComboActionDefinition slidingAssault =
+                CreateAction(catalog, "sword-and-shield.opening.sliding-assault");
+            AssertResolutionWindow(
+                slidingAssault.ResolutionEvents[0],
+                ActionResolutionEffect.Evade,
+                2,
+                4);
+            AssertDamage(slidingAssault.ResolutionEvents[1], 6, 0.40d, DamageType.Slashing);
+            AssertDamage(slidingAssault.ResolutionEvents[2], 7, 0.30d, DamageType.Blunt);
+
+            ComboActionDefinition precisionSlash =
+                CreateAction(catalog, "sword-and-shield.main.precision-slash");
+            AssertDamage(precisionSlash.ResolutionEvents[0], 3, 0.60d, DamageType.Slashing);
+            AssertResolutionWindow(
+                precisionSlash.ResolutionEvents[0],
+                ActionResolutionEffect.Damage,
+                3,
+                5);
+
+            ComboActionDefinition shieldBashJump =
+                CreateAction(catalog, "sword-and-shield.closing.shield-bash-jump");
+            Assert.That(shieldBashJump.ResolutionEvents[1].StatusEffect, Is.Not.Null);
+            Assert.That(shieldBashJump.ResolutionEvents[1].StatusEffect.StatusId,
+                Is.EqualTo("sequence.airborne-setup"));
+
+            ComboActionDefinition aerialShieldBash =
+                CreateAction(catalog, "sword-and-shield.closing.aerial-shield-bash");
+            Assert.That(aerialShieldBash.PreviousActionStatusRequirement, Is.Not.Null);
+            Assert.That(aerialShieldBash.PreviousActionStatusRequirement.StatusId,
+                Is.EqualTo("sequence.airborne-setup"));
+            AssertDisruption(
+                aerialShieldBash.ResolutionEvents[1].OnHitDisruption,
+                ActionDisruptionType.Flinch,
+                1);
+
+            ComboActionDefinition closingBackhand =
+                CreateAction(catalog, "sword-and-shield.closing.turning-backhand-slash");
+            AssertResolutionWindow(
+                closingBackhand.ResolutionEvents[0],
+                ActionResolutionEffect.Evade,
+                2,
+                4);
+            AssertDamage(closingBackhand.ResolutionEvents[1], 5, 0.50d, DamageType.Slashing);
+            AssertDamage(closingBackhand.ResolutionEvents[2], 6, 0.30d, DamageType.Slashing);
+
+            ComboActionDefinition linkedBackhand =
+                CreateAction(catalog, "sword-and-shield.linked.turning-backhand-slash");
+            Assert.That(linkedBackhand.TimelineCost, Is.EqualTo(6));
+            Assert.That(linkedBackhand.StaminaCost, Is.EqualTo(4));
+            AssertDamage(linkedBackhand.ResolutionEvents[1], 4, 0.50d, DamageType.Slashing);
+
+            ComboActionDefinition precisionCounter =
+                CreateAction(catalog, "sword-and-shield.linked.precision-counter");
+            AssertResolutionWindow(
+                precisionCounter.ResolutionEvents[0],
+                ActionResolutionEffect.Guard,
+                1,
+                3);
+            AssertDamage(precisionCounter.ResolutionEvents[1], 4, 0.40d, DamageType.Slashing);
+        }
+
+        [Test]
         public void EncounterAssets_HaveUniqueIdsAndCreateValidDefinitions()
         {
             IReadOnlyList<SoloComboEncounterDefinitionAsset> encounters =
@@ -664,6 +769,18 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                 Is.EqualTo(damageType));
             Assert.That(resolution.DamageEffect.Components[0].ActionMultiplier,
                 Is.EqualTo(multiplier).Within(0.0001d));
+        }
+
+        private static void AssertResolutionWindow(
+            ActionResolutionDefinition resolution,
+            ActionResolutionEffect effect,
+            int start,
+            int end)
+        {
+            Assert.That(resolution.Effect, Is.EqualTo(effect));
+            Assert.That(resolution.HasResolutionWindow, Is.True);
+            Assert.That(resolution.ResolutionWindowStart, Is.EqualTo(start));
+            Assert.That(resolution.ResolutionWindowEnd, Is.EqualTo(end));
         }
 
         private static void AssertOvercommitPenalty(ActionResolutionDefinition resolution)

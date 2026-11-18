@@ -674,6 +674,51 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                         ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing),
                         ResolutionSpec.Simple(4, ActionResolutionEffect.Guard)
                     }),
+                new ActionSpec(
+                    "SwordAndShield_DoubleSlash_O",
+                    "sword-and-shield.opening.double-slash",
+                    "Double Slash [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 3,
+                    staminaCost: 4,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(1, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_DashingShieldBash_O",
+                    "sword-and-shield.opening.dashing-shield-bash",
+                    "Dashing Shield Bash [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 7,
+                    staminaCost: 2,
+                    weapon,
+                    resolutions: DamageOnly(6, 0.80f, DamageType.Blunt),
+                    activeWindows: new[]
+                    {
+                        ActiveWindowSpec.Defense(
+                            "sword-and-shield.dashing-shield-bash.defense",
+                            "Dashing Shield Bash Defense",
+                            startOffset: 1,
+                            endOffset: 5,
+                            damageReduction: 0.20f)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_SlidingAssault_O",
+                    "sword-and-shield.opening.sliding-assault",
+                    "Sliding Assault [O]",
+                    ComboActionCategory.Opening,
+                    timelineCost: 8,
+                    staminaCost: 4,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Window(2, 4, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(6, 0.40f, DamageType.Slashing),
+                        ResolutionSpec.Damage(7, 0.30f, DamageType.Blunt)
+                    }),
 
                 new ActionSpec(
                     "SwordAndShield_SwordShieldCombo_M",
@@ -742,6 +787,53 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                         ResolutionSpec.Simple(7, ActionResolutionEffect.Guard),
                         ResolutionSpec.Damage(8, 0.40f, DamageType.Piercing)
                     }),
+                new ActionSpec(
+                    "SwordAndShield_PrecisionSlash_M",
+                    "sword-and-shield.main.precision-slash",
+                    "Precision Slash [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 6,
+                    staminaCost: 2,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.DamageWindow(
+                            start: 3,
+                            end: 5,
+                            multiplier: 0.60f,
+                            damageType: DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_SwordDanceI_M",
+                    "sword-and-shield.main.sword-dance-1",
+                    "Sword Dance I [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 8,
+                    staminaCost: 5,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Simple(2, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(3, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(4, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(5, 0.40f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_SwordDanceII_M",
+                    "sword-and-shield.main.sword-dance-2",
+                    "Sword Dance II [M]",
+                    ComboActionCategory.Main,
+                    timelineCost: 9,
+                    staminaCost: 7,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Simple(2, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Simple(3, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(4, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(5, 0.30f, DamageType.Slashing),
+                        ResolutionSpec.Damage(6, 0.40f, DamageType.Slashing)
+                    }),
 
                 new ActionSpec(
                     "SwordAndShield_RestrainingSlash_C",
@@ -802,6 +894,53 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     },
                     requiredPreviousActionStatusId: AirborneSetupStatusId,
                     requiredPreviousActionStatusDisplayName: AirborneSetupDisplayName),
+                new ActionSpec(
+                    "SwordAndShield_FourfoldTurningSlash_C",
+                    "sword-and-shield.closing.fourfold-turning-slash",
+                    "Fourfold Turning Slash [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 8,
+                    staminaCost: 8,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Simple(3, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(4, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Simple(5, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(6, 0.30f, DamageType.Blunt),
+                        ResolutionSpec.Damage(7, 0.30f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_ShieldBashJump_C",
+                    "sword-and-shield.closing.shield-bash-jump",
+                    "Shield Bash Jump [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 4,
+                    staminaCost: 2,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(3, 0.40f, DamageType.Blunt),
+                        ResolutionSpec.StatusSetup(
+                            4,
+                            AirborneSetupStatusId,
+                            AirborneSetupDisplayName)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_TurningBackhandSlash_C",
+                    "sword-and-shield.closing.turning-backhand-slash",
+                    "Turning Backhand Slash [C]",
+                    ComboActionCategory.Closing,
+                    timelineCost: 7,
+                    staminaCost: 6,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Window(2, 4, ActionResolutionEffect.Evade),
+                        ResolutionSpec.Damage(5, 0.50f, DamageType.Slashing),
+                        ResolutionSpec.Damage(6, 0.30f, DamageType.Slashing)
+                    }),
 
                 new ActionSpec(
                     "SwordAndShield_TurningBackhandSlash_L",
@@ -814,7 +953,7 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     resolutions: new[]
                     {
                         ResolutionSpec.Simple(2, ActionResolutionEffect.Evade),
-                        ResolutionSpec.Damage(4, 0.60f, DamageType.Slashing)
+                        ResolutionSpec.Damage(4, 0.50f, DamageType.Slashing)
                     }),
                 new ActionSpec(
                     "SwordAndShield_RisingSlash_L",
@@ -862,6 +1001,45 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     {
                         ResolutionSpec.Damage(1, 0.30f, DamageType.Slashing),
                         ResolutionSpec.Damage(2, 0.40f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_ShieldBash_L",
+                    "sword-and-shield.linked.shield-bash",
+                    "Shield Bash [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 2,
+                    staminaCost: 1,
+                    weapon,
+                    resolutions: DamageOnly(2, 0.20f, DamageType.Blunt)),
+                new ActionSpec(
+                    "SwordAndShield_SwordShieldCombo_L",
+                    "sword-and-shield.linked.sword-shield-combo",
+                    "Sword and Shield Combo [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 7,
+                    staminaCost: 7,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Damage(2, 0.10f, DamageType.Slashing),
+                        ResolutionSpec.Damage(3, 0.10f, DamageType.Blunt),
+                        ResolutionSpec.Damage(4, 0.20f, DamageType.Slashing),
+                        ResolutionSpec.Damage(5, 0.20f, DamageType.Blunt),
+                        ResolutionSpec.Simple(6, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(7, 0.40f, DamageType.Slashing)
+                    }),
+                new ActionSpec(
+                    "SwordAndShield_PrecisionCounter_L",
+                    "sword-and-shield.linked.precision-counter",
+                    "Precision Counter [L]",
+                    ComboActionCategory.Linked,
+                    timelineCost: 4,
+                    staminaCost: 6,
+                    weapon,
+                    resolutions: new[]
+                    {
+                        ResolutionSpec.Window(1, 3, ActionResolutionEffect.Guard),
+                        ResolutionSpec.Damage(4, 0.40f, DamageType.Slashing)
                     })
             };
         }
@@ -1844,11 +2022,14 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     CombatStatusStackingPolicy.RefreshDuration);
             }
 
-            public static ResolutionSpec GuardWindow(int start, int end)
+            public static ResolutionSpec Window(
+                int start,
+                int end,
+                ActionResolutionEffect effect)
             {
                 return new ResolutionSpec(
                     start,
-                    ActionResolutionEffect.Guard,
+                    effect,
                     0f,
                     DamageType.Slashing,
                     DamageResolutionTag.None,
@@ -1866,6 +2047,39 @@ namespace SER494.Gameplay.Combat.Editor.SoloCombo
                     CombatStatusStackingPolicy.RefreshDuration,
                     resolutionWindowStart: start,
                     resolutionWindowEnd: end);
+            }
+
+            public static ResolutionSpec DamageWindow(
+                int start,
+                int end,
+                float multiplier,
+                DamageType damageType)
+            {
+                return new ResolutionSpec(
+                    start,
+                    ActionResolutionEffect.Damage,
+                    multiplier,
+                    damageType,
+                    DamageResolutionTag.None,
+                    null,
+                    null,
+                    0f,
+                    0,
+                    null,
+                    null,
+                    1,
+                    CombatStatusModifierDirection.DamageDealt,
+                    DamageModifierScope.All,
+                    DamageType.Slashing,
+                    0f,
+                    CombatStatusStackingPolicy.RefreshDuration,
+                    resolutionWindowStart: start,
+                    resolutionWindowEnd: end);
+            }
+
+            public static ResolutionSpec GuardWindow(int start, int end)
+            {
+                return Window(start, end, ActionResolutionEffect.Guard);
             }
 
             public static ResolutionSpec HealMaximumHealth(
