@@ -37,6 +37,7 @@ public class PlayerHud : MonoBehaviour {
 
         displayStamina = ps.stamina;
         staminaText.text = displayStamina + " / " + ps.maxStamina;
+        staminaSlider.maxValue = ps.maxStamina;
         staminaSlider.value = displayStamina;
 
         displayGold = inventory.gold;
@@ -51,7 +52,7 @@ public class PlayerHud : MonoBehaviour {
         hpSlider.maxValue = hc.maxHP;
         if (displayHP != currentHP)
         {
-            displayHP = Mathf.MoveTowards(displayHP, currentHP, 25f * Time.deltaTime);
+            displayHP = Mathf.MoveTowards(displayHP, currentHP, 100f * Time.deltaTime);
             hpSlider.value = displayHP;
         }
 
