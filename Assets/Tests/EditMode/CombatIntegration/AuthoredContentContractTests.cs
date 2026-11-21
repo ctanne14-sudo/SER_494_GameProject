@@ -324,6 +324,164 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void GlaiveAndShieldActions_ContainApprovedNewActionsAndUpdatedBehavior()
+        {
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            Assert.That(catalog, Is.Not.Null);
+
+            string[] newActionIds =
+            {
+                "glaive-and-shield.opening.diagonal-slash",
+                "glaive-and-shield.opening.heavy-strike-jump",
+                "glaive-and-shield.opening.evasive-shield-bash",
+                "glaive-and-shield.main.aerial-assault-thrust",
+                "glaive-and-shield.main.fivefold-coil",
+                "glaive-and-shield.main.aerial-whirling-slash",
+                "glaive-and-shield.closing.evasive-slash",
+                "glaive-and-shield.closing.aerial-assault-thrust",
+                "glaive-and-shield.closing.hook-strike-retreat",
+                "glaive-and-shield.linked.heavy-strike-jump",
+                "glaive-and-shield.linked.evasive-slash",
+                "glaive-and-shield.linked.hook-strike"
+            };
+            for (int index = 0; index < newActionIds.Length; index++)
+            {
+                Assert.That(
+                    catalog.TryCreateDefinition(
+                        newActionIds[index],
+                        out _,
+                        out string validationError),
+                    Is.True,
+                    $"New Glaive and Shield Action '{newActionIds[index]}' is missing or invalid: "
+                    + validationError);
+            }
+
+            ComboActionDefinition diagonalSlash =
+                CreateAction(catalog, "glaive-and-shield.opening.diagonal-slash");
+            Assert.That(diagonalSlash.TimelineCost, Is.EqualTo(7));
+            Assert.That(diagonalSlash.StaminaCost, Is.EqualTo(3));
+            AssertDamage(diagonalSlash.ResolutionEvents[0], 4, 0.50d, DamageType.Slashing);
+            AssertDamage(diagonalSlash.ResolutionEvents[1], 6, 0.50d, DamageType.Slashing);
+
+            ComboActionDefinition openingJump =
+                CreateAction(catalog, "glaive-and-shield.opening.heavy-strike-jump");
+            Assert.That(openingJump.TimelineCost, Is.EqualTo(7));
+            Assert.That(openingJump.StaminaCost, Is.EqualTo(5));
+            AssertDamage(openingJump.ResolutionEvents[0], 3, 0.40d, DamageType.Slashing);
+            AssertDamage(openingJump.ResolutionEvents[1], 5, 0.60d, DamageType.Blunt);
+            Assert.That(openingJump.ResolutionEvents[2].StatusEffect, Is.Not.Null);
+            Assert.That(openingJump.ResolutionEvents[2].Offset, Is.EqualTo(6));
+            Assert.That(openingJump.ResolutionEvents[2].StatusEffect.StatusId,
+                Is.EqualTo("sequence.airborne-setup"));
+
+            ComboActionDefinition evasiveShieldBash =
+                CreateAction(catalog, "glaive-and-shield.opening.evasive-shield-bash");
+            AssertResolutionWindow(
+                evasiveShieldBash.ResolutionEvents[0],
+                ActionResolutionEffect.Evade,
+                3,
+                5);
+            AssertDamage(
+                evasiveShieldBash.ResolutionEvents[1],
+                6,
+                0.60d,
+                DamageType.Blunt);
+            AssertDisruption(
+                evasiveShieldBash.ResolutionEvents[1].OnHitDisruption,
+                ActionDisruptionType.Flinch,
+                1);
+
+            ComboActionDefinition assaultThrust =
+                CreateAction(catalog, "glaive-and-shield.main.aerial-assault-thrust");
+            Assert.That(assaultThrust.PreviousActionStatusRequirement, Is.Not.Null);
+            Assert.That(assaultThrust.PreviousActionStatusRequirement.StatusId,
+                Is.EqualTo("sequence.airborne-setup"));
+            AssertDamage(assaultThrust.ResolutionEvents[0], 3, 0.80d, DamageType.Piercing);
+            AssertDamage(assaultThrust.ResolutionEvents[1], 6, 0.30d, DamageType.Slashing);
+            AssertDamage(assaultThrust.ResolutionEvents[2], 8, 1.00d, DamageType.Slashing);
+
+            ComboActionDefinition fivefoldCoil =
+                CreateAction(catalog, "glaive-and-shield.main.fivefold-coil");
+            Assert.That(fivefoldCoil.TimelineCost, Is.EqualTo(9));
+            Assert.That(fivefoldCoil.StaminaCost, Is.EqualTo(11));
+            Assert.That(fivefoldCoil.ResolutionEvents[0].Effect,
+                Is.EqualTo(ActionResolutionEffect.Guard));
+            Assert.That(fivefoldCoil.ResolutionEvents[0].Offset, Is.EqualTo(2));
+            AssertResolutionWindow(
+                fivefoldCoil.ResolutionEvents[3],
+                ActionResolutionEffect.Guard,
+                5,
+                7);
+            AssertDamage(fivefoldCoil.ResolutionEvents[4], 8, 0.80d, DamageType.Piercing);
+
+            ComboActionDefinition aerialWhirlingSlash =
+                CreateAction(catalog, "glaive-and-shield.main.aerial-whirling-slash");
+            Assert.That(aerialWhirlingSlash.PreviousActionStatusRequirement, Is.Not.Null);
+            Assert.That(aerialWhirlingSlash.ResolutionEvents[0].Effect,
+                Is.EqualTo(ActionResolutionEffect.Evade));
+            Assert.That(aerialWhirlingSlash.ResolutionEvents[2].Effect,
+                Is.EqualTo(ActionResolutionEffect.Evade));
+            Assert.That(aerialWhirlingSlash.ResolutionEvents[4].Effect,
+                Is.EqualTo(ActionResolutionEffect.Evade));
+            Assert.That(aerialWhirlingSlash.ResolutionEvents[6].StatusEffect, Is.Not.Null);
+            Assert.That(aerialWhirlingSlash.ResolutionEvents[6].StatusEffect.StatusId,
+                Is.EqualTo("sequence.airborne-setup"));
+
+            ComboActionDefinition closingEvasiveSlash =
+                CreateAction(catalog, "glaive-and-shield.closing.evasive-slash");
+            Assert.That(closingEvasiveSlash.ResolutionEvents[0].Effect,
+                Is.EqualTo(ActionResolutionEffect.Evade));
+            AssertDamage(
+                closingEvasiveSlash.ResolutionEvents[1],
+                3,
+                0.20d,
+                DamageType.Slashing);
+            AssertResolutionWindow(
+                closingEvasiveSlash.ResolutionEvents[2],
+                ActionResolutionEffect.Evade,
+                5,
+                7);
+
+            ComboActionDefinition retreat =
+                CreateAction(catalog, "glaive-and-shield.closing.hook-strike-retreat");
+            AssertResolutionWindow(
+                retreat.ResolutionEvents[0],
+                ActionResolutionEffect.Guard,
+                1,
+                3);
+            AssertDamage(retreat.ResolutionEvents[1], 4, 0.20d, DamageType.Slashing);
+            AssertDamage(retreat.ResolutionEvents[2], 5, 0.10d, DamageType.Piercing);
+            AssertDamage(retreat.ResolutionEvents[3], 7, 0.50d, DamageType.Slashing);
+            Assert.That(retreat.ResolutionEvents[4].Effect,
+                Is.EqualTo(ActionResolutionEffect.Evade));
+
+            ComboActionDefinition linkedJump =
+                CreateAction(catalog, "glaive-and-shield.linked.heavy-strike-jump");
+            Assert.That(linkedJump.StaminaCost, Is.EqualTo(6));
+            Assert.That(linkedJump.ResolutionEvents[2].StatusEffect, Is.Not.Null);
+
+            ComboActionDefinition linkedEvasiveSlash =
+                CreateAction(catalog, "glaive-and-shield.linked.evasive-slash");
+            Assert.That(linkedEvasiveSlash.StaminaCost, Is.EqualTo(6));
+            AssertResolutionWindow(
+                linkedEvasiveSlash.ResolutionEvents[2],
+                ActionResolutionEffect.Evade,
+                5,
+                7);
+
+            ComboActionDefinition hookStrike =
+                CreateAction(catalog, "glaive-and-shield.linked.hook-strike");
+            Assert.That(hookStrike.TimelineCost, Is.EqualTo(8));
+            Assert.That(hookStrike.StaminaCost, Is.EqualTo(5));
+            AssertResolutionWindow(
+                hookStrike.ResolutionEvents[0],
+                ActionResolutionEffect.Guard,
+                1,
+                3);
+            AssertDamage(hookStrike.ResolutionEvents[3], 7, 0.50d, DamageType.Slashing);
+        }
+
+        [Test]
         public void EncounterAssets_HaveUniqueIdsAndCreateValidDefinitions()
         {
             IReadOnlyList<SoloComboEncounterDefinitionAsset> encounters =

@@ -8,6 +8,7 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.ExplorationMenu.Unity;
+using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -316,6 +317,45 @@ namespace SER494.Gameplay.PlayModeTests
                     Has.Count.EqualTo(4),
                     $"Loadout card {index + 1} must render all four Combo rows.");
             }
+        }
+
+        [UnityTest]
+        public IEnumerator ExplorationMenu_RendersOwnedActionManualWithoutLearningItAutomatically()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            stateService.StartNewGame();
+            const string actionId = "sword-and-shield.opening.horizontal-slash";
+            string manualId = ActionManualLearningService.CreateManualItemId(actionId);
+            stateService.State.Inventory.Add(manualId, 1);
+
+            ExplorationMenuController controller =
+                Object.FindAnyObjectByType<ExplorationMenuController>();
+            Assert.That(controller, Is.Not.Null);
+            controller.gameObject.SendMessage(
+                "TryOpenMenu",
+                false,
+                SendMessageOptions.RequireReceiver);
+            controller.gameObject.SendMessage(
+                "ShowActionLearning",
+                SendMessageOptions.RequireReceiver);
+            yield return null;
+
+            UIDocument document = controller.GetComponent<UIDocument>();
+            Assert.That(document, Is.Not.Null);
+            List<Button> manualCards = document.rootVisualElement
+                .Query<Button>(className: "learning-action-card")
+                .ToList();
+            Assert.That(manualCards, Has.Count.EqualTo(1));
+            Assert.That(
+                manualCards[0].Query<Label>(className: "learning-action-title").First().text,
+                Does.Contain("Horizontal Slash [O]").And.Contain("×1"));
+            Assert.That(manualCards[0].enabledInHierarchy, Is.True);
+            Assert.That(stateService.State.ActionLibrary.Owns(actionId), Is.False,
+                "Opening the learning page must not consume a Manual or learn its Action.");
+            Assert.That(stateService.State.Inventory.GetCount(manualId), Is.EqualTo(1));
         }
 
         [UnityTest]

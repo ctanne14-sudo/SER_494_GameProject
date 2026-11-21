@@ -1766,7 +1766,7 @@ namespace SER494.Gameplay.CombatSandbox
         private void AppendGrantedRewards(BattleRewardSummary rewards)
         {
             if (rewards == null
-                || (rewards.Gold <= 0 && rewards.TotalMaterialCount <= 0))
+                || !rewards.HasAnyReward)
             {
                 return;
             }
@@ -1812,6 +1812,21 @@ namespace SER494.Gameplay.CombatSandbox
                 rewards,
                 BattleRewardSummary.ApeBeastBloodMaterialId,
                 "Ape Beast Blood");
+            if (rewards.HasActionManual)
+            {
+                string displayName = rewards.ActionManualActionId;
+                ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+                if (catalog != null
+                    && catalog.TryCreateDefinition(
+                        rewards.ActionManualActionId,
+                        out ComboActionDefinition definition,
+                        out _))
+                {
+                    displayName = definition.DisplayName;
+                }
+
+                rewardParts.Add($"Action Manual: {displayName}");
+            }
 
             AppendLog(
                 $"Battle Rewards: {string.Join(", ", rewardParts)}.",

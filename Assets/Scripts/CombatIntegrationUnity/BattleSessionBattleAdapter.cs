@@ -196,11 +196,17 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            BattleRewardSummary rewards = CreateRewards(
-                battle.Outcome,
-                encounter.Rewards,
-                rewardRandom,
-                ResolveRewardEquipmentStats(playerState));
+            if (!TryCreateRewards(
+                    battle.Outcome,
+                    encounter.Rewards,
+                    playerState,
+                    rewardRandom,
+                    ResolveRewardEquipmentStats(playerState),
+                    out BattleRewardSummary rewards,
+                    out validationError))
+            {
+                return false;
+            }
 
             try
             {
@@ -233,22 +239,43 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 out validationError);
         }
 
-        private static BattleRewardSummary CreateRewards(
+        private static bool TryCreateRewards(
             BattleOutcome outcome,
             EncounterRewardDefinition definition,
+            PersistentPlayerState playerState,
             Random random,
-            PlayerEquipmentDerivedStats equipmentStats)
+            PlayerEquipmentDerivedStats equipmentStats,
+            out BattleRewardSummary rewards,
+            out string validationError)
         {
             if (outcome != BattleOutcome.PlayerVictory && outcome != BattleOutcome.Draw)
             {
-                return BattleRewardSummary.None;
+                rewards = BattleRewardSummary.None;
+                validationError = null;
+                return true;
             }
 
-            return new BattleRewardSummary(
+            IReadOnlyDictionary<string, int> materials =
+                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls);
+            if (!ActionManualRewardRoller.TryRoll(
+                    playerState,
+                    ComboActionCatalogAsset.LoadDefault(),
+                    random,
+                    out string actionManualActionId,
+                    out validationError))
+            {
+                rewards = null;
+                return false;
+            }
+
+            rewards = new BattleRewardSummary(
                 (int)Math.Round(
                     definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
                     MidpointRounding.AwayFromZero),
-                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls));
+                materials,
+                actionManualActionId);
+            validationError = null;
+            return true;
         }
 
         private static PlayerEquipmentDerivedStats ResolveRewardEquipmentStats(
@@ -275,6 +302,13 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 {
                     _ = playerState.Inventory.GetCount(material.Key) + material.Value;
                 }
+
+                if (rewards.HasActionManual)
+                {
+                    string manualItemId = ActionManualLearningService.CreateManualItemId(
+                        rewards.ActionManualActionId);
+                    _ = playerState.Inventory.GetCount(manualItemId) + 1;
+                }
             }
         }
 
@@ -290,6 +324,14 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             foreach (KeyValuePair<string, int> material in rewards.Materials)
             {
                 playerState.Inventory.Add(material.Key, material.Value);
+            }
+
+            if (rewards.HasActionManual)
+            {
+                playerState.Inventory.Add(
+                    ActionManualLearningService.CreateManualItemId(
+                        rewards.ActionManualActionId),
+                    1);
             }
         }
     }

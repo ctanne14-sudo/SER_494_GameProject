@@ -60,6 +60,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private readonly List<Button> _chargeLevelButtons = new List<Button>();
         private readonly List<Button> _unsavedDialogButtons = new List<Button>();
         private readonly List<Button> _timelineGuideButtons = new List<Button>();
+        private readonly List<Button> _actionLearningDialogButtons = new List<Button>();
         private readonly Dictionary<Button, Action> _buttonActions =
             new Dictionary<Button, Action>();
         private readonly Dictionary<string, int> _previewChargeLevels =
@@ -79,6 +80,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private VisualElement _renameEditor;
         private VisualElement _unsavedDialog;
         private VisualElement _timelineGuideDialog;
+        private VisualElement _actionLearningDialog;
         private CompatibleWeaponTypes _actionLibraryFilter = CompatibleWeaponTypes.All;
         private bool _actionLibraryFilterInitialized;
         private bool _usesNavigationInput;
@@ -492,7 +494,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             switch (_currentPage)
             {
                 case MenuPage.Combos: return _comboButton;
-                case MenuPage.Inventory: return _inventoryButton;
+                case MenuPage.Inventory:
+                case MenuPage.ActionLearning:
+                    return _inventoryButton;
                 case MenuPage.Equipment: return _equipmentButton;
                 case MenuPage.ReturnToTitle: return _returnToTitleButton;
                 default: return _statusButton;
@@ -513,6 +517,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void HandleBack()
         {
+            if (_actionLearningDialog != null)
+            {
+                CloseActionLearningDialog();
+                return;
+            }
+
             if (_timelineGuideDialog != null)
             {
                 CloseTimelineGuideDialog();
@@ -569,6 +579,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     return;
                 }
 
+            }
+
+            if (_currentPage == MenuPage.ActionLearning)
+            {
+                ShowInventory();
+                FocusNavigationTarget(_inventoryButton);
+                return;
             }
 
             if (_currentPage == MenuPage.Equipment
@@ -2880,6 +2897,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _isInsideEquipmentPage = false;
             ClearComboControls();
             ConfigurePageHeader(ExplorationMenuText.Get("inventory.heading"));
+            AddPageHeaderButton(
+                string.Format(
+                    ExplorationMenuText.Get("inventory.learn-actions-count"),
+                    CountOwnedActionManuals(state)),
+                ShowActionLearning,
+                "learn-actions-button");
             _content.Clear();
             AddSectionHeading(ExplorationMenuText.Get("inventory.consumables"));
             AddInventoryRow(state, PlayerStateInitialValues.HealingPotionId, "Healing Potion");
@@ -2910,6 +2933,264 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 BattleRewardSummary.ApeBeastBloodMaterialId,
                 "Ape Beast Blood");
             SetSelectedNavigation(_inventoryButton);
+        }
+
+        private void ShowActionLearning()
+        {
+            ShowActionLearning(null);
+        }
+
+        private void ShowActionLearning(string message)
+        {
+            if (!TryGetContext(out PersistentPlayerState state, out _))
+            {
+                return;
+            }
+
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            _currentPage = MenuPage.ActionLearning;
+            _editingEquipmentSlot = EquipmentSlot.None;
+            _isInsideEquipmentPage = false;
+            ClearComboControls();
+            ConfigurePageHeader(ExplorationMenuText.Get("learning.heading"));
+            AddPageHeaderButton(
+                ExplorationMenuText.Get("learning.back"),
+                ShowInventory,
+                "page-header-back-button");
+            _content.Clear();
+
+            var introduction = new Label(ExplorationMenuText.Get("learning.instructions"));
+            introduction.AddToClassList("learning-introduction");
+            _content.Add(introduction);
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                var result = new Label(message);
+                result.AddToClassList("learning-message");
+                _content.Add(result);
+            }
+
+            if (catalog == null)
+            {
+                var unavailable = new Label(ExplorationMenuText.Get("learning.catalog-missing"));
+                unavailable.AddToClassList("learning-error");
+                _content.Add(unavailable);
+                SetSelectedNavigation(_inventoryButton);
+                return;
+            }
+
+            List<ActionManualEntry> manuals = CollectActionManuals(state, catalog);
+            if (manuals.Count == 0)
+            {
+                var empty = new Label(ExplorationMenuText.Get("learning.none"));
+                empty.AddToClassList("learning-empty");
+                _content.Add(empty);
+            }
+
+            for (int index = 0; index < manuals.Count; index++)
+            {
+                ActionManualEntry entry = manuals[index];
+                bool alreadyLearned = state.ActionLibrary.Owns(entry.ActionId);
+                var card = new Button();
+                card.AddToClassList("learning-action-card");
+
+                var title = new Label($"{entry.Definition.DisplayName}  ×{entry.Count}");
+                title.AddToClassList("learning-action-title");
+                card.Add(title);
+                var costs = new Label(
+                    $"Timeline {entry.Definition.TimelineCost}    "
+                    + $"Stamina {entry.Definition.StaminaCost}    "
+                    + $"Mana {entry.Definition.ManaCost}");
+                costs.AddToClassList("learning-action-costs");
+                card.Add(costs);
+                var summary = new Label(
+                    ExplorationMenuActionTextFormatter.FormatActionLibrarySummary(entry.Definition));
+                summary.AddToClassList("learning-action-summary");
+                card.Add(summary);
+
+                var availability = new Label(
+                    alreadyLearned
+                        ? ExplorationMenuText.Get("learning.learned")
+                        : ExplorationMenuText.Get("learning.available"));
+                availability.AddToClassList("learning-action-availability");
+                card.Add(availability);
+
+                if (alreadyLearned)
+                {
+                    card.AddToClassList("learning-action-known");
+                    card.SetEnabled(false);
+                }
+                else
+                {
+                    ActionManualEntry captured = entry;
+                    Action learn = () => BeginActionLearning(captured);
+                    card.clicked += learn;
+                    RegisterButtonAction(card, learn);
+                    _comboPageButtons.Add(card);
+                }
+
+                _content.Add(card);
+            }
+
+            SetSelectedNavigation(_inventoryButton);
+            FocusFirstEnabled(_comboPageButtons);
+        }
+
+        private static int CountOwnedActionManuals(PersistentPlayerState state)
+        {
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            if (catalog == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            foreach (KeyValuePair<string, int> item in state.Inventory.ItemCounts)
+            {
+                if (item.Value > 0
+                    && ActionManualLearningService.TryGetActionId(
+                        item.Key,
+                        out string actionId)
+                    && catalog.TryCreateDefinition(actionId, out _, out _))
+                {
+                    count += item.Value;
+                }
+            }
+
+            return count;
+        }
+
+        private static List<ActionManualEntry> CollectActionManuals(
+            PersistentPlayerState state,
+            ComboActionCatalogAsset catalog)
+        {
+            var entries = new List<ActionManualEntry>();
+            foreach (KeyValuePair<string, int> item in state.Inventory.ItemCounts)
+            {
+                if (item.Value <= 0
+                    || !ActionManualLearningService.TryGetActionId(item.Key, out string actionId)
+                    || !catalog.TryCreateDefinition(
+                        actionId,
+                        out ComboActionDefinition definition,
+                        out _))
+                {
+                    continue;
+                }
+
+                entries.Add(new ActionManualEntry(item.Key, actionId, item.Value, definition));
+            }
+
+            entries.Sort((left, right) =>
+                string.Compare(
+                    left.Definition.DisplayName,
+                    right.Definition.DisplayName,
+                    StringComparison.Ordinal));
+            return entries;
+        }
+
+        private void BeginActionLearning(ActionManualEntry entry)
+        {
+            CloseActionLearningDialog();
+            var overlay = new VisualElement();
+            overlay.AddToClassList("unsaved-dialog-overlay");
+            var dialog = new VisualElement();
+            dialog.AddToClassList("unsaved-dialog");
+            overlay.Add(dialog);
+
+            var heading = new Label(ExplorationMenuText.Get("learning.confirm-heading"));
+            heading.AddToClassList("unsaved-dialog-heading");
+            dialog.Add(heading);
+            var prompt = new Label(string.Format(
+                ExplorationMenuText.Get("learning.confirm-prompt"),
+                entry.Definition.DisplayName));
+            prompt.AddToClassList("unsaved-dialog-prompt");
+            dialog.Add(prompt);
+
+            var actions = new VisualElement();
+            actions.AddToClassList("unsaved-dialog-actions");
+            dialog.Add(actions);
+
+            Action learn = () => LearnAction(entry);
+            var confirm = new Button(learn)
+            {
+                text = ExplorationMenuText.Get("learning.confirm")
+            };
+            confirm.AddToClassList("unsaved-dialog-button");
+            actions.Add(confirm);
+            RegisterActionLearningDialogButton(confirm, learn);
+
+            var cancel = new Button(CloseActionLearningDialog)
+            {
+                text = ExplorationMenuText.Get("learning.cancel")
+            };
+            cancel.AddToClassList("unsaved-dialog-button");
+            actions.Add(cancel);
+            RegisterActionLearningDialogButton(cancel, CloseActionLearningDialog);
+
+            _actionLearningDialog = overlay;
+            _menuFrame.Add(overlay);
+            _root.schedule.Execute(() => confirm.Focus()).ExecuteLater(1);
+        }
+
+        private void LearnAction(ActionManualEntry entry)
+        {
+            CloseActionLearningDialog();
+            if (!TryGetContext(out PersistentPlayerState state, out _))
+            {
+                ShowActionLearning(ExplorationMenuText.Get("learning.state-missing"));
+                return;
+            }
+
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            if (ActionManualLearningService.TryLearn(
+                state,
+                entry.ManualItemId,
+                actionId => catalog != null
+                    && catalog.TryCreateDefinition(actionId, out _, out _),
+                out _,
+                out ActionLearningFailure failure))
+            {
+                ShowActionLearning(string.Format(
+                    ExplorationMenuText.Get("learning.success"),
+                    entry.Definition.DisplayName));
+                return;
+            }
+
+            string failureMessage;
+            switch (failure)
+            {
+                case ActionLearningFailure.ActionAlreadyLearned:
+                    failureMessage = ExplorationMenuText.Get("learning.failure-known");
+                    break;
+                case ActionLearningFailure.ManualNotOwned:
+                    failureMessage = ExplorationMenuText.Get("learning.failure-missing");
+                    break;
+                case ActionLearningFailure.UnknownAction:
+                    failureMessage = ExplorationMenuText.Get("learning.failure-invalid");
+                    break;
+                default:
+                    failureMessage = ExplorationMenuText.Get("learning.failure-invalid");
+                    break;
+            }
+
+            ShowActionLearning(failureMessage);
+        }
+
+        private void RegisterActionLearningDialogButton(Button button, Action action)
+        {
+            _actionLearningDialogButtons.Add(button);
+            RegisterButtonAction(button, action);
+        }
+
+        private void CloseActionLearningDialog()
+        {
+            foreach (Button button in _actionLearningDialogButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _actionLearningDialogButtons.Clear();
+            _actionLearningDialog?.RemoveFromHierarchy();
+            _actionLearningDialog = null;
         }
 
         private void ShowEquipment()
@@ -3369,6 +3650,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case MenuPage.Status: ShowStatus(); break;
                 case MenuPage.Combos: ShowCombos(); break;
                 case MenuPage.Inventory: ShowInventory(); break;
+                case MenuPage.ActionLearning: ShowActionLearning(); break;
                 case MenuPage.Equipment: ShowEquipment(); break;
                 case MenuPage.ReturnToTitle: ShowUnavailableTitleMessage(); break;
             }
@@ -3621,6 +3903,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private List<Button> GetFocusScope(Button focusedButton)
         {
+            if (_actionLearningDialog != null)
+            {
+                return _actionLearningDialogButtons;
+            }
+
             if (_timelineGuideDialog != null)
             {
                 return _timelineGuideButtons;
@@ -3690,6 +3977,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private void ClearComboControls()
         {
             _contentRevision++;
+            CloseActionLearningDialog();
             foreach (Button button in _comboPageButtons)
             {
                 _buttonActions.Remove(button);
@@ -4002,8 +4290,32 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             Status,
             Combos,
             Inventory,
+            ActionLearning,
             Equipment,
             ReturnToTitle
+        }
+
+        private sealed class ActionManualEntry
+        {
+            public ActionManualEntry(
+                string manualItemId,
+                string actionId,
+                int count,
+                ComboActionDefinition definition)
+            {
+                ManualItemId = manualItemId;
+                ActionId = actionId;
+                Count = count;
+                Definition = definition;
+            }
+
+            public string ManualItemId { get; }
+
+            public string ActionId { get; }
+
+            public int Count { get; }
+
+            public ComboActionDefinition Definition { get; }
         }
 
         private enum EquipmentSlot

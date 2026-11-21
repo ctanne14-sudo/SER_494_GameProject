@@ -98,7 +98,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         public BattleRewardSummary(
             int gold,
-            IReadOnlyDictionary<string, int> materials)
+            IReadOnlyDictionary<string, int> materials,
+            string actionManualActionId = null)
         {
             if (gold < 0)
             {
@@ -123,11 +124,20 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             Gold = gold;
             _materials = new ReadOnlyDictionary<string, int>(copy);
+            ActionManualActionId = string.IsNullOrWhiteSpace(actionManualActionId)
+                ? null
+                : actionManualActionId.Trim();
         }
 
         public int Gold { get; }
 
         public IReadOnlyDictionary<string, int> Materials => _materials;
+
+        public string ActionManualActionId { get; }
+
+        public bool HasActionManual => ActionManualActionId != null;
+
+        public bool HasAnyReward => Gold > 0 || TotalMaterialCount > 0 || HasActionManual;
 
         public int TotalMaterialCount
         {

@@ -6,6 +6,7 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.CombatIntegration.Unity;
+using SER494.Gameplay.PlayerState;
 using UnityEngine;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
@@ -277,6 +278,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 service.CurrentSession,
                 playerState,
                 battle,
+                new System.Random(3),
                 out string commitError);
 
             Assert.That(committed, Is.True, commitError);
@@ -291,7 +293,16 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            string manualItemId = ActionManualLearningService.CreateManualItemId(
+                service.CurrentSession.GrantedRewards.ActionManualActionId);
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.EqualTo(1));
+            Assert.That(
+                playerState.ActionLibrary.Owns(
+                    service.CurrentSession.GrantedRewards.ActionManualActionId),
+                Is.False,
+                "Battle rewards should grant a manual instead of learning the Action automatically.");
 
             bool committedAgain = BattleSessionBattleAdapter.TryCommitBattleResult(
                 service,
@@ -304,6 +315,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(duplicateError, Does.Contain("already complete"));
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.EqualTo(1));
         }
 
         [Test]
@@ -344,6 +356,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 service.CurrentSession,
                 playerState,
                 battle,
+                new System.Random(3),
                 out string commitError);
 
             Assert.That(committed, Is.True, commitError);
@@ -351,7 +364,9 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.CurrentHealth, Is.Zero);
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            Assert.That(TotalActionManuals(playerState), Is.EqualTo(1));
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.True);
@@ -404,6 +419,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(TotalRewardMaterials(playerState), Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.Zero);
+            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.False);
+            Assert.That(TotalActionManuals(playerState), Is.Zero);
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.False);
@@ -516,6 +533,22 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             return playerState.Inventory.GetCount(BattleRewardSummary.WhiteCopperMaterialId)
                 + playerState.Inventory.GetCount(BattleRewardSummary.BronzeMaterialId)
                 + playerState.Inventory.GetCount(BattleRewardSummary.BrassMaterialId);
+        }
+
+        private static int TotalActionManuals(PersistentPlayerState playerState)
+        {
+            int total = 0;
+            foreach (KeyValuePair<string, int> item in playerState.Inventory.ItemCounts)
+            {
+                if (item.Key.StartsWith(
+                        ActionManualLearningService.ManualItemPrefix,
+                        System.StringComparison.Ordinal))
+                {
+                    total += item.Value;
+                }
+            }
+
+            return total;
         }
 
         private SoloComboLoadoutSession CreatePreparedLoadout(

@@ -20,6 +20,42 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             return Resources.Load<ComboActionCatalogAsset>(DefaultResourcesPath);
         }
 
+        public bool TryCreateAllDefinitions(
+            out IReadOnlyList<ComboActionDefinition> definitions,
+            out string validationError)
+        {
+            definitions = null;
+            ComboActionAsset[] authoredActions = actions ?? Array.Empty<ComboActionAsset>();
+            var actionIds = new List<string>(authoredActions.Length);
+            var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < authoredActions.Length; index++)
+            {
+                ComboActionAsset action = authoredActions[index];
+                if (action == null)
+                {
+                    validationError = $"Action Catalog entry {index} is missing.";
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(action.ActionId))
+                {
+                    validationError = $"Action Catalog entry {index} has no stable ID.";
+                    return false;
+                }
+
+                string actionId = action.ActionId.Trim();
+                if (!uniqueIds.Add(actionId))
+                {
+                    validationError = $"Multiple Action assets use ID '{actionId}'.";
+                    return false;
+                }
+
+                actionIds.Add(actionId);
+            }
+
+            return TryCreateDefinitions(actionIds, out definitions, out validationError);
+        }
+
         public bool TryCreateDefinitions(
             IEnumerable<string> actionIds,
             out IReadOnlyList<ComboActionDefinition> definitions,

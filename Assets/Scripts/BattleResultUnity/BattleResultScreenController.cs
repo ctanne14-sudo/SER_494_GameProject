@@ -23,6 +23,8 @@ namespace SER494.Gameplay.BattleResult.Unity
         private Label _rewardHeading;
         private VisualElement _goldRow;
         private Label _goldValue;
+        private VisualElement _actionManualRow;
+        private Label _actionManualName;
         private VisualElement _materialList;
         private Label _emptyRewards;
         private Label _consequenceHeading;
@@ -49,6 +51,8 @@ namespace SER494.Gameplay.BattleResult.Unity
             _rewardHeading = root.Q<Label>("rewardHeading");
             _goldRow = root.Q<VisualElement>("goldRow");
             _goldValue = root.Q<Label>("goldValue");
+            _actionManualRow = root.Q<VisualElement>("actionManualRow");
+            _actionManualName = root.Q<Label>("actionManualName");
             _materialList = root.Q<VisualElement>("materialList");
             _emptyRewards = root.Q<Label>("emptyRewards");
             _consequenceHeading = root.Q<Label>("consequenceHeading");
@@ -202,6 +206,10 @@ namespace SER494.Gameplay.BattleResult.Unity
             _goldRow.style.display = presentation.Gold > 0
                 ? DisplayStyle.Flex
                 : DisplayStyle.None;
+            _actionManualRow.style.display = presentation.HasActionManual
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            _actionManualName.text = presentation.ActionManualName ?? string.Empty;
             for (int index = 0; index < presentation.Materials.Count; index++)
             {
                 BattleResultMaterialLine material = presentation.Materials[index];

@@ -133,6 +133,22 @@
     background-color: rgba(68, 53, 27, 0.85);
 }
 
+.battle-result-action-manual-row {
+    min-height: 48px;
+    height: auto;
+    background-color: rgba(54, 43, 67, 0.9);
+    border-left-color: rgb(154, 111, 184);
+}
+
+.battle-result-action-manual-name {
+    max-width: 62%;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(215, 177, 235);
+    white-space: normal;
+    -unity-text-align: middle-right;
+}
+
 .battle-result-reward-name,
 .battle-result-material-name {
     font-size: 17px;
