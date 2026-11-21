@@ -11,7 +11,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 {
     [Category("CombatIntegration")]
     [Category("PlayerState")]
-    public sealed class ActionManualRewardRollerTests
+    public sealed class ActionLearningRewardRollerTests
     {
         private const string OtherWeaponActionId =
             "sword-and-shield.opening.horizontal-slash";
@@ -25,7 +25,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 definitions,
                 OtherWeaponActionId);
 
-            bool rolled = ActionManualRewardRoller.TryRoll(
+            bool rolled = ActionLearningRewardRoller.TryRoll(
                 state,
                 catalog,
                 new Random(1),
@@ -37,12 +37,12 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
-        public void RollAtOrAboveFiftyPercent_GrantsNoManual()
+        public void RollAtOrAboveFiftyPercent_GrantsNoAction()
         {
             ComboActionCatalogAsset catalog = LoadCatalog(out _);
             var state = new PersistentPlayerState(100, 30, 80);
 
-            bool rolled = ActionManualRewardRoller.TryRoll(
+            bool rolled = ActionLearningRewardRoller.TryRoll(
                 state,
                 catalog,
                 new Random(0),
@@ -54,7 +54,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
-        public void HeldManual_IsExcludedAndEmptyPoolDoesNotRollDuplicate()
+        public void HeldManual_IsExcludedAndEmptyPoolDoesNotSelectDuplicate()
         {
             ComboActionCatalogAsset catalog = LoadCatalog(
                 out IReadOnlyList<ComboActionDefinition> definitions);
@@ -64,7 +64,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             string manualId = ActionManualLearningService.CreateManualItemId(OtherWeaponActionId);
             state.Inventory.Add(manualId, 1);
 
-            bool rolled = ActionManualRewardRoller.TryRoll(
+            bool rolled = ActionLearningRewardRoller.TryRoll(
                 state,
                 catalog,
                 new Random(1),
@@ -77,7 +77,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
-        public void AllLearnedActions_ProduceNoManual()
+        public void AllLearnedActions_ProduceNoActionReward()
         {
             ComboActionCatalogAsset catalog = LoadCatalog(
                 out IReadOnlyList<ComboActionDefinition> definitions);
@@ -87,7 +87,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 state.ActionLibrary.Learn(definitions[index].ActionId);
             }
 
-            bool rolled = ActionManualRewardRoller.TryRoll(
+            bool rolled = ActionLearningRewardRoller.TryRoll(
                 state,
                 catalog,
                 new Random(1),

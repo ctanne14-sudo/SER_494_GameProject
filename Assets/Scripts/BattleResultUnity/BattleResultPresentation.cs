@@ -33,7 +33,7 @@ namespace SER494.Gameplay.BattleResult.Unity
             string rewardHeading,
             int gold,
             IReadOnlyList<BattleResultMaterialLine> materials,
-            string actionManualName,
+            string learnedActionName,
             string consequenceHeading,
             string consequenceBody,
             string continueLabel,
@@ -45,7 +45,7 @@ namespace SER494.Gameplay.BattleResult.Unity
             RewardHeading = rewardHeading;
             Gold = gold;
             Materials = materials;
-            ActionManualName = actionManualName;
+            LearnedActionName = learnedActionName;
             ConsequenceHeading = consequenceHeading;
             ConsequenceBody = consequenceBody;
             ContinueLabel = continueLabel;
@@ -64,9 +64,9 @@ namespace SER494.Gameplay.BattleResult.Unity
 
         public IReadOnlyList<BattleResultMaterialLine> Materials { get; }
 
-        public string ActionManualName { get; }
+        public string LearnedActionName { get; }
 
-        public bool HasActionManual => !string.IsNullOrWhiteSpace(ActionManualName);
+        public bool HasLearnedAction => !string.IsNullOrWhiteSpace(LearnedActionName);
 
         public string ConsequenceHeading { get; }
 
@@ -76,7 +76,7 @@ namespace SER494.Gameplay.BattleResult.Unity
 
         public string OutcomeStyleClass { get; }
 
-        public bool HasRewards => Gold > 0 || Materials.Count > 0 || HasActionManual;
+        public bool HasRewards => Gold > 0 || Materials.Count > 0 || HasLearnedAction;
     }
 
     public static class BattleResultPresentationFactory
@@ -137,7 +137,7 @@ namespace SER494.Gameplay.BattleResult.Unity
 
             rewards = rewards ?? BattleRewardSummary.None;
             IReadOnlyList<BattleResultMaterialLine> materials = CreateMaterialLines(rewards);
-            string actionManualName = CreateActionManualName(rewards);
+            string learnedActionName = CreateLearnedActionName(rewards);
 
             switch (outcome)
             {
@@ -149,7 +149,7 @@ namespace SER494.Gameplay.BattleResult.Unity
                         "Battle Rewards",
                         rewards.Gold,
                         materials,
-                        actionManualName,
+                        learnedActionName,
                         "Enemy Defeated",
                         "The defeated enemy will not reappear. Continue exploring from the battle location.",
                         "Continue Exploring",
@@ -177,7 +177,7 @@ namespace SER494.Gameplay.BattleResult.Unity
                         "Rewards Secured",
                         rewards.Gold,
                         materials,
-                        actionManualName,
+                        learnedActionName,
                         "Enemy Defeated",
                         "Rewards are kept. Return to the last Save Point with 1 HP and 1 Stamina.",
                         "Return to Save Point",
@@ -210,9 +210,9 @@ namespace SER494.Gameplay.BattleResult.Unity
             return new ReadOnlyCollection<BattleResultMaterialLine>(lines);
         }
 
-        private static string CreateActionManualName(BattleRewardSummary rewards)
+        private static string CreateLearnedActionName(BattleRewardSummary rewards)
         {
-            if (!rewards.HasActionManual)
+            if (!rewards.HasLearnedAction)
             {
                 return null;
             }
@@ -220,14 +220,14 @@ namespace SER494.Gameplay.BattleResult.Unity
             ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
             if (catalog != null
                 && catalog.TryCreateDefinition(
-                    rewards.ActionManualActionId,
+                    rewards.LearnedActionId,
                     out ComboActionDefinition definition,
                     out _))
             {
                 return definition.DisplayName;
             }
 
-            return FormatUnknownActionName(rewards.ActionManualActionId);
+            return FormatUnknownActionName(rewards.LearnedActionId);
         }
 
         private static string FormatUnknownActionName(string actionId)

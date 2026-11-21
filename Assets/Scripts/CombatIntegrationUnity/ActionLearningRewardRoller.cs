@@ -7,9 +7,9 @@ using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
 {
-    public static class ActionManualRewardRoller
+    public static class ActionLearningRewardRoller
     {
-        public const double DropChance = 0.5d;
+        public const double LearnChance = 0.5d;
 
         public static bool TryRoll(
             PersistentPlayerState playerState,
@@ -21,7 +21,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             actionId = null;
             if (playerState == null)
             {
-                validationError = "Player State is required to roll an Action Manual reward.";
+                validationError = "Player State is required to roll a learned Action reward.";
                 return false;
             }
 
@@ -57,7 +57,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 }
             }
 
-            if (eligibleActionIds.Count == 0 || random.NextDouble() >= DropChance)
+            if (eligibleActionIds.Count == 0 || random.NextDouble() >= LearnChance)
             {
                 validationError = null;
                 return true;

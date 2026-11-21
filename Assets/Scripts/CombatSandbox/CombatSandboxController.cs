@@ -1812,20 +1812,20 @@ namespace SER494.Gameplay.CombatSandbox
                 rewards,
                 BattleRewardSummary.ApeBeastBloodMaterialId,
                 "Ape Beast Blood");
-            if (rewards.HasActionManual)
+            if (rewards.HasLearnedAction)
             {
-                string displayName = rewards.ActionManualActionId;
+                string displayName = rewards.LearnedActionId;
                 ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
                 if (catalog != null
                     && catalog.TryCreateDefinition(
-                        rewards.ActionManualActionId,
+                        rewards.LearnedActionId,
                         out ComboActionDefinition definition,
                         out _))
                 {
                     displayName = definition.DisplayName;
                 }
 
-                rewardParts.Add($"Action Manual: {displayName}");
+                rewardParts.Add($"New Action: {displayName}");
             }
 
             AppendLog(

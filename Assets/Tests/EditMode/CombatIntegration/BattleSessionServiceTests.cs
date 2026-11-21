@@ -293,16 +293,16 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
-            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.True);
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            string learnedActionId = service.CurrentSession.GrantedRewards.LearnedActionId;
             string manualItemId = ActionManualLearningService.CreateManualItemId(
-                service.CurrentSession.GrantedRewards.ActionManualActionId);
-            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.EqualTo(1));
+                learnedActionId);
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.Zero);
             Assert.That(
-                playerState.ActionLibrary.Owns(
-                    service.CurrentSession.GrantedRewards.ActionManualActionId),
-                Is.False,
-                "Battle rewards should grant a manual instead of learning the Action automatically.");
+                playerState.ActionLibrary.Owns(learnedActionId),
+                Is.True,
+                "Battle rewards should learn the Action directly without creating a manual.");
 
             bool committedAgain = BattleSessionBattleAdapter.TryCommitBattleResult(
                 service,
@@ -315,7 +315,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(duplicateError, Does.Contain("already complete"));
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
-            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.EqualTo(1));
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.Zero);
+            Assert.That(playerState.ActionLibrary.Owns(learnedActionId), Is.True);
         }
 
         [Test]
@@ -364,9 +365,13 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.CurrentHealth, Is.Zero);
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
-            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.True);
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
-            Assert.That(TotalActionManuals(playerState), Is.EqualTo(1));
+            Assert.That(TotalActionManuals(playerState), Is.Zero);
+            Assert.That(
+                playerState.ActionLibrary.Owns(
+                    service.CurrentSession.GrantedRewards.LearnedActionId),
+                Is.True);
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.True);
@@ -419,7 +424,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(TotalRewardMaterials(playerState), Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.Zero);
-            Assert.That(service.CurrentSession.GrantedRewards.HasActionManual, Is.False);
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.False);
             Assert.That(TotalActionManuals(playerState), Is.Zero);
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),

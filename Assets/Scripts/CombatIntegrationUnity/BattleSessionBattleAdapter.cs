@@ -257,11 +257,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             IReadOnlyDictionary<string, int> materials =
                 definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls);
-            if (!ActionManualRewardRoller.TryRoll(
+            if (!ActionLearningRewardRoller.TryRoll(
                     playerState,
                     ComboActionCatalogAsset.LoadDefault(),
                     random,
-                    out string actionManualActionId,
+                    out string learnedActionId,
                     out validationError))
             {
                 rewards = null;
@@ -273,7 +273,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
                     MidpointRounding.AwayFromZero),
                 materials,
-                actionManualActionId);
+                learnedActionId);
             validationError = null;
             return true;
         }
@@ -303,12 +303,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     _ = playerState.Inventory.GetCount(material.Key) + material.Value;
                 }
 
-                if (rewards.HasActionManual)
-                {
-                    string manualItemId = ActionManualLearningService.CreateManualItemId(
-                        rewards.ActionManualActionId);
-                    _ = playerState.Inventory.GetCount(manualItemId) + 1;
-                }
             }
         }
 
@@ -326,12 +320,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 playerState.Inventory.Add(material.Key, material.Value);
             }
 
-            if (rewards.HasActionManual)
+            if (rewards.HasLearnedAction
+                && !playerState.ActionLibrary.Learn(rewards.LearnedActionId))
             {
-                playerState.Inventory.Add(
-                    ActionManualLearningService.CreateManualItemId(
-                        rewards.ActionManualActionId),
-                    1);
+                throw new InvalidOperationException(
+                    $"Action '{rewards.LearnedActionId}' was already learned before rewards were granted.");
             }
         }
     }
