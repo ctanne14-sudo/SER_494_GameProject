@@ -90,6 +90,13 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public const string ApeBeastArmguardMaterialId = "material.ape-beast-armguard";
         public const string ApeBeastBlackFurMaterialId = "material.ape-beast-black-fur";
         public const string ApeBeastBloodMaterialId = "material.ape-beast-blood";
+        public const string SlimeChunkMaterialId = "material.slime-chunk";
+        public const string ThornMaterialId = "material.thorn";
+        public const string CrystalMaterialId = "material.crystal";
+        public const string PureGoldMaterialId = "material.pure-gold";
+        public const string MithrilMaterialId = "material.mithril";
+        public const string YellowSilkMaterialId = "material.yellow-silk";
+        public const string RedSilkMaterialId = "material.red-silk";
 
         public static readonly BattleRewardSummary None =
             new BattleRewardSummary(0, null);

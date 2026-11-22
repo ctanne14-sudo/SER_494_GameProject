@@ -549,6 +549,25 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
         }
 
         [Test]
+        public void ProcessingShop_ExpandedMaterialsUseEncounterRewardMaterialIds()
+        {
+            Assert.That(ProcessingRecipeCatalog.SlimeChunkId,
+                Is.EqualTo(BattleRewardSummary.SlimeChunkMaterialId));
+            Assert.That(ProcessingRecipeCatalog.ThornId,
+                Is.EqualTo(BattleRewardSummary.ThornMaterialId));
+            Assert.That(ProcessingRecipeCatalog.CrystalId,
+                Is.EqualTo(BattleRewardSummary.CrystalMaterialId));
+            Assert.That(ProcessingRecipeCatalog.PureGoldId,
+                Is.EqualTo(BattleRewardSummary.PureGoldMaterialId));
+            Assert.That(ProcessingRecipeCatalog.MithrilId,
+                Is.EqualTo(BattleRewardSummary.MithrilMaterialId));
+            Assert.That(ProcessingRecipeCatalog.YellowSilkId,
+                Is.EqualTo(BattleRewardSummary.YellowSilkMaterialId));
+            Assert.That(ProcessingRecipeCatalog.RedSilkId,
+                Is.EqualTo(BattleRewardSummary.RedSilkMaterialId));
+        }
+
+        [Test]
         public void RegisteredTestScenarios_LoadTheExpectedEncounterAssets()
         {
             foreach (SoloComboTestScenario scenario in
@@ -695,6 +714,195 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
                         "enemy.armored-guard.action-7"
                     }
                 });
+        }
+
+        [Test]
+        public void ExpandedEnemyEncounters_MatchApprovedStatsRewardsAndCycles()
+        {
+            AssertExpandedEncounter(
+                "ThornSlimeEncounter.asset",
+                "encounter.thorn-slime",
+                "Thorn Slime",
+                450,
+                40,
+                15,
+                150,
+                3,
+                new[]
+                {
+                    BattleRewardSummary.ThornMaterialId,
+                    BattleRewardSummary.SlimeChunkMaterialId
+                },
+                new[] { 50, 50 },
+                null,
+                null,
+                new[]
+                {
+                    new[] { 1, 5, 3 },
+                    new[] { 2, 6, 4 },
+                    new[] { 1, 4, 2 },
+                    new[] { 5, 7, 3 }
+                });
+            AssertExpandedEncounter(
+                "OreMonsterEncounter.asset",
+                "encounter.ore-monster",
+                "Ore Monster",
+                700,
+                50,
+                40,
+                400,
+                5,
+                new[]
+                {
+                    BattleRewardSummary.CrystalMaterialId,
+                    BattleRewardSummary.PureGoldMaterialId,
+                    BattleRewardSummary.MithrilMaterialId,
+                    BattleRewardSummary.WhiteCopperMaterialId,
+                    BattleRewardSummary.BronzeMaterialId,
+                    BattleRewardSummary.BrassMaterialId
+                },
+                new[] { 17, 16, 17, 18, 16, 16 },
+                null,
+                null,
+                new[]
+                {
+                    new[] { 1, 4, 5 },
+                    new[] { 2, 3, 1 },
+                    new[] { 2, 7, 1 },
+                    new[] { 3, 5, 6 }
+                });
+            AssertExpandedEncounter(
+                "EliteOreMonsterEncounter.asset",
+                "encounter.elite-ore-monster",
+                "Elite Ore Monster",
+                800,
+                50,
+                50,
+                500,
+                5,
+                new[]
+                {
+                    BattleRewardSummary.CrystalMaterialId,
+                    BattleRewardSummary.PureGoldMaterialId,
+                    BattleRewardSummary.MithrilMaterialId
+                },
+                new[] { 33, 34, 33 },
+                null,
+                null,
+                new[]
+                {
+                    new[] { 1, 4, 5 },
+                    new[] { 2, 3, 1 },
+                    new[] { 2, 7, 1 },
+                    new[] { 3, 5, 6 }
+                });
+
+            int[] thiefGoldAmounts = { 50, 100, 150, 200, 1000 };
+            int[] thiefGoldWeights = { 35, 31, 21, 10, 3 };
+            string[] thiefMaterials =
+            {
+                BattleRewardSummary.YellowSilkMaterialId,
+                BattleRewardSummary.RedSilkMaterialId,
+                BattleRewardSummary.CrystalMaterialId,
+                BattleRewardSummary.PureGoldMaterialId,
+                BattleRewardSummary.MithrilMaterialId
+            };
+            int[] thiefMaterialWeights = { 41, 41, 6, 6, 6 };
+            AssertExpandedEncounter(
+                "DungeonThiefIEncounter.asset",
+                "encounter.dungeon-thief-1",
+                "Dungeon Thief I",
+                250,
+                30,
+                0,
+                0,
+                3,
+                thiefMaterials,
+                thiefMaterialWeights,
+                thiefGoldAmounts,
+                thiefGoldWeights,
+                new[]
+                {
+                    new[] { 1, 4, 5 },
+                    new[] { 3, 6, 5 },
+                    new[] { 1, 2, 3 }
+                });
+            AssertExpandedEncounter(
+                "DungeonThiefIIEncounter.asset",
+                "encounter.dungeon-thief-2",
+                "Dungeon Thief II",
+                250,
+                35,
+                10,
+                0,
+                3,
+                thiefMaterials,
+                thiefMaterialWeights,
+                thiefGoldAmounts,
+                thiefGoldWeights,
+                new[]
+                {
+                    new[] { 6, 1, 2 },
+                    new[] { 2, 5, 4 },
+                    new[] { 3, 4, 1 }
+                });
+        }
+
+        [Test]
+        public void ExpandedEnemyActions_PreserveApprovedTimingAndSpecialRules()
+        {
+            AssertActionOffsets("ThornSlimeEncounter.asset", 4,
+                new[] { new[] { 4, 7 }, new[] { 6, 7, 8 }, new[] { 3, 4, 8 },
+                    new[] { 7 }, new[] { 4, 5 }, new[] { 1, 2, 3, 9 },
+                    new[] { 3, 4, 5, 6, 7, 8 } });
+            AssertActionOffsets("OreMonsterEncounter.asset", 4,
+                new[] { new[] { 3, 5, 8 }, new[] { 2, 4, 6, 7 }, new[] { 3, 6 },
+                    new[] { 3, 6 }, new[] { 1, 5, 9 }, new[] { 2, 4, 7, 9 },
+                    new[] { 4, 8 } });
+            AssertActionOffsets("EliteOreMonsterEncounter.asset", 4,
+                new[] { new[] { 3, 5, 8 }, new[] { 2, 4, 6, 7 }, new[] { 3, 6 },
+                    new[] { 3, 6 }, new[] { 1, 5, 9 }, new[] { 2, 4, 7, 9 },
+                    new[] { 4, 8 } });
+            AssertActionOffsets("DungeonThiefIEncounter.asset", 3,
+                new[] { new[] { 5 }, new[] { 3, 8 }, new[] { 2, 6, 10 },
+                    new[] { 1, 5, 7 }, new[] { 5, 9 }, new[] { 2, 5, 8 } });
+            AssertActionOffsets("DungeonThiefIIEncounter.asset", 3,
+                new[] { new[] { 5 }, new[] { 6, 8 }, new[] { 2, 5, 8 },
+                    new[] { 1, 6, 8 }, new[] { 1, 4, 5, 6, 9 },
+                    new[] { 2, 5, 8 } });
+
+            EnemyActionDefinition thornDefense = FindExpandedAction(
+                "ThornSlimeEncounter.asset", 4, "enemy.thorn-slime.action-4");
+            Assert.That(thornDefense.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(thornDefense.ActiveWindows[0].Effect,
+                Is.EqualTo(ActiveWindowEffect.DefensiveState));
+            Assert.That(thornDefense.ActiveWindows[0].DamageReduction,
+                Is.EqualTo(0.50d).Within(0.0001d));
+            Assert.That(thornDefense.ActiveWindows[0].SuperArmorLevel, Is.Zero);
+
+            EnemyActionDefinition thornBuff = FindExpandedAction(
+                "ThornSlimeEncounter.asset", 4, "enemy.thorn-slime.action-5");
+            Assert.That(thornBuff.ResolutionEvents[0].StatusEffect.Duration, Is.EqualTo(30));
+            Assert.That(thornBuff.ResolutionEvents[1].StatusEffect.Duration, Is.EqualTo(30));
+            Assert.That(thornBuff.ResolutionEvents[0].StatusEffect.ModifierDirection,
+                Is.EqualTo(CombatStatusModifierDirection.DamageTaken));
+            Assert.That(thornBuff.ResolutionEvents[1].StatusEffect.ModifierDirection,
+                Is.EqualTo(CombatStatusModifierDirection.DamageDealt));
+
+            AssertOvercommitSelfStagger(
+                FindExpandedAction(
+                    "OreMonsterEncounter.asset", 4, "enemy.ore-monster.action-7"));
+            AssertOvercommitSelfStagger(
+                FindExpandedAction(
+                    "EliteOreMonsterEncounter.asset", 4,
+                    "enemy.elite-ore-monster.action-7"));
+
+            EnemyActionDefinition thiefDefense = FindExpandedAction(
+                "DungeonThiefIIEncounter.asset", 3, "enemy.dungeon-thief-2.action-2");
+            Assert.That(thiefDefense.ActiveWindows, Has.Count.EqualTo(1));
+            Assert.That(thiefDefense.ActiveWindows[0].DamageReduction,
+                Is.EqualTo(0.10d).Within(0.0001d));
+            Assert.That(thiefDefense.ActiveWindows[0].SuperArmorLevel, Is.Zero);
         }
 
         [Test]
@@ -866,6 +1074,173 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             Assert.That(repeatedFirstRound.Actions[0].ActionId,
                 Is.EqualTo(expectedActionIdsByRound[0][0]),
                 $"{expectedEnemyName}'s scripted cycle must repeat after its final Round.");
+        }
+
+        private static void AssertExpandedEncounter(
+            string assetName,
+            string expectedEncounterId,
+            string expectedEnemyName,
+            int maximumHealth,
+            int attack,
+            int defense,
+            int rewardGold,
+            int materialRolls,
+            string[] materialIds,
+            int[] materialWeights,
+            int[] goldAmounts,
+            int[] goldWeights,
+            int[][] expectedActionNumbersByRound)
+        {
+            SoloComboEncounterDefinition definition = LoadExpandedEncounter(assetName);
+            Assert.That(definition.EncounterId, Is.EqualTo(expectedEncounterId));
+            Assert.That(definition.EnemyDisplayName, Is.EqualTo(expectedEnemyName));
+            Assert.That(definition.EnemyStats.MaxHealth, Is.EqualTo(maximumHealth));
+            Assert.That(definition.EnemyStats.Attack, Is.EqualTo(attack));
+            Assert.That(definition.EnemyStats.Defense, Is.EqualTo(defense));
+            Assert.That(definition.Rewards.Gold, Is.EqualTo(rewardGold));
+            Assert.That(definition.Rewards.MaterialRollCount, Is.EqualTo(materialRolls));
+            Assert.That(definition.Rewards.TotalMaterialWeight, Is.EqualTo(100));
+            Assert.That(definition.Rewards.MaterialDrops.Count, Is.EqualTo(materialIds.Length));
+            for (int index = 0; index < materialIds.Length; index++)
+            {
+                Assert.That(definition.Rewards.MaterialDrops[index].ItemId,
+                    Is.EqualTo(materialIds[index]));
+                Assert.That(definition.Rewards.MaterialDrops[index].Weight,
+                    Is.EqualTo(materialWeights[index]));
+            }
+
+            int expectedGoldDropCount = goldAmounts?.Length ?? 0;
+            Assert.That(definition.Rewards.GoldDrops.Count, Is.EqualTo(expectedGoldDropCount));
+            Assert.That(definition.Rewards.TotalGoldWeight,
+                Is.EqualTo(expectedGoldDropCount == 0 ? 0 : 100));
+            for (int index = 0; index < expectedGoldDropCount; index++)
+            {
+                Assert.That(definition.Rewards.GoldDrops[index].Amount,
+                    Is.EqualTo(goldAmounts[index]));
+                Assert.That(definition.Rewards.GoldDrops[index].Weight,
+                    Is.EqualTo(goldWeights[index]));
+            }
+
+            AssertBehaviorCycle(definition, expectedActionNumbersByRound);
+        }
+
+        private static void AssertBehaviorCycle(
+            SoloComboEncounterDefinition definition,
+            int[][] expectedActionNumbersByRound)
+        {
+            var player = new CombatantState("Player", new CombatantStats(100, 0, 0, 50, 50));
+            var enemy = new CombatantState(definition.EnemyDisplayName, definition.EnemyStats);
+            for (int roundIndex = 0;
+                roundIndex <= expectedActionNumbersByRound.Length;
+                roundIndex++)
+            {
+                EnemyActionSequence sequence = definition.EnemyBehavior.SelectSequence(
+                    player, enemy, null, 0d);
+                int expectedRound = roundIndex % expectedActionNumbersByRound.Length;
+                int[] expectedActions = expectedActionNumbersByRound[expectedRound];
+                Assert.That(sequence.Actions.Count, Is.EqualTo(expectedActions.Length));
+                for (int actionIndex = 0; actionIndex < expectedActions.Length; actionIndex++)
+                {
+                    Assert.That(sequence.Actions[actionIndex].ActionId,
+                        Does.EndWith($"action-{expectedActions[actionIndex]}"));
+                }
+            }
+        }
+
+        private static void AssertActionOffsets(
+            string assetName,
+            int roundCount,
+            int[][] expectedOffsetsByAction)
+        {
+            Dictionary<string, EnemyActionDefinition> actions =
+                LoadExpandedActions(assetName, roundCount);
+            Assert.That(actions.Count, Is.EqualTo(expectedOffsetsByAction.Length));
+            for (int actionIndex = 0; actionIndex < expectedOffsetsByAction.Length; actionIndex++)
+            {
+                string suffix = $"action-{actionIndex + 1}";
+                EnemyActionDefinition action = null;
+                foreach (KeyValuePair<string, EnemyActionDefinition> pair in actions)
+                {
+                    if (pair.Key.EndsWith(suffix, StringComparison.Ordinal))
+                    {
+                        action = pair.Value;
+                        break;
+                    }
+                }
+
+                Assert.That(action, Is.Not.Null,
+                    $"{assetName} is missing {suffix}.");
+                Assert.That(action.TimelineCost, Is.EqualTo(10));
+                Assert.That(action.ResolutionEvents.Count,
+                    Is.EqualTo(expectedOffsetsByAction[actionIndex].Length));
+                for (int eventIndex = 0;
+                    eventIndex < expectedOffsetsByAction[actionIndex].Length;
+                    eventIndex++)
+                {
+                    Assert.That(action.ResolutionEvents[eventIndex].Offset,
+                        Is.EqualTo(expectedOffsetsByAction[actionIndex][eventIndex]));
+                }
+            }
+        }
+
+        private static EnemyActionDefinition FindExpandedAction(
+            string assetName,
+            int roundCount,
+            string actionId)
+        {
+            Dictionary<string, EnemyActionDefinition> actions =
+                LoadExpandedActions(assetName, roundCount);
+            Assert.That(actions.TryGetValue(actionId, out EnemyActionDefinition action), Is.True,
+                $"{assetName} is missing Action '{actionId}'.");
+            return action;
+        }
+
+        private static Dictionary<string, EnemyActionDefinition> LoadExpandedActions(
+            string assetName,
+            int roundCount)
+        {
+            SoloComboEncounterDefinition definition = LoadExpandedEncounter(assetName);
+            var actions = new Dictionary<string, EnemyActionDefinition>(StringComparer.Ordinal);
+            var player = new CombatantState("Player", new CombatantStats(100, 0, 0, 50, 50));
+            var enemy = new CombatantState(definition.EnemyDisplayName, definition.EnemyStats);
+            for (int roundIndex = 0; roundIndex < roundCount; roundIndex++)
+            {
+                EnemyActionSequence sequence = definition.EnemyBehavior.SelectSequence(
+                    player, enemy, null, 0d);
+                for (int actionIndex = 0; actionIndex < sequence.Actions.Count; actionIndex++)
+                {
+                    EnemyActionDefinition action = sequence.Actions[actionIndex];
+                    actions[action.ActionId] = action;
+                }
+            }
+
+            return actions;
+        }
+
+        private static SoloComboEncounterDefinition LoadExpandedEncounter(string assetName)
+        {
+            SoloComboEncounterDefinitionAsset encounter = AssetDatabase.LoadAssetAtPath<
+                SoloComboEncounterDefinitionAsset>($"{EncounterAssetFolder}/{assetName}");
+            Assert.That(encounter, Is.Not.Null,
+                $"Missing expanded Encounter asset '{assetName}'.");
+            Assert.That(
+                encounter.TryCreateDefinition(
+                    out SoloComboEncounterDefinition definition,
+                    out string validationError),
+                Is.True,
+                validationError);
+            return definition;
+        }
+
+        private static void AssertOvercommitSelfStagger(EnemyActionDefinition action)
+        {
+            ActionResolutionDefinition resolution = action.ResolutionEvents[1];
+            Assert.That(resolution.DamageTags & DamageResolutionTag.Overcommit,
+                Is.EqualTo(DamageResolutionTag.Overcommit));
+            Assert.That(resolution.OnEvadedDisruption, Is.Not.Null);
+            Assert.That(resolution.OnEvadedDisruption.Type,
+                Is.EqualTo(ActionDisruptionType.Stagger));
+            Assert.That(resolution.OnEvadedDisruption.Duration, Is.EqualTo(2));
         }
 
         private static void AssertSceneEncounter(

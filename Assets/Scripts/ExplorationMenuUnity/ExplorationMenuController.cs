@@ -2932,6 +2932,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 state,
                 BattleRewardSummary.ApeBeastBloodMaterialId,
                 "Ape Beast Blood");
+            AddInventoryRow(state, BattleRewardSummary.SlimeChunkMaterialId, "Slime Chunk");
+            AddInventoryRow(state, BattleRewardSummary.ThornMaterialId, "Thorn");
+            AddInventoryRow(state, BattleRewardSummary.CrystalMaterialId, "Crystal");
+            AddInventoryRow(state, BattleRewardSummary.PureGoldMaterialId, "Pure Gold");
+            AddInventoryRow(state, BattleRewardSummary.MithrilMaterialId, "Mithril");
+            AddInventoryRow(state, BattleRewardSummary.YellowSilkMaterialId, "Yellow Silk");
+            AddInventoryRow(state, BattleRewardSummary.RedSilkMaterialId, "Red Silk");
             SetSelectedNavigation(_inventoryButton);
         }
 

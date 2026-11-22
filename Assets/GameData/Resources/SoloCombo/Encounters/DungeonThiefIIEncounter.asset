@@ -1,0 +1,811 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: DungeonThiefIIEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: encounter.dungeon-thief-2
+  displayName: Dungeon Thief II Encounter
+  description: A three-round defensive Dungeon Thief combat cycle.
+  enemyDisplayName: Dungeon Thief II
+  enemyMaximumHealth: 250
+  enemyAttack: 35
+  enemyDefense: 10
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 10
+  startingItems: []
+  rewardGold: 0
+  rewardGoldDrops:
+  - amount: 50
+    weight: 35
+  - amount: 100
+    weight: 31
+  - amount: 150
+    weight: 21
+  - amount: 200
+    weight: 10
+  - amount: 1000
+    weight: 3
+  rewardMaterialRollCount: 3
+  rewardMaterialDrops:
+  - itemId: material.yellow-silk
+    weight: 41
+  - itemId: material.red-silk
+    weight: 41
+  - itemId: material.crystal
+    weight: 6
+  - itemId: material.pure-gold
+    weight: 6
+  - itemId: material.mithril
+    weight: 6
+  scriptedSequences:
+  - sequenceId: enemy.dungeon-thief-2.round-1
+    displayName: Round 1
+    actions:
+    - actionId: enemy.dungeon-thief-2.action-6
+      displayName: Action 6
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 2
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.dungeon-thief-2.action-1
+      displayName: Action 1
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.7
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.dungeon-thief-2.action-2
+      displayName: Action 2
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows:
+      - windowId: enemy.dungeon-thief-2.action-2.damage-reduction
+        displayName: Damage Taken -10%
+        startOffset: 1
+        endOffset: 10
+        effect: 0
+        damageReduction: 0.1
+        superArmorLevel: 0
+        disruptionPolicy: 0
+  - sequenceId: enemy.dungeon-thief-2.round-2
+    displayName: Round 2
+    actions:
+    - actionId: enemy.dungeon-thief-2.action-2
+      displayName: Action 2
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows:
+      - windowId: enemy.dungeon-thief-2.action-2.damage-reduction
+        displayName: Damage Taken -10%
+        startOffset: 1
+        endOffset: 10
+        effect: 0
+        damageReduction: 0.1
+        superArmorLevel: 0
+        disruptionPolicy: 0
+    - actionId: enemy.dungeon-thief-2.action-5
+      displayName: Action 5
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 1
+        effect: 2
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.2
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.2
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 6
+        effect: 2
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 9
+        effect: 1
+        damageMultiplier: 0.7
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.dungeon-thief-2.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 1
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+  - sequenceId: enemy.dungeon-thief-2.round-3
+    displayName: Round 3
+    actions:
+    - actionId: enemy.dungeon-thief-2.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 2
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.dungeon-thief-2.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 1
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.dungeon-thief-2.action-1
+      displayName: Action 1
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.7
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []

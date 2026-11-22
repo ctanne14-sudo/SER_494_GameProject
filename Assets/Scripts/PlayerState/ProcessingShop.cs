@@ -163,6 +163,7 @@ namespace SER494.Gameplay.PlayerState
         public const string ThornId = "material.thorn";
         public const string CrystalId = "material.crystal";
         public const string PureGoldId = "material.pure-gold";
+        public const string MithrilId = "material.mithril";
 
         private static readonly IReadOnlyList<ProcessingRecipe> Recipes = BuildRecipes();
 

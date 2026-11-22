@@ -91,7 +91,14 @@ namespace SER494.Gameplay.BattleResult.Unity
                     [BattleRewardSummary.ApeBeastPeltMaterialId] = "Ape Beast Pelt",
                     [BattleRewardSummary.ApeBeastArmguardMaterialId] = "Ape Beast Armguard",
                     [BattleRewardSummary.ApeBeastBlackFurMaterialId] = "Ape Beast Black Fur",
-                    [BattleRewardSummary.ApeBeastBloodMaterialId] = "Ape Beast Blood"
+                    [BattleRewardSummary.ApeBeastBloodMaterialId] = "Ape Beast Blood",
+                    [BattleRewardSummary.SlimeChunkMaterialId] = "Slime Chunk",
+                    [BattleRewardSummary.ThornMaterialId] = "Thorn",
+                    [BattleRewardSummary.CrystalMaterialId] = "Crystal",
+                    [BattleRewardSummary.PureGoldMaterialId] = "Pure Gold",
+                    [BattleRewardSummary.MithrilMaterialId] = "Mithril",
+                    [BattleRewardSummary.YellowSilkMaterialId] = "Yellow Silk",
+                    [BattleRewardSummary.RedSilkMaterialId] = "Red Silk"
                 });
 
         public static BattleResultPresentation Create(BattleSession session)

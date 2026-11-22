@@ -1812,6 +1812,20 @@ namespace SER494.Gameplay.CombatSandbox
                 rewards,
                 BattleRewardSummary.ApeBeastBloodMaterialId,
                 "Ape Beast Blood");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.SlimeChunkMaterialId, "Slime Chunk");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.ThornMaterialId, "Thorn");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.CrystalMaterialId, "Crystal");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.PureGoldMaterialId, "Pure Gold");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.MithrilMaterialId, "Mithril");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.YellowSilkMaterialId, "Yellow Silk");
+            AddMaterialReward(rewardParts, rewards,
+                BattleRewardSummary.RedSilkMaterialId, "Red Silk");
             if (rewards.HasLearnedAction)
             {
                 string displayName = rewards.LearnedActionId;
