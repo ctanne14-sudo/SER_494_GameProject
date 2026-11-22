@@ -251,6 +251,51 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(battle.Enemy.DisplayName, Is.EqualTo("Wanderer"));
         }
 
+        [TestCase("pure-gold", 220, 100, 10)]
+        [TestCase("crystal", 200, 100, 13)]
+        [TestCase("mithril", 200, 110, 10)]
+        public void BattleAdapter_AppliesLatestArmorStatEffects(
+            string seriesId,
+            int expectedDefense,
+            int expectedMaximumStamina,
+            int expectedRecovery)
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PersistentPlayerState(100, 30, 100);
+            EquipStartingGear(playerState);
+            EquipArmor(playerState, "armor.head", $"armor.{seriesId}.head");
+            EquipArmor(playerState, "armor.upper-body", $"armor.{seriesId}.upper");
+            EquipArmor(playerState, "armor.lower-body", $"armor.{seriesId}.lower");
+            playerState.SetCurrentCombatStamina(50);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(
+                weapon: null,
+                damageMultiplier: 0.01d);
+            BeginBattle(
+                service,
+                CreateValidEncounter(enemyMaximumHealth: 1000, enemyAttack: 0),
+                loadout);
+
+            Assert.That(
+                BattleSessionBattleAdapter.TryCreateBattle(
+                    service.CurrentSession,
+                    playerState,
+                    out SoloComboBattleState battle,
+                    out string error),
+                Is.True,
+                error);
+
+            Assert.That(battle.Player.Stats.Defense, Is.EqualTo(expectedDefense));
+            Assert.That(battle.Player.Stats.MaxStamina,
+                Is.EqualTo(expectedMaximumStamina));
+            Assert.That(playerState.MaximumCombatStamina,
+                Is.EqualTo(expectedMaximumStamina));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.Ongoing));
+            Assert.That(result.StaminaRecovered, Is.EqualTo(expectedRecovery));
+        }
+
         [Test]
         public void BattleAdapter_CommitsFinalResourcesItemsAndEncounterOutcome()
         {

@@ -17,8 +17,8 @@ MonoBehaviour:
   slotId: armor.lower-body
   defense: 75
   seriesId: armor-series.mithril
-  effectType: 0
+  effectType: 8
   effectDamageType: 0
-  effectAmount: 0
+  effectAmount: 10
   effectDescription: Maximum Stamina +10.
   setEffectDescription: 'Full set: all damage taken -10%.'

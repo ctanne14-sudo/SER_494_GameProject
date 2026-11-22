@@ -42,13 +42,18 @@ namespace SER494.Gameplay.PlayerState.Tests
                 DateTimeKind.Utc);
             var storage = new PlayerSaveStorage(_saveDirectory, () => savedAtUtc);
             PlayerState original = CreatePopulatedState(currentHealth: 73);
+            original.SetEquipmentMaximumCombatStaminaBonus(10);
+            original.SetCurrentCombatStamina(106);
 
             storage.Save(2, original);
             LoadedPlayerSave loaded = storage.Load(2);
             SaveSlotInfo info = storage.Inspect(2);
 
             Assert.That(loaded.State.CurrentHealth, Is.EqualTo(73));
-            Assert.That(loaded.State.CurrentCombatStamina, Is.EqualTo(41));
+            Assert.That(loaded.State.BaseMaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(loaded.State.EquipmentMaximumCombatStaminaBonus, Is.EqualTo(10));
+            Assert.That(loaded.State.MaximumCombatStamina, Is.EqualTo(110));
+            Assert.That(loaded.State.CurrentCombatStamina, Is.EqualTo(106));
             Assert.That(loaded.State.Inventory.GetCount("healing-potion"), Is.EqualTo(2));
             Assert.That(loaded.State.Equipment.EquippedWeaponId,
                 Is.EqualTo("weapon.greatsword.test"));
@@ -195,13 +200,13 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 3", "\"Version\": 4"));
+                json.Replace("\"Version\": 4", "\"Version\": 5"));
 
             SaveSlotInfo info = storage.Inspect(3);
 
             Assert.That(info.State, Is.EqualTo(SaveSlotState.UnsupportedVersion));
             Assert.That(info.CanLoad, Is.False);
-            Assert.That(info.ErrorMessage, Does.Contain("version 4"));
+            Assert.That(info.ErrorMessage, Does.Contain("version 5"));
             Assert.Throws<NotSupportedException>(() => storage.Load(3));
         }
 
@@ -214,8 +219,8 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 3", "\"Version\": 1")
-                    .Replace("\"Version\": 2", "\"Version\": 1"));
+                json.Replace("\"Version\": 4", "\"Version\": 1")
+                    .Replace("\"Version\": 3", "\"Version\": 1"));
 
             LoadedPlayerSave loaded = storage.Load(1);
 
@@ -233,7 +238,8 @@ namespace SER494.Gameplay.PlayerState.Tests
             string json = File.ReadAllText(savePath);
             File.WriteAllText(
                 savePath,
-                json.Replace("\"Version\": 3", "\"Version\": 2"));
+                json.Replace("\"Version\": 4", "\"Version\": 2")
+                    .Replace("\"Version\": 3", "\"Version\": 2"));
 
             LoadedPlayerSave loaded = storage.Load(1);
 

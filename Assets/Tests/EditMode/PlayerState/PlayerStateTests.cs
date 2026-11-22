@@ -13,9 +13,29 @@ namespace SER494.Gameplay.PlayerState.Tests
 
             Assert.That(state.CurrentHealth, Is.EqualTo(100));
             Assert.That(state.CurrentMana, Is.EqualTo(30));
+            Assert.That(state.BaseMaximumCombatStamina, Is.EqualTo(30));
+            Assert.That(state.EquipmentMaximumCombatStaminaBonus, Is.Zero);
             Assert.That(state.MaximumCombatStamina, Is.EqualTo(30));
             Assert.That(state.CurrentCombatStamina, Is.EqualTo(30));
             Assert.That(state.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void EquipmentMaximumCombatStaminaBonus_ClampsOnDecreaseWithoutRefillingOnIncrease()
+        {
+            var state = CreateState();
+            state.SetCurrentCombatStamina(21);
+
+            state.SetEquipmentMaximumCombatStaminaBonus(10);
+
+            Assert.That(state.MaximumCombatStamina, Is.EqualTo(40));
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(21));
+
+            state.SetCurrentCombatStamina(38);
+            state.SetEquipmentMaximumCombatStaminaBonus(0);
+
+            Assert.That(state.MaximumCombatStamina, Is.EqualTo(30));
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(30));
         }
 
         [Test]

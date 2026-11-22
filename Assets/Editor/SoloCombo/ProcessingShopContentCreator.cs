@@ -134,25 +134,25 @@ namespace SER494.Gameplay.Combat.Editor
             new ArmorSpec(
                 "crystal", "Crystal",
                 new[] { 50, 75, 75 },
-                new[] { ArmorEffectType.AllDamageDealtMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.None },
+                new[] { ArmorEffectType.AllDamageDealtMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.StaminaRecoveryPerRoundFlat },
                 new[] { default(DamageType), DamageType.Blunt, default(DamageType) },
-                new[] { .05f, .05f, 0f },
+                new[] { .05f, .05f, 3f },
                 new[] { "All damage dealt +5%.", "Blunt damage taken -5%.", "Stamina recovery +3 each round." },
                 "Full set: all damage dealt +10%."),
             new ArmorSpec(
                 "pure-gold", "Pure Gold",
                 new[] { 50, 75, 75 },
-                new[] { ArmorEffectType.HealingPotionMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.None },
+                new[] { ArmorEffectType.HealingPotionMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.DefenseMultiplier },
                 new[] { default(DamageType), DamageType.Slashing, default(DamageType) },
-                new[] { .10f, .05f, 0f },
+                new[] { .10f, .05f, .10f },
                 new[] { "Healing and Greater Healing Potion recovery +10%.", "Slashing damage taken -5%.", "Defense +10%." },
                 "Full set: successful Clash damage +50%."),
             new ArmorSpec(
                 "mithril", "Mithril",
                 new[] { 50, 75, 75 },
-                new[] { ArmorEffectType.MaximumHealthMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.None },
+                new[] { ArmorEffectType.MaximumHealthMultiplier, ArmorEffectType.DamageTakenMultiplier, ArmorEffectType.MaximumStaminaFlat },
                 new[] { default(DamageType), DamageType.Piercing, default(DamageType) },
-                new[] { .04f, .05f, 0f },
+                new[] { .04f, .05f, 10f },
                 new[] { "Maximum HP +4%.", "Piercing damage taken -5%.", "Maximum Stamina +10." },
                 "Full set: all damage taken -10%.")
         };

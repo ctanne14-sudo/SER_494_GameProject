@@ -11,7 +11,11 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         MaximumHealthMultiplier,
         HealingPotionMultiplier,
         GuardCounterPiercingMultiplier,
-        AllDamageDealtMultiplier
+        AllDamageDealtMultiplier,
+        DefenseMultiplier,
+        StaminaRecoveryPerRoundFlat,
+        MaximumStaminaFlat,
+        AllDamageTakenMultiplier
     }
 
     [CreateAssetMenu(

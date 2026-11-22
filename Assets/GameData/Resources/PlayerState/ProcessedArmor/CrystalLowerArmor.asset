@@ -17,8 +17,8 @@ MonoBehaviour:
   slotId: armor.lower-body
   defense: 75
   seriesId: armor-series.crystal
-  effectType: 0
+  effectType: 7
   effectDamageType: 0
-  effectAmount: 0
+  effectAmount: 3
   effectDescription: Stamina recovery +3 each round.
   setEffectDescription: 'Full set: all damage dealt +10%.'

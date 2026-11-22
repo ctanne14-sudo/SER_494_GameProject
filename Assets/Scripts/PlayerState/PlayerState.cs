@@ -13,7 +13,7 @@ namespace SER494.Gameplay.PlayerState
         {
             BaseMaximumHealth = RequirePositive(maximumHealth, nameof(maximumHealth));
             MaximumMana = RequireNonNegative(maximumMana, nameof(maximumMana));
-            MaximumCombatStamina = RequireNonNegative(
+            BaseMaximumCombatStamina = RequireNonNegative(
                 maximumCombatStamina,
                 nameof(maximumCombatStamina));
             BaseStaminaRecoveryPerRound = RequireNonNegative(
@@ -42,7 +42,12 @@ namespace SER494.Gameplay.PlayerState
 
         public int MaximumMana { get; }
 
-        public int MaximumCombatStamina { get; }
+        public int BaseMaximumCombatStamina { get; }
+
+        public int EquipmentMaximumCombatStaminaBonus { get; private set; }
+
+        public int MaximumCombatStamina => checked(
+            BaseMaximumCombatStamina + EquipmentMaximumCombatStaminaBonus);
 
         // Combat Stamina persists between battles. Save points restore it to its
         // maximum, while a new battle starts from this current value.
@@ -138,6 +143,14 @@ namespace SER494.Gameplay.PlayerState
         public void RestoreCombatStaminaToMaximum()
         {
             CurrentCombatStamina = MaximumCombatStamina;
+        }
+
+        public void SetEquipmentMaximumCombatStaminaBonus(int amount)
+        {
+            EquipmentMaximumCombatStaminaBonus = RequireNonNegative(
+                amount,
+                nameof(amount));
+            CurrentCombatStamina = Clamp(CurrentCombatStamina, 0, MaximumCombatStamina);
         }
 
         private static int Clamp(int value, int minimum, int maximum)

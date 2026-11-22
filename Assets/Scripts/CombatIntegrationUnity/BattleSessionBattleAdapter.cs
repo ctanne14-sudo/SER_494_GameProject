@@ -95,6 +95,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             derivedStats.ApplyPersistentMaximumHealth(playerState);
+            derivedStats.ApplyPersistentMaximumCombatStamina(playerState);
+            defense = derivedStats.ApplyDefenseMultiplier(defense);
 
             try
             {
@@ -112,7 +114,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     combos,
                     encounter.EnemyBehavior,
                     encounter.ManaRecoveryPerTurn,
-                    playerState.BaseStaminaRecoveryPerRound,
+                    derivedStats.ApplyStaminaRecoveryPerRound(
+                        playerState.BaseStaminaRecoveryPerRound),
                     enemyRandom: new Random(594),
                     startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState));
             }

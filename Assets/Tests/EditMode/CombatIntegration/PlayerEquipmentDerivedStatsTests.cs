@@ -91,6 +91,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 
             Assert.That(stats.AllDamageDealtModifier, Is.EqualTo(0.15d).Within(0.0001d));
             Assert.That(stats.BluntDamageTakenModifier, Is.EqualTo(-0.05d).Within(0.0001d));
+            Assert.That(stats.StaminaRecoveryPerRoundBonus, Is.EqualTo(3));
+            Assert.That(stats.ApplyStaminaRecoveryPerRound(10), Is.EqualTo(13));
         }
 
         [Test]
@@ -128,6 +130,47 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(stats.HealingPotionMultiplierBonus, Is.EqualTo(0.10d).Within(0.0001d));
             Assert.That(stats.SlashingDamageTakenModifier, Is.EqualTo(-0.05d).Within(0.0001d));
             Assert.That(stats.ClashDamageDealtMultiplierBonus, Is.EqualTo(0.50d).Within(0.0001d));
+            Assert.That(stats.DefenseMultiplierBonus, Is.EqualTo(0.10d).Within(0.0001d));
+            Assert.That(stats.ApplyDefenseMultiplier(105), Is.EqualTo(116));
+        }
+
+        [Test]
+        public void MithrilSet_AddsMaximumStaminaAndReducesAllIncomingDamage()
+        {
+            PersistentPlayerState state = CreateStateWithArmorSet("mithril");
+            state.SetCurrentCombatStamina(90);
+            PlayerEquipmentDerivedStats stats = Resolve(state);
+
+            stats.ApplyPersistentMaximumCombatStamina(state);
+
+            Assert.That(stats.MaximumCombatStaminaBonus, Is.EqualTo(10));
+            Assert.That(state.BaseMaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(state.MaximumCombatStamina, Is.EqualTo(110));
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(90));
+            Assert.That(stats.AllDamageTakenModifier, Is.EqualTo(-0.10d).Within(0.0001d));
+
+            var combatant = new CombatantState(
+                "Player",
+                new CombatantStats(100, 30, 110, 50, 200));
+            stats.ApplyCombatModifiers(combatant);
+            Assert.That(combatant.DamageTakenModifiers, Has.Count.EqualTo(2));
+            Assert.That(combatant.DamageTakenModifiers[0].Scope,
+                Is.EqualTo(DamageModifierScope.Type));
+            Assert.That(combatant.DamageTakenModifiers[0].Type,
+                Is.EqualTo(DamageType.Piercing));
+            Assert.That(combatant.DamageTakenModifiers[0].Amount,
+                Is.EqualTo(-0.05d).Within(0.0001d));
+            Assert.That(combatant.DamageTakenModifiers[1].Scope,
+                Is.EqualTo(DamageModifierScope.All));
+            Assert.That(combatant.DamageTakenModifiers[1].Amount,
+                Is.EqualTo(-0.10d).Within(0.0001d));
+
+            state.SetCurrentCombatStamina(108);
+            state.Equipment.UnequipArmor("armor.lower-body");
+            Resolve(state).ApplyPersistentMaximumCombatStamina(state);
+
+            Assert.That(state.MaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(state.CurrentCombatStamina, Is.EqualTo(100));
         }
 
         private static PlayerEquipmentDerivedStats Resolve(PersistentPlayerState state)

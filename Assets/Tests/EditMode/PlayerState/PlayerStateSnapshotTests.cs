@@ -21,8 +21,10 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(restored.MaximumHealth, Is.EqualTo(120));
             Assert.That(restored.CurrentMana, Is.EqualTo(17));
             Assert.That(restored.MaximumMana, Is.EqualTo(30));
-            Assert.That(restored.MaximumCombatStamina, Is.EqualTo(100));
-            Assert.That(restored.CurrentCombatStamina, Is.EqualTo(61));
+            Assert.That(restored.BaseMaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(restored.EquipmentMaximumCombatStaminaBonus, Is.EqualTo(10));
+            Assert.That(restored.MaximumCombatStamina, Is.EqualTo(110));
+            Assert.That(restored.CurrentCombatStamina, Is.EqualTo(106));
             Assert.That(restored.BaseStaminaRecoveryPerRound, Is.EqualTo(10));
             Assert.That(restored.Inventory.GetCount("item.healing-potion"), Is.EqualTo(3));
             Assert.That(restored.Inventory.GetCount("material.iron"), Is.EqualTo(7));
@@ -123,7 +125,26 @@ namespace SER494.Gameplay.PlayerState.Tests
 
             PlayerState restored = PlayerStateSnapshotMapper.Restore(snapshot);
 
-            Assert.That(restored.CurrentCombatStamina, Is.EqualTo(100));
+            Assert.That(restored.BaseMaximumCombatStamina, Is.EqualTo(110));
+            Assert.That(restored.EquipmentMaximumCombatStaminaBonus, Is.Zero);
+            Assert.That(restored.CurrentCombatStamina, Is.EqualTo(110));
+        }
+
+        [Test]
+        public void Restore_VersionTwoSnapshot_MigratesLegacyMaximumWithoutEquipmentBonus()
+        {
+            PlayerStateSnapshot snapshot = PlayerStateSnapshotMapper.Capture(
+                CreatePopulatedState());
+            snapshot.Version = 2;
+            snapshot.MaximumCombatStamina = 100;
+            snapshot.CurrentCombatStamina = 61;
+
+            PlayerState restored = PlayerStateSnapshotMapper.Restore(snapshot);
+
+            Assert.That(restored.BaseMaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(restored.EquipmentMaximumCombatStaminaBonus, Is.Zero);
+            Assert.That(restored.MaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(restored.CurrentCombatStamina, Is.EqualTo(61));
         }
 
         [Test]
@@ -154,9 +175,10 @@ namespace SER494.Gameplay.PlayerState.Tests
                 initiallyUnlockedLoadoutSlots: 2,
                 baseStaminaRecoveryPerRound: 10);
             state.SetEquipmentMaximumHealthBonus(20);
+            state.SetEquipmentMaximumCombatStaminaBonus(10);
             state.SetCurrentHealth(83);
             state.SetCurrentMana(17);
-            state.SetCurrentCombatStamina(61);
+            state.SetCurrentCombatStamina(106);
 
             state.Inventory.Add("material.iron", 7);
             state.Inventory.Add("item.healing-potion", 3);

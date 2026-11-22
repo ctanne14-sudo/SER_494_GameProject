@@ -797,10 +797,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
 
             AddValueRow(ExplorationMenuText.Get("status.weapon"), weaponName);
-            string defenseText = catalog.TryGetTotalDefense(
-                state.Equipment.EquippedArmorBySlot,
-                out int defense,
-                out _) ? defense.ToString() : "—";
+            string defenseText = TryGetEffectiveDefense(
+                state,
+                catalog,
+                out int defense) ? defense.ToString() : "—";
             AddValueRow(ExplorationMenuText.Get("status.defense"), defenseText);
             AddValueRow(
                 ExplorationMenuText.Get("status.loadout"),
@@ -3436,10 +3436,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 state.Equipment.EquippedWeaponId,
                 out var weapon,
                 out _) ? weapon.WeaponAttack.ToString() : "—";
-            string defense = catalog.TryGetTotalDefense(
-                state.Equipment.EquippedArmorBySlot,
-                out int totalDefense,
-                out _) ? totalDefense.ToString() : "—";
+            string defense = TryGetEffectiveDefense(
+                state,
+                catalog,
+                out int totalDefense) ? totalDefense.ToString() : "—";
             AddSummaryRow(ExplorationMenuText.Get("equipment.attack"), attack);
             AddSummaryRow(ExplorationMenuText.Get("equipment.defense"), defense);
 
@@ -4124,11 +4124,37 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     out string error))
             {
                 stats.ApplyPersistentMaximumHealth(state);
+                stats.ApplyPersistentMaximumCombatStamina(state);
             }
             else
             {
                 Debug.LogWarning($"Could not refresh equipment stats: {error}");
             }
+        }
+
+        private static bool TryGetEffectiveDefense(
+            PersistentPlayerState state,
+            PlayerEquipmentCatalogAsset catalog,
+            out int defense)
+        {
+            defense = 0;
+            if (state == null
+                || catalog == null
+                || !catalog.TryGetTotalDefense(
+                    state.Equipment.EquippedArmorBySlot,
+                    out int baseDefense,
+                    out _)
+                || !PlayerEquipmentDerivedStats.TryResolve(
+                    state,
+                    catalog,
+                    out PlayerEquipmentDerivedStats stats,
+                    out _))
+            {
+                return false;
+            }
+
+            defense = stats.ApplyDefenseMultiplier(baseDefense);
+            return true;
         }
 
         private static bool CanOpenInCurrentScene()

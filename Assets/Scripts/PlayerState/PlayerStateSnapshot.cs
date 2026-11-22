@@ -52,7 +52,7 @@ namespace SER494.Gameplay.PlayerState
     [Serializable]
     public sealed class PlayerStateSnapshot
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int Version = CurrentVersion;
         public int CurrentHealth;
@@ -60,6 +60,9 @@ namespace SER494.Gameplay.PlayerState
         public int EquipmentMaximumHealthBonus;
         public int CurrentMana;
         public int MaximumMana;
+        public int BaseMaximumCombatStamina;
+        public int EquipmentMaximumCombatStaminaBonus;
+        // Retained for version 1-2 migration and save-file diagnostics.
         public int MaximumCombatStamina;
         public int CurrentCombatStamina;
         public int BaseStaminaRecoveryPerRound;
@@ -88,6 +91,9 @@ namespace SER494.Gameplay.PlayerState
                 EquipmentMaximumHealthBonus = state.EquipmentMaximumHealthBonus,
                 CurrentMana = state.CurrentMana,
                 MaximumMana = state.MaximumMana,
+                BaseMaximumCombatStamina = state.BaseMaximumCombatStamina,
+                EquipmentMaximumCombatStaminaBonus =
+                    state.EquipmentMaximumCombatStaminaBonus,
                 MaximumCombatStamina = state.MaximumCombatStamina,
                 CurrentCombatStamina = state.CurrentCombatStamina,
                 BaseStaminaRecoveryPerRound = state.BaseStaminaRecoveryPerRound,
@@ -126,19 +132,35 @@ namespace SER494.Gameplay.PlayerState
                 snapshot.BaseMaximumHealth + snapshot.EquipmentMaximumHealthBonus);
             RequireRange(snapshot.CurrentHealth, 0, maximumHealth, nameof(snapshot.CurrentHealth));
             RequireRange(snapshot.CurrentMana, 0, snapshot.MaximumMana, nameof(snapshot.CurrentMana));
-            int currentCombatStamina = snapshot.Version == 1
+            int baseMaximumCombatStamina = snapshot.Version <= 2
                 ? snapshot.MaximumCombatStamina
+                : snapshot.BaseMaximumCombatStamina;
+            int equipmentMaximumCombatStaminaBonus = snapshot.Version <= 2
+                ? 0
+                : snapshot.EquipmentMaximumCombatStaminaBonus;
+            int maximumCombatStamina = checked(
+                baseMaximumCombatStamina + equipmentMaximumCombatStaminaBonus);
+            if (snapshot.Version >= 3
+                && snapshot.MaximumCombatStamina != maximumCombatStamina)
+            {
+                throw new ArgumentException(
+                    "Saved maximum Combat Stamina does not match its base and equipment values.",
+                    nameof(snapshot));
+            }
+
+            int currentCombatStamina = snapshot.Version == 1
+                ? maximumCombatStamina
                 : snapshot.CurrentCombatStamina;
             RequireRange(
                 currentCombatStamina,
                 0,
-                snapshot.MaximumCombatStamina,
+                maximumCombatStamina,
                 nameof(snapshot.CurrentCombatStamina));
 
             var state = new PlayerState(
                 snapshot.BaseMaximumHealth,
                 snapshot.MaximumMana,
-                snapshot.MaximumCombatStamina,
+                baseMaximumCombatStamina,
                 loadoutCount,
                 snapshot.BaseStaminaRecoveryPerRound);
 
@@ -149,6 +171,8 @@ namespace SER494.Gameplay.PlayerState
             RestoreLoadouts(snapshot.ComboLoadouts, snapshot.ActiveLoadoutId, state.ComboLoadouts);
 
             state.SetEquipmentMaximumHealthBonus(snapshot.EquipmentMaximumHealthBonus);
+            state.SetEquipmentMaximumCombatStaminaBonus(
+                equipmentMaximumCombatStaminaBonus);
             state.SetCurrentHealth(snapshot.CurrentHealth);
             state.SetCurrentMana(snapshot.CurrentMana);
             state.SetCurrentCombatStamina(currentCombatStamina);

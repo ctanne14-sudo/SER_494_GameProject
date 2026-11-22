@@ -10,7 +10,7 @@ namespace SER494.Gameplay.PlayerState.Unity
     [Serializable]
     internal sealed class PlayerSaveEnvelope
     {
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public int Version = CurrentVersion;
         public string SavedAtUtc;
