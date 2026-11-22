@@ -255,6 +255,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return true;
             }
 
+            int baseGold = definition.RollGold(random);
             IReadOnlyDictionary<string, int> materials =
                 definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls);
             if (!ActionLearningRewardRoller.TryRoll(
@@ -270,7 +271,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             rewards = new BattleRewardSummary(
                 (int)Math.Round(
-                    definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
+                    baseGold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
                     MidpointRounding.AwayFromZero),
                 materials,
                 learnedActionId);

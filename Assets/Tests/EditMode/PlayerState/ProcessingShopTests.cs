@@ -98,6 +98,38 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(state.Inventory.GetCount(ProcessingRecipeCatalog.SlimeChunkId), Is.EqualTo(2));
         }
 
+        [TestCase(EquipmentCategory.Weapon, "weapon.test")]
+        [TestCase(EquipmentCategory.Accessory, "accessory.test")]
+        public void TryCraft_NonArmorRecipeGrantsItsDeclaredEquipmentCategory(
+            EquipmentCategory category,
+            string equipmentId)
+        {
+            PlayerState state = CreateState();
+            var recipe = new ProcessingRecipe(
+                $"recipe.{equipmentId}",
+                category,
+                equipmentId,
+                "Test Equipment",
+                "Test Series",
+                category == EquipmentCategory.Weapon ? "weapon" : "accessory.primary",
+                25,
+                new ProcessingMaterialCost("material.test", "Test Material", 2));
+            state.Currencies.Add(PlayerCurrencyState.GoldCurrencyId, 25);
+            state.Inventory.Add("material.test", 2);
+
+            bool crafted = ProcessingShopService.TryCraft(
+                state,
+                recipe,
+                out ProcessingCraftFailure failure);
+
+            Assert.That(crafted, Is.True);
+            Assert.That(failure, Is.EqualTo(ProcessingCraftFailure.None));
+            Assert.That(state.Equipment.Owns(category, equipmentId), Is.True);
+            Assert.That(state.Equipment.Owns(EquipmentCategory.Armor, equipmentId), Is.False);
+            Assert.That(state.Currencies.Gold, Is.Zero);
+            Assert.That(state.Inventory.GetCount("material.test"), Is.Zero);
+        }
+
         private static ProcessingRecipe FindRecipe(string equipmentId)
         {
             return ProcessingRecipeCatalog.All.Single(recipe => recipe.EquipmentId == equipmentId);

@@ -130,11 +130,25 @@ namespace SER494.Gameplay.Combat.SoloCombo
             new EncounterRewardDefinition(0, 0, Array.Empty<WeightedMaterialReward>());
 
         private readonly WeightedMaterialReward[] _materialDrops;
+        private readonly WeightedGoldReward[] _goldDrops;
 
         public EncounterRewardDefinition(
             int gold,
             int materialRollCount,
             IReadOnlyList<WeightedMaterialReward> materialDrops)
+            : this(
+                gold,
+                materialRollCount,
+                materialDrops,
+                Array.Empty<WeightedGoldReward>())
+        {
+        }
+
+        public EncounterRewardDefinition(
+            int gold,
+            int materialRollCount,
+            IReadOnlyList<WeightedMaterialReward> materialDrops,
+            IReadOnlyList<WeightedGoldReward> goldDrops)
         {
             if (gold < 0)
             {
@@ -149,6 +163,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
             if (materialDrops == null)
             {
                 throw new ArgumentNullException(nameof(materialDrops));
+            }
+
+            if (goldDrops == null)
+            {
+                throw new ArgumentNullException(nameof(goldDrops));
             }
 
             var copiedDrops = new WeightedMaterialReward[materialDrops.Count];
@@ -178,10 +197,33 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     nameof(materialDrops));
             }
 
+
+            var copiedGoldDrops = new WeightedGoldReward[goldDrops.Count];
+            var goldAmounts = new HashSet<int>();
+            int totalGoldWeight = 0;
+            for (int index = 0; index < goldDrops.Count; index++)
+            {
+                WeightedGoldReward drop = goldDrops[index]
+                    ?? throw new ArgumentException(
+                        "Encounter Gold reward entries cannot be null.",
+                        nameof(goldDrops));
+                if (!goldAmounts.Add(drop.Amount))
+                {
+                    throw new ArgumentException(
+                        $"Encounter Gold reward amount '{drop.Amount}' is duplicated.",
+                        nameof(goldDrops));
+                }
+
+                totalGoldWeight = checked(totalGoldWeight + drop.Weight);
+                copiedGoldDrops[index] = drop;
+            }
+
             Gold = gold;
             MaterialRollCount = materialRollCount;
             TotalMaterialWeight = totalWeight;
+            TotalGoldWeight = totalGoldWeight;
             _materialDrops = copiedDrops;
+            _goldDrops = copiedGoldDrops;
         }
 
         public int Gold { get; }
@@ -190,7 +232,38 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public int TotalMaterialWeight { get; }
 
+        public int TotalGoldWeight { get; }
+
         public IReadOnlyList<WeightedMaterialReward> MaterialDrops => _materialDrops;
+
+        public IReadOnlyList<WeightedGoldReward> GoldDrops => _goldDrops;
+
+        public int RollGold(Random random)
+        {
+            if (random == null)
+            {
+                throw new ArgumentNullException(nameof(random));
+            }
+
+            if (_goldDrops.Length == 0)
+            {
+                return Gold;
+            }
+
+            int roll = random.Next(TotalGoldWeight);
+            int cumulativeWeight = 0;
+            for (int index = 0; index < _goldDrops.Length; index++)
+            {
+                WeightedGoldReward drop = _goldDrops[index];
+                cumulativeWeight += drop.Weight;
+                if (roll < cumulativeWeight)
+                {
+                    return drop.Amount;
+                }
+            }
+
+            throw new InvalidOperationException("Weighted Gold reward selection failed.");
+        }
 
         public IReadOnlyDictionary<string, int> RollMaterials(Random random)
         {
@@ -260,6 +333,32 @@ namespace SER494.Gameplay.Combat.SoloCombo
         }
 
         public string ItemId { get; }
+
+        public int Weight { get; }
+    }
+
+    public sealed class WeightedGoldReward
+    {
+        public WeightedGoldReward(int amount, int weight)
+        {
+            if (amount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            }
+
+            if (weight <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(weight),
+                    weight,
+                    "Reward weight must be positive.");
+            }
+
+            Amount = amount;
+            Weight = weight;
+        }
+
+        public int Amount { get; }
 
         public int Weight { get; }
     }

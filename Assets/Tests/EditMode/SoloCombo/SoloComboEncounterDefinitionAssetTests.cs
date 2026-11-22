@@ -146,6 +146,93 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void RewardDefinition_FixedGoldDoesNotConsumeRandomValue()
+        {
+            var rewards = new EncounterRewardDefinition(
+                200,
+                0,
+                System.Array.Empty<WeightedMaterialReward>());
+            var random = new FixedRollRandom(0);
+
+            int gold = rewards.RollGold(random);
+
+            Assert.That(gold, Is.EqualTo(200));
+            Assert.That(random.CallCount, Is.Zero);
+        }
+
+        [TestCase(0, 50)]
+        [TestCase(34, 50)]
+        [TestCase(35, 100)]
+        [TestCase(65, 100)]
+        [TestCase(66, 150)]
+        [TestCase(86, 150)]
+        [TestCase(87, 200)]
+        [TestCase(96, 200)]
+        [TestCase(97, 1000)]
+        [TestCase(99, 1000)]
+        public void RewardDefinition_WeightedGoldSelectsExpectedBoundary(
+            int roll,
+            int expectedGold)
+        {
+            var rewards = new EncounterRewardDefinition(
+                0,
+                0,
+                System.Array.Empty<WeightedMaterialReward>(),
+                new[]
+                {
+                    new WeightedGoldReward(50, 35),
+                    new WeightedGoldReward(100, 31),
+                    new WeightedGoldReward(150, 21),
+                    new WeightedGoldReward(200, 10),
+                    new WeightedGoldReward(1000, 3)
+                });
+
+            int gold = rewards.RollGold(new FixedRollRandom(roll));
+
+            Assert.That(gold, Is.EqualTo(expectedGold));
+        }
+
+        [Test]
+        public void TryCreateDefinition_DuplicateWeightedGoldAmount_ReturnsValidationError()
+        {
+            _asset.Configure(
+                "encounter.test",
+                "Test Encounter",
+                string.Empty,
+                "Training Target",
+                100,
+                50,
+                50,
+                1,
+                1,
+                new EncounterItemAuthoringData[0],
+                new[]
+                {
+                    new EnemySequenceAuthoringData(
+                        "sequence.one",
+                        "Round One",
+                        new EnemyActionAuthoringData(
+                            "action.guard",
+                            "Guard",
+                            3,
+                            ActionResolutionEffect.Guard))
+                },
+                newRewardGoldDrops: new[]
+                {
+                    new EncounterGoldRewardAuthoringData(50, 35),
+                    new EncounterGoldRewardAuthoringData(50, 65)
+                });
+
+            bool succeeded = _asset.TryCreateDefinition(
+                out SoloComboEncounterDefinition definition,
+                out string validationError);
+
+            Assert.That(succeeded, Is.False);
+            Assert.That(definition, Is.Null);
+            Assert.That(validationError, Does.Contain("duplicated"));
+        }
+
+        [Test]
         public void TryCreateDefinition_DuplicateStartingItem_ReturnsValidationError()
         {
             _asset.Configure(
@@ -272,6 +359,26 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(
                 action.DisruptionResponseSegments[0].StaggerResponse,
                 Is.EqualTo(ActionDisruptionResponse.CancelAction));
+        }
+
+        private sealed class FixedRollRandom : System.Random
+        {
+            private readonly int _roll;
+
+            public FixedRollRandom(int roll)
+            {
+                _roll = roll;
+            }
+
+            public int CallCount { get; private set; }
+
+            public override int Next(int maxValue)
+            {
+                Assert.That(_roll, Is.GreaterThanOrEqualTo(0));
+                Assert.That(_roll, Is.LessThan(maxValue));
+                CallCount++;
+                return _roll;
+            }
         }
     }
 }

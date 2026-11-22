@@ -29,8 +29,37 @@ namespace SER494.Gameplay.PlayerState
             string slotId,
             int goldCost,
             params ProcessingMaterialCost[] materialCosts)
+            : this(
+                recipeId,
+                EquipmentCategory.Armor,
+                equipmentId,
+                displayName,
+                seriesDisplayName,
+                slotId,
+                goldCost,
+                materialCosts)
+        {
+        }
+
+        public ProcessingRecipe(
+            string recipeId,
+            EquipmentCategory category,
+            string equipmentId,
+            string displayName,
+            string seriesDisplayName,
+            string slotId,
+            int goldCost,
+            params ProcessingMaterialCost[] materialCosts)
         {
             RecipeId = PlayerStateId.Require(recipeId, nameof(recipeId));
+            if (category != EquipmentCategory.Weapon
+                && category != EquipmentCategory.Armor
+                && category != EquipmentCategory.Accessory)
+            {
+                throw new ArgumentOutOfRangeException(nameof(category));
+            }
+
+            Category = category;
             EquipmentId = PlayerStateId.Require(equipmentId, nameof(equipmentId));
             DisplayName = PlayerStateId.Require(displayName, nameof(displayName));
             SeriesDisplayName = PlayerStateId.Require(seriesDisplayName, nameof(seriesDisplayName));
@@ -47,6 +76,7 @@ namespace SER494.Gameplay.PlayerState
         }
 
         public string RecipeId { get; }
+        public EquipmentCategory Category { get; }
         public string EquipmentId { get; }
         public string DisplayName { get; }
         public string SeriesDisplayName { get; }
@@ -80,7 +110,7 @@ namespace SER494.Gameplay.PlayerState
                 throw new ArgumentNullException(nameof(recipe));
             }
 
-            if (playerState.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId))
+            if (playerState.Equipment.Owns(recipe.Category, recipe.EquipmentId))
             {
                 failure = ProcessingCraftFailure.AlreadyOwned;
                 return false;
@@ -113,7 +143,7 @@ namespace SER494.Gameplay.PlayerState
                 playerState.Inventory.TryConsume(cost.ItemId, cost.Amount);
             }
 
-            playerState.Equipment.Grant(EquipmentCategory.Armor, recipe.EquipmentId);
+            playerState.Equipment.Grant(recipe.Category, recipe.EquipmentId);
             failure = ProcessingCraftFailure.None;
             return true;
         }
