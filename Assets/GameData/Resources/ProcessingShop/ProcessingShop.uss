@@ -75,6 +75,7 @@
     flex-direction: row;
 }
 
+.processing-category-panel,
 .processing-series-panel,
 .processing-recipes-panel,
 .processing-details-panel {
@@ -90,8 +91,9 @@
     border-bottom-color: rgb(67, 54, 38);
 }
 
-.processing-series-panel { width: 260px; }
-.processing-recipes-panel { width: 340px; margin-left: 14px; }
+.processing-category-panel { width: 170px; }
+.processing-series-panel { width: 205px; margin-left: 12px; }
+.processing-recipes-panel { width: 285px; margin-left: 12px; }
 .processing-details-panel { flex-grow: 1; margin-left: 14px; }
 
 .processing-heading,
@@ -104,6 +106,7 @@
 
 .processing-series-scroll { flex-grow: 1; }
 
+.processing-category-button,
 .processing-series-button,
 .processing-recipe-button {
     min-height: 46px;
@@ -120,6 +123,7 @@
 }
 
 .processing-recipe-button { min-height: 92px; font-size: 16px; }
+.processing-category-button { min-height: 52px; font-size: 16px; }
 
 .processing-selected,
 .processing-selected:hover,

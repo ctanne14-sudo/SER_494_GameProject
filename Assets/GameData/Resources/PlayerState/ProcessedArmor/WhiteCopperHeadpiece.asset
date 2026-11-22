@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 1
   effectDamageType: 0
   effectAmount: 0.02
+  effectDescription: Slashing damage taken -2%.
+  setEffectDescription:

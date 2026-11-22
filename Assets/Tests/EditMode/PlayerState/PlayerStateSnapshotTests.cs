@@ -67,6 +67,25 @@ namespace SER494.Gameplay.PlayerState.Tests
         }
 
         [Test]
+        public void CaptureAndRestore_PreservesCraftedOwnershipAcrossAllEquipmentCategories()
+        {
+            var state = new PlayerState(100, 30, 100);
+            state.Equipment.Grant(EquipmentCategory.Weapon, "weapon.glaive-and-shield.mithril");
+            state.Equipment.Grant(EquipmentCategory.Armor, "armor.mithril.lower");
+            state.Equipment.Grant(EquipmentCategory.Accessory, "accessory.crystal-pendant");
+
+            PlayerState restored = PlayerStateSnapshotMapper.Restore(
+                PlayerStateSnapshotMapper.Capture(state));
+
+            Assert.That(restored.Equipment.Owns(EquipmentCategory.Weapon, "weapon.glaive-and-shield.mithril"), Is.True);
+            Assert.That(restored.Equipment.Owns(EquipmentCategory.Armor, "armor.mithril.lower"), Is.True);
+            Assert.That(restored.Equipment.Owns(EquipmentCategory.Accessory, "accessory.crystal-pendant"), Is.True);
+            Assert.That(restored.Equipment.EquippedWeaponId, Is.Null);
+            Assert.That(restored.Equipment.EquippedArmorBySlot, Is.Empty);
+            Assert.That(restored.Equipment.EquippedAccessoryBySlot, Is.Empty);
+        }
+
+        [Test]
         public void Restore_RejectsUnsupportedSnapshotVersion()
         {
             PlayerStateSnapshot snapshot = PlayerStateSnapshotMapper.Capture(

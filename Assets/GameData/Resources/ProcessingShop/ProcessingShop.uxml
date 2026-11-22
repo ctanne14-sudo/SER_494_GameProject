@@ -8,25 +8,29 @@
                 <ui:Button name="closeButton" text="Close" class="processing-close" />
             </ui:VisualElement>
             <ui:VisualElement class="processing-body">
+                <ui:VisualElement class="processing-category-panel">
+                    <ui:Label text="Category" class="processing-heading" />
+                    <ui:VisualElement name="categoryContainer" />
+                </ui:VisualElement>
                 <ui:VisualElement class="processing-series-panel">
-                    <ui:Label text="Armor Series" class="processing-heading" />
+                    <ui:Label text="Series" class="processing-heading" />
                     <ui:ScrollView name="seriesScroll" class="processing-series-scroll">
                         <ui:VisualElement name="seriesContainer" />
                     </ui:ScrollView>
                 </ui:VisualElement>
                 <ui:VisualElement class="processing-recipes-panel">
-                    <ui:Label text="Armor Pieces" class="processing-heading" />
+                    <ui:Label text="Equipment" class="processing-heading" />
                     <ui:VisualElement name="recipeContainer" class="processing-recipe-container" />
                 </ui:VisualElement>
                 <ui:VisualElement class="processing-details-panel">
-                    <ui:Label name="recipeName" text="Select Armor" class="processing-detail-title" />
+                    <ui:Label name="recipeName" text="Select Equipment" class="processing-detail-title" />
                     <ui:Label name="recipeStats" class="processing-detail-stats" />
                     <ui:Label text="Effect" class="processing-subheading" />
                     <ui:Label name="recipeEffect" class="processing-detail-copy" />
                     <ui:Label text="Required" class="processing-subheading" />
                     <ui:Label name="recipeCosts" class="processing-detail-copy processing-costs" />
                     <ui:VisualElement class="processing-spacer" />
-                    <ui:Button name="craftButton" text="Process Armor" class="processing-craft" />
+                    <ui:Button name="craftButton" text="Process Equipment" class="processing-craft" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label name="processingMessage" class="processing-message" />

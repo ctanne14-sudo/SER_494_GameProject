@@ -17,6 +17,8 @@ MonoBehaviour:
   slotId: armor.upper-body
   defense: 75
   seriesId: armor-series.crystal
-  effectType: 5
-  effectDamageType: 0
+  effectType: 1
+  effectDamageType: 1
   effectAmount: 0.05
+  effectDescription: Blunt damage taken -5%.
+  setEffectDescription: 'Full set: all damage dealt +10%.'

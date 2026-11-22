@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 5
   effectDamageType: 0
   effectAmount: 0.05
+  effectDescription: All damage dealt +5%.
+  setEffectDescription: 'Full set: all damage dealt +10%.'

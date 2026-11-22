@@ -17,6 +17,8 @@ MonoBehaviour:
   slotId: armor.head
   defense: 50
   seriesId: armor-series.pure-gold
-  effectType: 1
-  effectDamageType: 2
-  effectAmount: 0.05
+  effectType: 3
+  effectDamageType: 0
+  effectAmount: 0.1
+  effectDescription: Healing and Greater Healing Potion recovery +10%.
+  setEffectDescription: 'Full set: successful Clash damage +50%.'

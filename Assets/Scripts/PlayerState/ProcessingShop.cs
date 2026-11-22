@@ -157,6 +157,7 @@ namespace SER494.Gameplay.PlayerState
         public const string ApeBeastPeltId = "material.ape-beast-pelt";
         public const string ApeBeastArmguardId = "material.ape-beast-armguard";
         public const string ApeBeastBlackFurId = "material.ape-beast-black-fur";
+        public const string ApeBeastFreshBloodId = "material.ape-beast-blood";
         public const string SlimeChunkId = "material.slime-chunk";
         public const string YellowSilkId = "material.yellow-silk";
         public const string RedSilkId = "material.red-silk";
@@ -171,7 +172,15 @@ namespace SER494.Gameplay.PlayerState
 
         private static IReadOnlyList<ProcessingRecipe> BuildRecipes()
         {
-            var recipes = new List<ProcessingRecipe>(30);
+            var recipes = new List<ProcessingRecipe>(70);
+            AddArmorRecipes(recipes);
+            AddWeaponRecipes(recipes);
+            AddAccessoryRecipes(recipes);
+            return recipes.AsReadOnly();
+        }
+
+        private static void AddArmorRecipes(ICollection<ProcessingRecipe> recipes)
+        {
             AddUniformSeries(recipes, "white-copper", "White Copper", WhiteCopperId, "White Copper", 2, 50);
             AddUniformSeries(recipes, "bronze", "Bronze", BronzeId, "Bronze", 2, 50);
             AddUniformSeries(recipes, "brass", "Brass", BrassId, "Brass", 2, 50);
@@ -182,7 +191,47 @@ namespace SER494.Gameplay.PlayerState
             AddUniformSeries(recipes, "thorn", "Thorn", ThornId, "Thorn", 2, 80);
             AddUniformSeries(recipes, "crystal", "Crystal", CrystalId, "Crystal", 3, 300);
             AddUniformSeries(recipes, "pure-gold", "Pure Gold", PureGoldId, "Pure Gold", 3, 300);
-            return recipes.AsReadOnly();
+            AddUniformSeries(recipes, "mithril", "Mithril", MithrilId, "Mithril", 3, 300);
+        }
+
+        private static void AddWeaponRecipes(ICollection<ProcessingRecipe> recipes)
+        {
+            AddUniformWeaponSeries(recipes, "white-copper", "White Copper", WhiteCopperId, "White Copper", 3, 80);
+            AddUniformWeaponSeries(recipes, "bronze", "Bronze", BronzeId, "Bronze", 3, 80);
+            AddUniformWeaponSeries(recipes, "brass", "Brass", BrassId, "Brass", 3, 80);
+            AddWeaponSeries(recipes, "ape-beast", "Ape Beast", 100,
+                new ProcessingMaterialCost(ApeBeastFreshBloodId, "Ape Beast Fresh Blood", 1),
+                new ProcessingMaterialCost(ApeBeastArmguardId, "Ape Beast Armguard", 2));
+            AddWeaponSeriesWithBaseMetal(recipes, "slime", "Slime", SlimeChunkId, "Slime Chunk", 3, 100);
+            AddWeaponSeriesWithBaseMetal(recipes, "thorn", "Thorn", ThornId, "Thorn", 3, 100);
+            AddAdvancedWeaponSeries(recipes, "crystal", "Crystal", CrystalId, "Crystal", PureGoldId, "Pure Gold", 200);
+            AddAdvancedWeaponSeries(recipes, "pure-gold", "Pure Gold", PureGoldId, "Pure Gold", MithrilId, "Mithril", 200);
+            AddAdvancedWeaponSeries(recipes, "mithril", "Mithril", MithrilId, "Mithril", CrystalId, "Crystal", 200);
+        }
+
+        private static void AddAccessoryRecipes(ICollection<ProcessingRecipe> recipes)
+        {
+            AddAccessoryRecipe(recipes, "white-copper-ring", "White Copper Ring", "White Copper", 120,
+                new ProcessingMaterialCost(WhiteCopperId, "White Copper", 2));
+            AddAccessoryRecipe(recipes, "bronze-ring", "Bronze Ring", "Bronze", 120,
+                new ProcessingMaterialCost(BronzeId, "Bronze", 2));
+            AddAccessoryRecipe(recipes, "brass-ring", "Brass Ring", "Brass", 120,
+                new ProcessingMaterialCost(BrassId, "Brass", 2));
+            AddAccessoryRecipe(recipes, "ape-beast-fresh-blood-ornament", "Ape Beast Fresh Blood Ornament", "Ape Beast", 220,
+                new ProcessingMaterialCost(ApeBeastFreshBloodId, "Ape Beast Fresh Blood", 2),
+                new ProcessingMaterialCost(ApeBeastBlackFurId, "Ape Beast Black Fur", 1));
+            AddAccessoryRecipe(recipes, "slime-ornament", "Slime Ornament", "Slime", 190,
+                new ProcessingMaterialCost(SlimeChunkId, "Slime Chunk", 2));
+            AddAccessoryRecipe(recipes, "yellow-handkerchief", "Yellow Handkerchief", "Yellow Silk", 290,
+                new ProcessingMaterialCost(YellowSilkId, "Yellow Silk", 2));
+            AddAccessoryRecipe(recipes, "red-handkerchief", "Red Handkerchief", "Red Silk", 290,
+                new ProcessingMaterialCost(RedSilkId, "Red Silk", 2));
+            AddAccessoryRecipe(recipes, "thorn-bracer", "Thorn Bracer", "Thorn", 350,
+                new ProcessingMaterialCost(ThornId, "Thorn", 2));
+            AddAccessoryRecipe(recipes, "crystal-pendant", "Crystal Pendant", "Crystal", 490,
+                new ProcessingMaterialCost(CrystalId, "Crystal", 2));
+            AddAccessoryRecipe(recipes, "gold-ring", "Gold Ring", "Pure Gold", 490,
+                new ProcessingMaterialCost(PureGoldId, "Pure Gold", 2));
         }
 
         private static void AddUniformSeries(
@@ -230,6 +279,120 @@ namespace SER494.Gameplay.PlayerState
                 $"{seriesName} {slotName}",
                 seriesName,
                 GetSlotId(slotSuffix),
+                goldCost,
+                costs));
+        }
+
+        private static void AddUniformWeaponSeries(
+            ICollection<ProcessingRecipe> recipes,
+            string seriesId,
+            string seriesName,
+            string materialId,
+            string materialName,
+            int materialAmount,
+            int goldCost)
+        {
+            AddWeaponRecipe(recipes, seriesId, seriesName, "greatsword", "Greatsword", goldCost,
+                new ProcessingMaterialCost(materialId, materialName, materialAmount));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "sword-and-shield", "Sword and Shield", goldCost,
+                new ProcessingMaterialCost(materialId, materialName, materialAmount));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "glaive-and-shield", "Glaive and Shield", goldCost,
+                new ProcessingMaterialCost(materialId, materialName, materialAmount));
+        }
+
+        private static void AddWeaponSeries(
+            ICollection<ProcessingRecipe> recipes,
+            string seriesId,
+            string seriesName,
+            int goldCost,
+            params ProcessingMaterialCost[] costs)
+        {
+            AddWeaponRecipe(recipes, seriesId, seriesName, "greatsword", "Greatsword", goldCost, costs);
+            AddWeaponRecipe(recipes, seriesId, seriesName, "sword-and-shield", "Sword and Shield", goldCost, costs);
+            AddWeaponRecipe(recipes, seriesId, seriesName, "glaive-and-shield", "Glaive and Shield", goldCost, costs);
+        }
+
+        private static void AddWeaponSeriesWithBaseMetal(
+            ICollection<ProcessingRecipe> recipes,
+            string seriesId,
+            string seriesName,
+            string primaryMaterialId,
+            string primaryMaterialName,
+            int primaryAmount,
+            int goldCost)
+        {
+            AddWeaponRecipe(recipes, seriesId, seriesName, "greatsword", "Greatsword", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, primaryAmount),
+                new ProcessingMaterialCost(BronzeId, "Bronze", 1));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "sword-and-shield", "Sword and Shield", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, primaryAmount),
+                new ProcessingMaterialCost(WhiteCopperId, "White Copper", 1));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "glaive-and-shield", "Glaive and Shield", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, primaryAmount),
+                new ProcessingMaterialCost(BrassId, "Brass", 1));
+        }
+
+        private static void AddAdvancedWeaponSeries(
+            ICollection<ProcessingRecipe> recipes,
+            string seriesId,
+            string seriesName,
+            string primaryMaterialId,
+            string primaryMaterialName,
+            string secondaryMaterialId,
+            string secondaryMaterialName,
+            int goldCost)
+        {
+            AddWeaponRecipe(recipes, seriesId, seriesName, "greatsword", "Greatsword", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, 3),
+                new ProcessingMaterialCost(secondaryMaterialId, secondaryMaterialName, 1),
+                new ProcessingMaterialCost(BronzeId, "Bronze", 2));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "sword-and-shield", "Sword and Shield", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, 3),
+                new ProcessingMaterialCost(secondaryMaterialId, secondaryMaterialName, 1),
+                new ProcessingMaterialCost(WhiteCopperId, "White Copper", 2));
+            AddWeaponRecipe(recipes, seriesId, seriesName, "glaive-and-shield", "Glaive and Shield", goldCost,
+                new ProcessingMaterialCost(primaryMaterialId, primaryMaterialName, 3),
+                new ProcessingMaterialCost(secondaryMaterialId, secondaryMaterialName, 1),
+                new ProcessingMaterialCost(BrassId, "Brass", 2));
+        }
+
+        private static void AddWeaponRecipe(
+            ICollection<ProcessingRecipe> recipes,
+            string seriesId,
+            string seriesName,
+            string weaponTypeId,
+            string weaponTypeName,
+            int goldCost,
+            params ProcessingMaterialCost[] costs)
+        {
+            string equipmentId = $"weapon.{weaponTypeId}.{seriesId}";
+            recipes.Add(new ProcessingRecipe(
+                $"recipe.{equipmentId}",
+                EquipmentCategory.Weapon,
+                equipmentId,
+                $"{seriesName} {weaponTypeName}",
+                seriesName,
+                "weapon",
+                goldCost,
+                costs));
+        }
+
+        private static void AddAccessoryRecipe(
+            ICollection<ProcessingRecipe> recipes,
+            string accessoryId,
+            string displayName,
+            string seriesName,
+            int goldCost,
+            params ProcessingMaterialCost[] costs)
+        {
+            string equipmentId = $"accessory.{accessoryId}";
+            recipes.Add(new ProcessingRecipe(
+                $"recipe.{equipmentId}",
+                EquipmentCategory.Accessory,
+                equipmentId,
+                displayName,
+                seriesName,
+                "accessory.primary",
                 goldCost,
                 costs));
         }

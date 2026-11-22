@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.Authoring.Equipment;
+using SER494.Gameplay.Combat.Authoring.Weapons;
 using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
@@ -18,12 +19,21 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private static ProcessingShopController _active;
 
+        private static readonly EquipmentCategory[] Categories =
+        {
+            EquipmentCategory.Armor,
+            EquipmentCategory.Weapon,
+            EquipmentCategory.Accessory
+        };
+
+        private readonly List<Button> _categoryButtons = new List<Button>();
         private readonly List<string> _seriesNames = new List<string>();
         private readonly List<Button> _seriesButtons = new List<Button>();
         private readonly List<ProcessingRecipe> _visibleRecipes = new List<ProcessingRecipe>();
         private readonly List<Button> _recipeButtons = new List<Button>();
 
         private VisualElement _root;
+        private VisualElement _categoryContainer;
         private VisualElement _seriesContainer;
         private VisualElement _recipeContainer;
         private Label _goldLabel;
@@ -38,9 +48,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private Button _confirmButton;
         private Button _cancelButton;
         private PlayerEquipmentCatalogAsset _equipmentCatalog;
+        private int _selectedCategoryIndex;
         private int _selectedSeriesIndex;
         private int _selectedRecipeIndex;
-        private bool _recipeColumnActive;
+        private int _navigationColumn;
         private bool _confirmingCraft;
         private bool _confirmChoice;
         private bool _isOpen;
@@ -82,6 +93,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             UIDocument document = GetComponent<UIDocument>();
             _root = document.rootVisualElement.Q<VisualElement>("processingShopOverlay");
+            _categoryContainer = _root.Q<VisualElement>("categoryContainer");
             _seriesContainer = _root.Q<VisualElement>("seriesContainer");
             _recipeContainer = _root.Q<VisualElement>("recipeContainer");
             _goldLabel = _root.Q<Label>("goldLabel");
@@ -102,6 +114,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _cancelButton.clicked += CancelCraft;
             _root.style.display = DisplayStyle.None;
             _confirmOverlay.style.display = DisplayStyle.None;
+            BuildCategoryButtons();
             BuildSeriesButtons();
         }
 
@@ -168,42 +181,50 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            if (horizontal < 0)
+            if (horizontal != 0)
             {
-                _recipeColumnActive = false;
-            }
-            else if (horizontal > 0 && _visibleRecipes.Count > 0)
-            {
-                _recipeColumnActive = true;
+                int maximumColumn = _visibleRecipes.Count > 0 ? 2 : _seriesNames.Count > 0 ? 1 : 0;
+                _navigationColumn = Mathf.Clamp(_navigationColumn + horizontal, 0, maximumColumn);
             }
 
             if (vertical != 0)
             {
-                if (_recipeColumnActive && _visibleRecipes.Count > 0)
+                if (_navigationColumn == 2 && _visibleRecipes.Count > 0)
                 {
                     _selectedRecipeIndex = Wrap(
                         _selectedRecipeIndex + vertical,
                         _visibleRecipes.Count);
                     SelectRecipe(_selectedRecipeIndex);
                 }
-                else if (_seriesNames.Count > 0)
+                else if (_navigationColumn == 1 && _seriesNames.Count > 0)
                 {
                     _selectedSeriesIndex = Wrap(
                         _selectedSeriesIndex + vertical,
                         _seriesNames.Count);
                     SelectSeries(_selectedSeriesIndex);
                 }
+                else
+                {
+                    _selectedCategoryIndex = Wrap(
+                        _selectedCategoryIndex + vertical,
+                        Categories.Length);
+                    SelectCategory(_selectedCategoryIndex);
+                }
             }
 
             if (confirmPressed)
             {
-                if (_recipeColumnActive)
+                if (_navigationColumn == 2)
                 {
                     BeginCraftConfirmation();
                 }
-                else if (_visibleRecipes.Count > 0)
+                else if (_navigationColumn == 1 && _visibleRecipes.Count > 0)
                 {
-                    _recipeColumnActive = true;
+                    _navigationColumn = 2;
+                }
+                else if (_seriesNames.Count > 0)
+                {
+                    _navigationColumn = 1;
                 }
             }
 
@@ -221,12 +242,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = true;
             ExplorationMenuInputGate.IsOpen = true;
             _isOpen = true;
-            _recipeColumnActive = false;
+            _navigationColumn = 0;
+            _selectedCategoryIndex = 0;
             _selectedSeriesIndex = 0;
             _selectedRecipeIndex = 0;
-            _message.text = "Choose a series, then select one armor piece to process.";
+            _message.text = "Choose a category, series, and equipment item to process.";
             _root.style.display = DisplayStyle.Flex;
-            SelectSeries(0);
+            SelectCategory(0);
         }
 
         private void Close()
@@ -241,6 +263,40 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = _previousCursorVisible;
         }
 
+        private void BuildCategoryButtons()
+        {
+            _categoryButtons.Clear();
+            _categoryContainer.Clear();
+            for (int index = 0; index < Categories.Length; index++)
+            {
+                int captured = index;
+                var button = new Button(() =>
+                {
+                    _navigationColumn = 0;
+                    SelectCategory(captured);
+                })
+                {
+                    text = FormatCategory(Categories[index])
+                };
+                button.AddToClassList("processing-category-button");
+                _categoryContainer.Add(button);
+                _categoryButtons.Add(button);
+            }
+        }
+
+        private void SelectCategory(int index)
+        {
+            _selectedCategoryIndex = Wrap(index, Categories.Length);
+            _selectedSeriesIndex = 0;
+            _selectedRecipeIndex = 0;
+            BuildSeriesButtons();
+            if (_seriesNames.Count > 0)
+            {
+                SelectSeries(0);
+            }
+            RefreshSelectionClasses();
+        }
+
         private void BuildSeriesButtons()
         {
             _seriesNames.Clear();
@@ -249,7 +305,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
             {
-                if (seen.Add(recipe.SeriesDisplayName))
+                if (recipe.Category == Categories[_selectedCategoryIndex]
+                    && seen.Add(recipe.SeriesDisplayName))
                 {
                     _seriesNames.Add(recipe.SeriesDisplayName);
                 }
@@ -258,7 +315,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             for (int index = 0; index < _seriesNames.Count; index++)
             {
                 int captured = index;
-                var button = new Button(() => SelectSeries(captured))
+                var button = new Button(() =>
+                {
+                    _navigationColumn = 1;
+                    SelectSeries(captured);
+                })
                 {
                     text = _seriesNames[index]
                 };
@@ -283,7 +344,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             string series = _seriesNames[_selectedSeriesIndex];
             foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
             {
-                if (string.Equals(recipe.SeriesDisplayName, series, StringComparison.Ordinal))
+                if (recipe.Category == Categories[_selectedCategoryIndex]
+                    && string.Equals(recipe.SeriesDisplayName, series, StringComparison.Ordinal))
                 {
                     _visibleRecipes.Add(recipe);
                 }
@@ -295,7 +357,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 ProcessingRecipe recipe = _visibleRecipes[recipeIndex];
                 var button = new Button(() =>
                 {
-                    _recipeColumnActive = true;
+                    _navigationColumn = 2;
                     SelectRecipe(captured);
                 });
                 button.AddToClassList("processing-recipe-button");
@@ -334,7 +396,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 ProcessingRecipe recipe = _visibleRecipes[index];
                 bool owned = service.State.Equipment.Owns(
-                    EquipmentCategory.Armor,
+                    recipe.Category,
                     recipe.EquipmentId);
                 _recipeButtons[index].text = owned
                     ? recipe.DisplayName + "\nOWNED"
@@ -351,17 +413,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
 
             PersistentPlayerState state = service.State;
-            bool owned = state.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId);
+            bool owned = state.Equipment.Owns(recipe.Category, recipe.EquipmentId);
             _goldLabel.text = $"Gold  {state.Currencies.Gold}";
             _recipeName.text = recipe.DisplayName;
-            _recipeStats.text = TryGetArmor(recipe, out ArmorDefinitionAsset armor)
-                ? $"DEF  {armor.Defense}     Slot  {FormatSlot(recipe.SlotId)}"
-                : $"Slot  {FormatSlot(recipe.SlotId)}";
-            _recipeEffect.text = TryGetArmor(recipe, out armor)
-                ? FormatEffect(armor)
-                : "Armor effect data will be available after content generation.";
+            PopulateEquipmentDetails(recipe);
             _recipeCosts.text = FormatCosts(state, recipe);
-            _craftButton.text = owned ? "Already Owned" : "Process Armor";
+            _craftButton.text = owned ? "Already Owned" : $"Process {FormatCategory(recipe.Category)}";
             _craftButton.SetEnabled(!owned && CanAfford(state, recipe));
             RefreshRecipeCards();
         }
@@ -371,6 +428,67 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             armor = null;
             return _equipmentCatalog != null
                 && _equipmentCatalog.TryGetArmor(recipe.EquipmentId, out armor, out _);
+        }
+
+        private bool TryGetWeapon(ProcessingRecipe recipe, out WeaponDefinitionAsset weapon)
+        {
+            weapon = null;
+            if (_equipmentCatalog == null)
+            {
+                return false;
+            }
+
+            foreach (WeaponDefinitionAsset candidate in _equipmentCatalog.Weapons)
+            {
+                if (candidate != null
+                    && string.Equals(candidate.WeaponId, recipe.EquipmentId, StringComparison.Ordinal))
+                {
+                    weapon = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryGetAccessory(ProcessingRecipe recipe, out AccessoryDefinitionAsset accessory)
+        {
+            accessory = null;
+            return _equipmentCatalog != null
+                && _equipmentCatalog.TryGetAccessory(recipe.EquipmentId, out accessory, out _);
+        }
+
+        private void PopulateEquipmentDetails(ProcessingRecipe recipe)
+        {
+            switch (recipe.Category)
+            {
+                case EquipmentCategory.Weapon:
+                    if (TryGetWeapon(recipe, out WeaponDefinitionAsset weapon))
+                    {
+                        _recipeStats.text = $"ATK  {weapon.WeaponAttack}     Type  {FormatWeaponType(weapon)}";
+                        _recipeEffect.text = "Weapon attack power and compatible action type.";
+                    }
+                    else
+                    {
+                        _recipeStats.text = "Weapon data unavailable.";
+                        _recipeEffect.text = string.Empty;
+                    }
+                    break;
+                case EquipmentCategory.Accessory:
+                    _recipeStats.text = "Slot  Accessory";
+                    _recipeEffect.text = TryGetAccessory(recipe, out AccessoryDefinitionAsset accessory)
+                        ? FormatEffect(accessory)
+                        : "Accessory effect data unavailable.";
+                    break;
+                default:
+                    _recipeStats.text = TryGetArmor(recipe, out ArmorDefinitionAsset armor)
+                        ? $"DEF  {armor.Defense}     Slot  {FormatSlot(recipe.SlotId)}"
+                        : $"Slot  {FormatSlot(recipe.SlotId)}";
+                    _recipeEffect.text = TryGetArmor(recipe, out armor)
+                        ? FormatEffect(armor)
+                        : "Armor effect data unavailable.";
+                    break;
+            }
         }
 
         private static string FormatCosts(PersistentPlayerState state, ProcessingRecipe recipe)
@@ -388,6 +506,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private static string FormatEffect(ArmorDefinitionAsset armor)
         {
+            if (!string.IsNullOrWhiteSpace(armor.EffectDescription))
+            {
+                return string.IsNullOrWhiteSpace(armor.SetEffectDescription)
+                    ? armor.EffectDescription
+                    : armor.EffectDescription + "\n" + armor.SetEffectDescription;
+            }
+
             int percent = (int)Math.Round(armor.EffectAmount * 100f, MidpointRounding.AwayFromZero);
             switch (armor.EffectType)
             {
@@ -420,6 +545,18 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
+        private static string FormatEffect(AccessoryDefinitionAsset accessory)
+        {
+            if (!string.IsNullOrWhiteSpace(accessory.EffectDescription))
+            {
+                return accessory.EffectDescription;
+            }
+
+            return accessory.EffectType == AccessoryEffectType.MaximumHealthFlat
+                ? $"Maximum HP +{accessory.EffectAmount:0}."
+                : $"All damage dealt +{accessory.EffectAmount * 100f:0}%.";
+        }
+
         private void BeginCraftConfirmation()
         {
             if (_visibleRecipes.Count == 0
@@ -430,9 +567,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             ProcessingRecipe recipe = _visibleRecipes[_selectedRecipeIndex];
             if (!CanAfford(service.State, recipe)
-                || service.State.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId))
+                || service.State.Equipment.Owns(recipe.Category, recipe.EquipmentId))
             {
-                _message.text = "This armor cannot currently be processed.";
+                _message.text = "This equipment cannot currently be processed.";
                 return;
             }
 
@@ -483,17 +620,23 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void RefreshSelectionClasses()
         {
+            for (int index = 0; index < _categoryButtons.Count; index++)
+            {
+                _categoryButtons[index].EnableInClassList(
+                    SelectedClass,
+                    _navigationColumn == 0 && index == _selectedCategoryIndex);
+            }
             for (int index = 0; index < _seriesButtons.Count; index++)
             {
                 _seriesButtons[index].EnableInClassList(
                     SelectedClass,
-                    !_recipeColumnActive && index == _selectedSeriesIndex);
+                    _navigationColumn == 1 && index == _selectedSeriesIndex);
             }
             for (int index = 0; index < _recipeButtons.Count; index++)
             {
                 _recipeButtons[index].EnableInClassList(
                     SelectedClass,
-                    _recipeColumnActive && index == _selectedRecipeIndex);
+                    _navigationColumn == 2 && index == _selectedRecipeIndex);
             }
         }
 
@@ -518,7 +661,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             switch (failure)
             {
                 case ProcessingCraftFailure.AlreadyOwned:
-                    return "That armor is already owned.";
+                    return "That equipment is already owned.";
                 case ProcessingCraftFailure.InsufficientGold:
                     return "Not enough Gold.";
                 case ProcessingCraftFailure.InsufficientMaterials:
@@ -536,6 +679,32 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "armor.upper-body": return "Upper Body";
                 case "armor.lower-body": return "Lower Body";
                 default: return slotId;
+            }
+        }
+
+        private static string FormatCategory(EquipmentCategory category)
+        {
+            switch (category)
+            {
+                case EquipmentCategory.Armor: return "Armor";
+                case EquipmentCategory.Weapon: return "Weapons";
+                case EquipmentCategory.Accessory: return "Accessories";
+                default: throw new ArgumentOutOfRangeException(nameof(category));
+            }
+        }
+
+        private static string FormatWeaponType(WeaponDefinitionAsset weapon)
+        {
+            switch (weapon.WeaponType)
+            {
+                case SER494.Gameplay.Combat.Weapons.WeaponType.Greatsword:
+                    return "Greatsword";
+                case SER494.Gameplay.Combat.Weapons.WeaponType.SwordAndShield:
+                    return "Sword and Shield";
+                case SER494.Gameplay.Combat.Weapons.WeaponType.GlaiveAndShield:
+                    return "Glaive and Shield";
+                default:
+                    return weapon.WeaponType.ToString();
             }
         }
 

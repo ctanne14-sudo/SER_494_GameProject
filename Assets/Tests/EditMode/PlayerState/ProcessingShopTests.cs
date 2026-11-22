@@ -7,18 +7,40 @@ namespace SER494.Gameplay.PlayerState.Tests
     public sealed class ProcessingShopTests
     {
         [Test]
-        public void RecipeCatalog_DefinesThirtyUniqueArmorRecipesAcrossTenSeries()
+        public void RecipeCatalog_DefinesSeventyUniqueRecipesAcrossAllEquipmentCategories()
         {
-            Assert.That(ProcessingRecipeCatalog.All.Count, Is.EqualTo(30));
+            Assert.That(ProcessingRecipeCatalog.All.Count, Is.EqualTo(70));
             Assert.That(
                 ProcessingRecipeCatalog.All.Select(recipe => recipe.RecipeId).Distinct().Count(),
-                Is.EqualTo(30));
+                Is.EqualTo(70));
             Assert.That(
                 ProcessingRecipeCatalog.All.Select(recipe => recipe.EquipmentId).Distinct().Count(),
-                Is.EqualTo(30));
-            Assert.That(
-                ProcessingRecipeCatalog.All.Select(recipe => recipe.SeriesDisplayName).Distinct().Count(),
-                Is.EqualTo(10));
+                Is.EqualTo(70));
+            Assert.That(ProcessingRecipeCatalog.All.Count(recipe => recipe.Category == EquipmentCategory.Armor), Is.EqualTo(33));
+            Assert.That(ProcessingRecipeCatalog.All.Count(recipe => recipe.Category == EquipmentCategory.Weapon), Is.EqualTo(27));
+            Assert.That(ProcessingRecipeCatalog.All.Count(recipe => recipe.Category == EquipmentCategory.Accessory), Is.EqualTo(10));
+            Assert.That(ProcessingRecipeCatalog.All.Any(recipe => recipe.EquipmentId == "accessory.mithril-ring"), Is.False);
+        }
+
+        [Test]
+        public void RecipeCatalog_UsesApprovedAdvancedEquipmentCosts()
+        {
+            ProcessingRecipe weapon = FindRecipe("weapon.glaive-and-shield.mithril");
+            Assert.That(weapon.GoldCost, Is.EqualTo(200));
+            Assert.That(weapon.MaterialCosts.Count, Is.EqualTo(3));
+            Assert.That(weapon.MaterialCosts.Single(cost => cost.ItemId == ProcessingRecipeCatalog.MithrilId).Amount, Is.EqualTo(3));
+            Assert.That(weapon.MaterialCosts.Single(cost => cost.ItemId == ProcessingRecipeCatalog.CrystalId).Amount, Is.EqualTo(1));
+            Assert.That(weapon.MaterialCosts.Single(cost => cost.ItemId == ProcessingRecipeCatalog.BrassId).Amount, Is.EqualTo(2));
+
+            ProcessingRecipe armor = FindRecipe("armor.mithril.lower");
+            Assert.That(armor.GoldCost, Is.EqualTo(300));
+            Assert.That(armor.MaterialCosts.Single().ItemId, Is.EqualTo(ProcessingRecipeCatalog.MithrilId));
+            Assert.That(armor.MaterialCosts.Single().Amount, Is.EqualTo(3));
+
+            ProcessingRecipe accessory = FindRecipe("accessory.gold-ring");
+            Assert.That(accessory.GoldCost, Is.EqualTo(490));
+            Assert.That(accessory.MaterialCosts.Single().ItemId, Is.EqualTo(ProcessingRecipeCatalog.PureGoldId));
+            Assert.That(accessory.MaterialCosts.Single().Amount, Is.EqualTo(2));
         }
 
         [Test]

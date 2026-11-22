@@ -4162,6 +4162,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private static string FormatAccessoryEffect(AccessoryDefinitionAsset accessory)
         {
+            if (!string.IsNullOrWhiteSpace(accessory.EffectDescription))
+            {
+                return accessory.EffectDescription;
+            }
+
             return accessory.EffectType == AccessoryEffectType.MaximumHealthFlat
                 ? $"Maximum HP +{accessory.EffectAmount:0}"
                 : $"All Damage +{accessory.EffectAmount * 100f:0}%";

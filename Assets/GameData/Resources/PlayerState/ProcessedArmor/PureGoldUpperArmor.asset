@@ -18,5 +18,7 @@ MonoBehaviour:
   defense: 75
   seriesId: armor-series.pure-gold
   effectType: 1
-  effectDamageType: 2
+  effectDamageType: 0
   effectAmount: 0.05
+  effectDescription: Slashing damage taken -5%.
+  setEffectDescription: 'Full set: successful Clash damage +50%.'

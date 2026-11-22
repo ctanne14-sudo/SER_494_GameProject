@@ -50,6 +50,13 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         [Tooltip("Decimal modifier. For example, 0.04 means four percent.")]
         private float effectAmount;
 
+        [SerializeField, TextArea]
+        [Tooltip("Player-facing description. It may describe an effect whose runtime behavior is implemented by a later combat system.")]
+        private string effectDescription = string.Empty;
+
+        [SerializeField, TextArea]
+        private string setEffectDescription = string.Empty;
+
         public string ArmorId => armorId;
 
         public string DisplayName => displayName;
@@ -65,6 +72,10 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         public DamageType EffectDamageType => effectDamageType;
 
         public float EffectAmount => effectAmount;
+
+        public string EffectDescription => effectDescription;
+
+        public string SetEffectDescription => setEffectDescription;
 
         public bool TryValidate(out string validationError)
         {

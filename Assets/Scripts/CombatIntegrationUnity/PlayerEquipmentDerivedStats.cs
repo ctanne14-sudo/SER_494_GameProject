@@ -154,6 +154,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     case AccessoryEffectType.AllDamageDealtMultiplier:
                         allDamageDealtModifier += accessory.EffectAmount;
                         break;
+                    case AccessoryEffectType.Custom:
+                        // Dedicated accessory rules are applied by their owning combat,
+                        // reward, or inventory system. They do not alter derived stats here.
+                        break;
                     default:
                         validationError =
                             $"Accessory '{accessory.AccessoryId}' has an unsupported effect.";

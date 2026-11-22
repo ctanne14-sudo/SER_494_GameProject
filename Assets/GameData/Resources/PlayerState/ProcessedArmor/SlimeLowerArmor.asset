@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 3
   effectDamageType: 0
   effectAmount: 0.15
+  effectDescription: Healing and Greater Healing Potion recovery +15%.
+  setEffectDescription:

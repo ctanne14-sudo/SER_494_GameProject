@@ -85,11 +85,12 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
-        public void CrystalSet_AddsPieceAndFullSetDamageBonuses()
+        public void CrystalSet_AppliesLatestPieceAndFullSetBonuses()
         {
             PlayerEquipmentDerivedStats stats = Resolve(CreateStateWithArmorSet("crystal"));
 
-            Assert.That(stats.AllDamageDealtModifier, Is.EqualTo(0.25d).Within(0.0001d));
+            Assert.That(stats.AllDamageDealtModifier, Is.EqualTo(0.15d).Within(0.0001d));
+            Assert.That(stats.BluntDamageTakenModifier, Is.EqualTo(-0.05d).Within(0.0001d));
         }
 
         [Test]
@@ -120,11 +121,12 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
-        public void PureGoldSet_StacksPiercingReductionAndAddsClashBonus()
+        public void PureGoldSet_AppliesLatestPieceAndFullSetBonuses()
         {
             PlayerEquipmentDerivedStats stats = Resolve(CreateStateWithArmorSet("pure-gold"));
 
-            Assert.That(stats.PiercingDamageTakenModifier, Is.EqualTo(-0.15d).Within(0.0001d));
+            Assert.That(stats.HealingPotionMultiplierBonus, Is.EqualTo(0.10d).Within(0.0001d));
+            Assert.That(stats.SlashingDamageTakenModifier, Is.EqualTo(-0.05d).Within(0.0001d));
             Assert.That(stats.ClashDamageDealtMultiplierBonus, Is.EqualTo(0.50d).Within(0.0001d));
         }
 

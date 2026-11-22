@@ -546,6 +546,9 @@ namespace SER494.Gameplay.CombatIntegration.Unity.Tests
             Assert.That(
                 ProcessingRecipeCatalog.ApeBeastBlackFurId,
                 Is.EqualTo(BattleRewardSummary.ApeBeastBlackFurMaterialId));
+            Assert.That(
+                ProcessingRecipeCatalog.ApeBeastFreshBloodId,
+                Is.EqualTo(BattleRewardSummary.ApeBeastBloodMaterialId));
         }
 
         [Test]
