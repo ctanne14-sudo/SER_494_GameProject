@@ -15,14 +15,16 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             double guardCounterPiercingMultiplier = 0d,
             double clashDamageDealtMultiplierBonus = 0d,
             double victoryGoldMultiplierBonus = 0d,
-            int extraMaterialRewardRolls = 0,
             double slashingDamageTakenModifier = 0d,
             double piercingDamageTakenModifier = 0d,
             double bluntDamageTakenModifier = 0d,
             double defenseMultiplierBonus = 0d,
             int staminaRecoveryPerRoundBonus = 0,
             int maximumCombatStaminaBonus = 0,
-            double allDamageTakenModifier = 0d)
+            double allDamageTakenModifier = 0d,
+            int flatVictoryGoldBonus = 0,
+            int materialRewardRollModifier = 0,
+            double actionLearningChance = ActionLearningRewardRoller.LearnChance)
         {
             MaximumHealthBonus = maximumHealthBonus;
             AllDamageDealtModifier = allDamageDealtModifier;
@@ -30,7 +32,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             GuardCounterPiercingMultiplier = guardCounterPiercingMultiplier;
             ClashDamageDealtMultiplierBonus = clashDamageDealtMultiplierBonus;
             VictoryGoldMultiplierBonus = victoryGoldMultiplierBonus;
-            ExtraMaterialRewardRolls = extraMaterialRewardRolls;
             SlashingDamageTakenModifier = slashingDamageTakenModifier;
             PiercingDamageTakenModifier = piercingDamageTakenModifier;
             BluntDamageTakenModifier = bluntDamageTakenModifier;
@@ -38,6 +39,9 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             StaminaRecoveryPerRoundBonus = staminaRecoveryPerRoundBonus;
             MaximumCombatStaminaBonus = maximumCombatStaminaBonus;
             AllDamageTakenModifier = allDamageTakenModifier;
+            FlatVictoryGoldBonus = flatVictoryGoldBonus;
+            MaterialRewardRollModifier = materialRewardRollModifier;
+            ActionLearningChance = actionLearningChance;
         }
 
         public int MaximumHealthBonus { get; }
@@ -52,7 +56,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         public double VictoryGoldMultiplierBonus { get; }
 
-        public int ExtraMaterialRewardRolls { get; }
+        public int MaterialRewardRollModifier { get; }
 
         public double SlashingDamageTakenModifier { get; }
 
@@ -67,6 +71,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public int MaximumCombatStaminaBonus { get; }
 
         public double AllDamageTakenModifier { get; }
+
+        public int FlatVictoryGoldBonus { get; }
+
+        public double ActionLearningChance { get; }
 
         public static bool TryResolve(
             PersistentPlayerState playerState,
@@ -99,6 +107,9 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             int staminaRecoveryPerRoundBonus = 0;
             int maximumCombatStaminaBonus = 0;
             double allDamageTakenModifier = 0d;
+            int flatVictoryGoldBonus = 0;
+            int materialRewardRollModifier = 0;
+            double actionLearningChance = ActionLearningRewardRoller.LearnChance;
             var equippedSeriesCounts = new System.Collections.Generic.Dictionary<string, int>(
                 StringComparer.Ordinal);
 
@@ -189,8 +200,19 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                         allDamageDealtModifier += accessory.EffectAmount;
                         break;
                     case AccessoryEffectType.Custom:
-                        // Dedicated accessory rules are applied by their owning combat,
-                        // reward, or inventory system. They do not alter derived stats here.
+                        switch (accessory.AccessoryId)
+                        {
+                            case "accessory.bronze-ring":
+                                defenseMultiplierBonus += 0.15d;
+                                break;
+                            case "accessory.crystal-pendant":
+                                actionLearningChance = 0.70d;
+                                break;
+                            case "accessory.gold-ring":
+                                materialRewardRollModifier -= 1;
+                                flatVictoryGoldBonus = checked(flatVictoryGoldBonus + 300);
+                                break;
+                        }
                         break;
                     default:
                         validationError =
@@ -206,7 +228,6 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             double clashDamageDealtMultiplierBonus = 0d;
             double victoryGoldMultiplierBonus = 0d;
-            int extraMaterialRewardRolls = 0;
             foreach (System.Collections.Generic.KeyValuePair<string, int> series in equippedSeriesCounts)
             {
                 if (series.Value < 3)
@@ -220,7 +241,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                         victoryGoldMultiplierBonus += 0.20d;
                         break;
                     case "armor-series.red-silk":
-                        extraMaterialRewardRolls += 1;
+                        materialRewardRollModifier += 1;
                         break;
                     case "armor-series.crystal":
                         allDamageDealtModifier += 0.10d;
@@ -241,14 +262,16 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 guardCounterPiercingMultiplier,
                 clashDamageDealtMultiplierBonus,
                 victoryGoldMultiplierBonus,
-                extraMaterialRewardRolls,
                 slashingDamageTakenModifier,
                 piercingDamageTakenModifier,
                 bluntDamageTakenModifier,
                 defenseMultiplierBonus,
                 staminaRecoveryPerRoundBonus,
                 maximumCombatStaminaBonus,
-                allDamageTakenModifier);
+                allDamageTakenModifier,
+                flatVictoryGoldBonus,
+                materialRewardRollModifier,
+                actionLearningChance);
             validationError = null;
             return true;
         }
@@ -294,6 +317,19 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             return checked(baseRecovery + StaminaRecoveryPerRoundBonus);
+        }
+
+        public int ApplyVictoryGoldModifiers(int baseGold)
+        {
+            if (baseGold < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(baseGold));
+            }
+
+            int multipliedGold = checked((int)Math.Round(
+                baseGold * (1d + VictoryGoldMultiplierBonus),
+                MidpointRounding.AwayFromZero));
+            return checked(multipliedGold + FlatVictoryGoldBonus);
         }
 
         public void ApplyCombatModifiers(CombatantState combatant)

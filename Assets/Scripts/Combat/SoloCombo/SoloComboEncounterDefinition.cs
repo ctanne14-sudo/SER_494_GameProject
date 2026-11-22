@@ -272,20 +272,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
         public IReadOnlyDictionary<string, int> RollMaterials(
             Random random,
-            int additionalRollCount)
+            int rollCountModifier)
         {
             if (random == null)
             {
                 throw new ArgumentNullException(nameof(random));
             }
 
-            if (additionalRollCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(additionalRollCount));
-            }
-
             var results = new Dictionary<string, int>(StringComparer.Ordinal);
-            int totalRollCount = checked(MaterialRollCount + additionalRollCount);
+            int totalRollCount = Math.Max(
+                0,
+                checked(MaterialRollCount + rollCountModifier));
             for (int rollIndex = 0; rollIndex < totalRollCount; rollIndex++)
             {
                 int roll = random.Next(TotalMaterialWeight);

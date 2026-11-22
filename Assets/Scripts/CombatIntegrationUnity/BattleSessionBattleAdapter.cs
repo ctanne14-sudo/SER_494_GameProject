@@ -260,11 +260,12 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
             int baseGold = definition.RollGold(random);
             IReadOnlyDictionary<string, int> materials =
-                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls);
+                definition.RollMaterials(random, equipmentStats.MaterialRewardRollModifier);
             if (!ActionLearningRewardRoller.TryRoll(
                     playerState,
                     ComboActionCatalogAsset.LoadDefault(),
                     random,
+                    equipmentStats.ActionLearningChance,
                     out string learnedActionId,
                     out validationError))
             {
@@ -273,9 +274,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             rewards = new BattleRewardSummary(
-                (int)Math.Round(
-                    baseGold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
-                    MidpointRounding.AwayFromZero),
+                equipmentStats.ApplyVictoryGoldModifiers(baseGold),
                 materials,
                 learnedActionId);
             validationError = null;
@@ -292,7 +291,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 out PlayerEquipmentDerivedStats stats,
                 out _)
                     ? stats
-                    : default;
+                    : new PlayerEquipmentDerivedStats(0, 0d);
         }
 
         private static void ValidateRewardCapacity(

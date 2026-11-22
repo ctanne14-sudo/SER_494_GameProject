@@ -102,7 +102,42 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             PlayerEquipmentDerivedStats red = Resolve(CreateStateWithArmorSet("red-silk"));
 
             Assert.That(yellow.VictoryGoldMultiplierBonus, Is.EqualTo(0.20d).Within(0.0001d));
-            Assert.That(red.ExtraMaterialRewardRolls, Is.EqualTo(1));
+            Assert.That(red.MaterialRewardRollModifier, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BronzeRing_IncreasesTotalDefenseByFifteenPercent()
+        {
+            PlayerEquipmentDerivedStats stats = Resolve(
+                CreateStateWithAccessory("accessory.bronze-ring"));
+
+            Assert.That(stats.DefenseMultiplierBonus, Is.EqualTo(0.15d).Within(0.0001d));
+            Assert.That(stats.ApplyDefenseMultiplier(105), Is.EqualTo(121));
+        }
+
+        [Test]
+        public void CrystalPendant_RaisesOnlyActionLearningChance()
+        {
+            PlayerEquipmentDerivedStats stats = Resolve(
+                CreateStateWithAccessory("accessory.crystal-pendant"));
+
+            Assert.That(stats.ActionLearningChance, Is.EqualTo(0.70d).Within(0.0001d));
+            Assert.That(stats.FlatVictoryGoldBonus, Is.Zero);
+            Assert.That(stats.MaterialRewardRollModifier, Is.Zero);
+        }
+
+        [Test]
+        public void GoldRing_AppliesPercentageGoldBeforeFlatBonusAndReducesMaterialRolls()
+        {
+            PersistentPlayerState state = CreateStateWithArmorSet("yellow-silk");
+            EquipAccessory(state, "accessory.gold-ring");
+
+            PlayerEquipmentDerivedStats stats = Resolve(state);
+
+            Assert.That(stats.VictoryGoldMultiplierBonus, Is.EqualTo(0.20d).Within(0.0001d));
+            Assert.That(stats.FlatVictoryGoldBonus, Is.EqualTo(300));
+            Assert.That(stats.MaterialRewardRollModifier, Is.EqualTo(-1));
+            Assert.That(stats.ApplyVictoryGoldModifiers(100), Is.EqualTo(420));
         }
 
         [TestCase("white-copper", DamageType.Slashing)]
@@ -193,6 +228,21 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             EquipArmor(state, "armor.upper-body", $"armor.{seriesId}.upper");
             EquipArmor(state, "armor.lower-body", $"armor.{seriesId}.lower");
             return state;
+        }
+
+        private static PersistentPlayerState CreateStateWithAccessory(string accessoryId)
+        {
+            var state = new PersistentPlayerState(100, 30, 100);
+            EquipAccessory(state, accessoryId);
+            return state;
+        }
+
+        private static void EquipAccessory(
+            PersistentPlayerState state,
+            string accessoryId)
+        {
+            state.Equipment.Grant(EquipmentCategory.Accessory, accessoryId);
+            state.Equipment.EquipAccessory("accessory.primary", accessoryId);
         }
 
         private static void EquipArmor(

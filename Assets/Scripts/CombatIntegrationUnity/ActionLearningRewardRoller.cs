@@ -18,6 +18,23 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             out string actionId,
             out string validationError)
         {
+            return TryRoll(
+                playerState,
+                catalog,
+                random,
+                LearnChance,
+                out actionId,
+                out validationError);
+        }
+
+        public static bool TryRoll(
+            PersistentPlayerState playerState,
+            ComboActionCatalogAsset catalog,
+            Random random,
+            double learnChance,
+            out string actionId,
+            out string validationError)
+        {
             actionId = null;
             if (playerState == null)
             {
@@ -35,6 +52,13 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             if (random == null)
             {
                 validationError = "A reward random source is required.";
+                return false;
+            }
+
+            if (learnChance < 0d || learnChance > 1d
+                || double.IsNaN(learnChance) || double.IsInfinity(learnChance))
+            {
+                validationError = "Action learning chance must be between zero and one.";
                 return false;
             }
 
@@ -57,7 +81,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 }
             }
 
-            if (eligibleActionIds.Count == 0 || random.NextDouble() >= LearnChance)
+            if (eligibleActionIds.Count == 0 || random.NextDouble() >= learnChance)
             {
                 validationError = null;
                 return true;

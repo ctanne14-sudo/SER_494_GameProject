@@ -54,6 +54,27 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
+        public void SeventyPercentChance_CanLearnWhenDefaultChanceWouldFail()
+        {
+            ComboActionCatalogAsset catalog = LoadCatalog(
+                out IReadOnlyList<ComboActionDefinition> definitions);
+            PersistentPlayerState state = CreateStateOwningAllExcept(
+                definitions,
+                OtherWeaponActionId);
+
+            bool rolled = ActionLearningRewardRoller.TryRoll(
+                state,
+                catalog,
+                new FixedRewardRandom(0.60d),
+                0.70d,
+                out string actionId,
+                out string error);
+
+            Assert.That(rolled, Is.True, error);
+            Assert.That(actionId, Is.EqualTo(OtherWeaponActionId));
+        }
+
+        [Test]
         public void HeldManual_IsExcludedAndEmptyPoolDoesNotSelectDuplicate()
         {
             ComboActionCatalogAsset catalog = LoadCatalog(
@@ -132,6 +153,26 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(foundExcludedAction, Is.True,
                 $"The Action Catalog is missing '{excludedActionId}'.");
             return state;
+        }
+
+        private sealed class FixedRewardRandom : Random
+        {
+            private readonly double _roll;
+
+            public FixedRewardRandom(double roll)
+            {
+                _roll = roll;
+            }
+
+            public override double NextDouble()
+            {
+                return _roll;
+            }
+
+            public override int Next(int maxValue)
+            {
+                return 0;
+            }
         }
     }
 }

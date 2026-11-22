@@ -193,6 +193,21 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void RewardDefinition_NegativeMaterialModifierClampsAtZero()
+        {
+            var rewards = new EncounterRewardDefinition(
+                0,
+                1,
+                new[]
+                {
+                    new WeightedMaterialReward("material.test", 100)
+                });
+
+            Assert.That(rewards.RollMaterials(new System.Random(1), -1), Is.Empty);
+            Assert.That(rewards.RollMaterials(new System.Random(1), -5), Is.Empty);
+        }
+
+        [Test]
         public void TryCreateDefinition_DuplicateWeightedGoldAmount_ReturnsValidationError()
         {
             _asset.Configure(
