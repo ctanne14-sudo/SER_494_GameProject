@@ -96,6 +96,7 @@ namespace SER494.Gameplay.PlayerState.Tests
             (PlayerStateService stateService, PlayerSaveService saveService) =
                 CreateServices();
             saveService.BeginNewGameInSlot(2, "Floor1_Cell_A");
+            stateService.State.SetEquipmentMaximumCombatStaminaBonus(10);
             stateService.State.SetCurrentHealth(12);
             stateService.State.SetCurrentMana(3);
             stateService.State.SetCurrentCombatStamina(7);
@@ -114,8 +115,13 @@ namespace SER494.Gameplay.PlayerState.Tests
             Assert.That(stateService.State.CurrentCombatStamina,
                 Is.EqualTo(stateService.State.MaximumCombatStamina));
             Assert.That(saveService.InspectSlot(1).State, Is.EqualTo(SaveSlotState.Empty));
-            Assert.That(saveService.LoadSlot(2).Exploration.SavePointId,
+            LoadedPlayerSave loaded = saveService.LoadSlot(2);
+            Assert.That(loaded.Exploration.SavePointId,
                 Is.EqualTo("floor1-cell-a.save-point-01"));
+            Assert.That(loaded.State.BaseMaximumCombatStamina, Is.EqualTo(100));
+            Assert.That(loaded.State.EquipmentMaximumCombatStaminaBonus, Is.EqualTo(10));
+            Assert.That(loaded.State.MaximumCombatStamina, Is.EqualTo(110));
+            Assert.That(loaded.State.CurrentCombatStamina, Is.EqualTo(110));
         }
 
         [Test]

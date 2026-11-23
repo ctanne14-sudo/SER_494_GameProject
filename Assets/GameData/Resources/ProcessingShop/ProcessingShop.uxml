@@ -7,30 +7,42 @@
                 <ui:Label name="goldLabel" text="Gold  0" class="processing-gold" />
                 <ui:Button name="closeButton" text="Close" class="processing-close" />
             </ui:VisualElement>
+            <ui:VisualElement class="processing-tabs-row">
+                <ui:Label text="Q / LB" class="processing-tab-hint" />
+                <ui:VisualElement class="processing-tabs">
+                    <ui:Button name="weaponsTab" text="Weapons" class="processing-tab" />
+                    <ui:Button name="armorTab" text="Armor" class="processing-tab" />
+                    <ui:Button name="accessoriesTab" text="Accessories" class="processing-tab" />
+                </ui:VisualElement>
+                <ui:Label text="E / RB" class="processing-tab-hint processing-tab-hint-right" />
+            </ui:VisualElement>
             <ui:VisualElement class="processing-body">
-                <ui:VisualElement class="processing-series-panel">
-                    <ui:Label text="Armor Series" class="processing-heading" />
-                    <ui:ScrollView name="seriesScroll" class="processing-series-scroll">
-                        <ui:VisualElement name="seriesContainer" />
+                <ui:VisualElement class="processing-navigation-panel">
+                    <ui:VisualElement class="processing-navigation-header">
+                        <ui:VisualElement class="processing-navigation-heading-group">
+                            <ui:Label name="navigationTitle" text="Weapon Type" class="processing-heading" />
+                            <ui:Label name="navigationHint" class="processing-navigation-hint" />
+                        </ui:VisualElement>
+                        <ui:Button name="navigationBackButton" text="Back" class="processing-navigation-back" />
+                    </ui:VisualElement>
+                    <ui:ScrollView name="navigationScroll" class="processing-navigation-scroll">
+                        <ui:VisualElement name="navigationContainer" />
                     </ui:ScrollView>
                 </ui:VisualElement>
-                <ui:VisualElement class="processing-recipes-panel">
-                    <ui:Label text="Armor Pieces" class="processing-heading" />
-                    <ui:VisualElement name="recipeContainer" class="processing-recipe-container" />
-                </ui:VisualElement>
                 <ui:VisualElement class="processing-details-panel">
-                    <ui:Label name="recipeName" text="Select Armor" class="processing-detail-title" />
+                    <ui:Label name="recipeName" text="Select Equipment" class="processing-detail-title" />
                     <ui:Label name="recipeStats" class="processing-detail-stats" />
+                    <ui:VisualElement class="processing-detail-separator" />
                     <ui:Label text="Effect" class="processing-subheading" />
                     <ui:Label name="recipeEffect" class="processing-detail-copy" />
-                    <ui:Label text="Required" class="processing-subheading" />
+                    <ui:Label text="Required" class="processing-subheading processing-required-heading" />
                     <ui:Label name="recipeCosts" class="processing-detail-copy processing-costs" />
                     <ui:VisualElement class="processing-spacer" />
-                    <ui:Button name="craftButton" text="Process Armor" class="processing-craft" />
+                    <ui:Button name="craftButton" text="Process Equipment" class="processing-craft" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label name="processingMessage" class="processing-message" />
-            <ui:Label text="WASD / Arrows / D-pad: Navigate     F / Enter / A: Confirm     Esc / B / Right Click: Close" class="processing-footer" />
+            <ui:Label text="Q / E or LB / RB: Change Tab     WASD / Arrows / D-pad: Navigate     F / Enter / A: Confirm     Esc / B / Right Click: Back" class="processing-footer" />
         </ui:VisualElement>
         <ui:VisualElement name="craftConfirmOverlay" class="processing-confirm-overlay">
             <ui:VisualElement class="processing-confirm-dialog">

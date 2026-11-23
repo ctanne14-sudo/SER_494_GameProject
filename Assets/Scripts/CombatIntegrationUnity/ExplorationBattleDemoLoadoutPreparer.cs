@@ -120,6 +120,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         {
             if (!TryPrepare(out string validationError))
             {
+                if (validationError == PlayerStateLoadoutSessionBuilder.NoConfiguredComboError)
+                {
+                    return;
+                }
+
                 Debug.LogError(
                     $"Could not prepare the exploration battle demo loadout: {validationError}",
                     this);

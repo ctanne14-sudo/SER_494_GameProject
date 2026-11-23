@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 4
   effectDamageType: 2
   effectAmount: 0.1
+  effectDescription: Successful Guard deals an extra 10% Piercing damage.
+  setEffectDescription:

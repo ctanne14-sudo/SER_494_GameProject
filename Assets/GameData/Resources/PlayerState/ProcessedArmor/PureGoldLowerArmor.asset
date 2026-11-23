@@ -17,6 +17,8 @@ MonoBehaviour:
   slotId: armor.lower-body
   defense: 75
   seriesId: armor-series.pure-gold
-  effectType: 1
-  effectDamageType: 2
-  effectAmount: 0.05
+  effectType: 6
+  effectDamageType: 0
+  effectAmount: 0.1
+  effectDescription: Defense +10%.
+  setEffectDescription: 'Full set: successful Clash damage +50%.'

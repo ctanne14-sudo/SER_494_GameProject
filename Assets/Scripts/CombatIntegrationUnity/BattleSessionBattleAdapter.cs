@@ -33,6 +33,23 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             out SoloComboBattleState battle,
             out string validationError)
         {
+            return TryCreateBattle(
+                session,
+                playerState,
+                equipmentCatalog,
+                new Random(),
+                out battle,
+                out validationError);
+        }
+
+        public static bool TryCreateBattle(
+            BattleSession session,
+            PersistentPlayerState playerState,
+            PlayerEquipmentCatalogAsset equipmentCatalog,
+            Random equipmentEffectRandom,
+            out SoloComboBattleState battle,
+            out string validationError)
+        {
             battle = null;
             if (session == null)
             {
@@ -56,6 +73,12 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             {
                 validationError =
                     $"Player Equipment Catalog is missing from Resources/{PlayerEquipmentCatalogAsset.DefaultResourcesPath}.asset.";
+                return false;
+            }
+
+            if (equipmentEffectRandom == null)
+            {
+                validationError = "An equipment-effect random source is required.";
                 return false;
             }
 
@@ -95,6 +118,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             derivedStats.ApplyPersistentMaximumHealth(playerState);
+            derivedStats.ApplyPersistentMaximumCombatStamina(playerState);
+            defense = derivedStats.ApplyDefenseMultiplier(defense);
 
             try
             {
@@ -112,9 +137,15 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     combos,
                     encounter.EnemyBehavior,
                     encounter.ManaRecoveryPerTurn,
-                    playerState.BaseStaminaRecoveryPerRound,
+                    derivedStats.ApplyStaminaRecoveryPerRound(
+                        playerState.BaseStaminaRecoveryPerRound),
                     enemyRandom: new Random(594),
-                    startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState));
+                    startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState),
+                    equipmentEffects: derivedStats.CreateBattleEffectConfiguration(),
+                    equipmentEffectRandom: equipmentEffectRandom,
+                    comboReconfigurationCharges:
+                        BattleComboReconfigurationRules.BaseCharges
+                        + derivedStats.ComboReconfigurationChargeBonus);
             }
             catch (Exception exception) when (
                 exception is ArgumentException || exception is InvalidOperationException)
@@ -196,11 +227,18 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
-            BattleRewardSummary rewards = CreateRewards(
-                battle.Outcome,
-                encounter.Rewards,
-                rewardRandom,
-                ResolveRewardEquipmentStats(playerState));
+            if (!TryCreateRewards(
+                    battle.Outcome,
+                    encounter.Rewards,
+                    playerState,
+                    rewardRandom,
+                    ResolveRewardEquipmentStats(playerState),
+                    battle,
+                    out BattleRewardSummary rewards,
+                    out validationError))
+            {
+                return false;
+            }
 
             try
             {
@@ -233,22 +271,78 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 out validationError);
         }
 
-        private static BattleRewardSummary CreateRewards(
+        private static bool TryCreateRewards(
             BattleOutcome outcome,
             EncounterRewardDefinition definition,
+            PersistentPlayerState playerState,
             Random random,
-            PlayerEquipmentDerivedStats equipmentStats)
+            PlayerEquipmentDerivedStats equipmentStats,
+            SoloComboBattleState battle,
+            out BattleRewardSummary rewards,
+            out string validationError)
         {
             if (outcome != BattleOutcome.PlayerVictory && outcome != BattleOutcome.Draw)
             {
-                return BattleRewardSummary.None;
+                rewards = BattleRewardSummary.None;
+                validationError = null;
+                return true;
             }
 
-            return new BattleRewardSummary(
-                (int)Math.Round(
-                    definition.Gold * (1d + equipmentStats.VictoryGoldMultiplierBonus),
-                    MidpointRounding.AwayFromZero),
-                definition.RollMaterials(random, equipmentStats.ExtraMaterialRewardRolls));
+            int baseGold = definition.RollGold(random);
+            int extraMaterialRolls = RollRedHandkerchiefMaterialSlots(
+                equipmentStats,
+                battle,
+                random);
+            IReadOnlyDictionary<string, int> materials =
+                definition.RollMaterials(
+                    random,
+                    checked(equipmentStats.MaterialRewardRollModifier + extraMaterialRolls));
+            if (!ActionLearningRewardRoller.TryRoll(
+                    playerState,
+                    ComboActionCatalogAsset.LoadDefault(),
+                    random,
+                    equipmentStats.ActionLearningChance,
+                    out string learnedActionId,
+                    out validationError))
+            {
+                rewards = null;
+                return false;
+            }
+
+            rewards = new BattleRewardSummary(
+                equipmentStats.ApplyVictoryGoldModifiers(baseGold),
+                materials,
+                learnedActionId);
+            validationError = null;
+            return true;
+        }
+
+        private static int RollRedHandkerchiefMaterialSlots(
+            PlayerEquipmentDerivedStats equipmentStats,
+            SoloComboBattleState battle,
+            Random random)
+        {
+            if (!string.Equals(
+                    equipmentStats.StatefulAccessoryId,
+                    "accessory.red-handkerchief",
+                    StringComparison.Ordinal)
+                || battle == null
+                || !battle.TracksDamageResolutionsForMaterialRewards)
+            {
+                return 0;
+            }
+
+            double chance = Math.Min(100, battle.DamageResolutionCount) / 100d;
+            int successes = 0;
+            for (int slot = 0; slot < 3; slot++)
+            {
+                if (random.NextDouble() < chance)
+                {
+                    successes++;
+                }
+            }
+
+            return successes;
         }
 
         private static PlayerEquipmentDerivedStats ResolveRewardEquipmentStats(
@@ -261,7 +355,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 out PlayerEquipmentDerivedStats stats,
                 out _)
                     ? stats
-                    : default;
+                    : new PlayerEquipmentDerivedStats(0, 0d);
         }
 
         private static void ValidateRewardCapacity(
@@ -275,6 +369,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 {
                     _ = playerState.Inventory.GetCount(material.Key) + material.Value;
                 }
+
             }
         }
 
@@ -290,6 +385,13 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             foreach (KeyValuePair<string, int> material in rewards.Materials)
             {
                 playerState.Inventory.Add(material.Key, material.Value);
+            }
+
+            if (rewards.HasLearnedAction
+                && !playerState.ActionLibrary.Learn(rewards.LearnedActionId))
+            {
+                throw new InvalidOperationException(
+                    $"Action '{rewards.LearnedActionId}' was already learned before rewards were granted.");
             }
         }
     }

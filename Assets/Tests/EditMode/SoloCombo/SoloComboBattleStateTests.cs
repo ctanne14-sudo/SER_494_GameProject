@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -209,6 +210,130 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(battle.GetCooldownRemaining(0), Is.Zero);
             Assert.That(battle.IsTimelineResolving, Is.False);
             Assert.That(battle.ActiveTimeline, Is.Null);
+        }
+
+        [Test]
+        public void ReconfigureCombo_ReplacesOneActionConsumesChargeAndResetsCooldown()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            battle.ExecuteCombo(0);
+            var replacement = Action(
+                "replacement-main",
+                ComboActionCategory.Main,
+                timelineCost: 2,
+                mana: 0,
+                stamina: 0,
+                cooldown: 1,
+                damageMultiplier: 0.30d);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                replacement,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.None));
+            Assert.That(validation, Is.Not.Null);
+            Assert.That(validation.IsValid, Is.True);
+            Assert.That(battle.Combos[0].MainAction.ActionId, Is.EqualTo("replacement-main"));
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.Zero);
+            Assert.That(battle.GetCooldownRemaining(0), Is.Zero);
+            Assert.That(battle.HasComboReconfigurationChanges, Is.True);
+        }
+
+        [Test]
+        public void ReconfigureCombo_NoChangeDoesNotConsumeCharge()
+        {
+            ComboConfiguration combo = CompleteCombo(
+                "combo1",
+                LinkedActionPlacement.AfterMain,
+                cooldown: 3);
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[] { combo },
+                charges: 1);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                combo.MainAction,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.NoChange));
+            Assert.That(validation, Is.Null);
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
+            Assert.That(battle.HasComboReconfigurationChanges, Is.False);
+        }
+
+        [Test]
+        public void ReconfigureCombo_InvalidCategoryDoesNotConsumeCharge()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            ComboActionDefinition wrongCategory = Action(
+                "replacement-opening",
+                ComboActionCategory.Opening,
+                timelineCost: 1,
+                mana: 0,
+                stamina: 0,
+                cooldown: 0,
+                damageMultiplier: 0d);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                wrongCategory,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.InvalidCombo));
+            Assert.That(validation.IsValid, Is.False);
+            Assert.That(
+                validation.Issues.Select(issue => issue.Code),
+                Does.Contain(ComboValidationErrorCode.InvalidMainActionCategory));
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ReconfigureCombo_DuringTimelineIsRejectedWithoutConsumingCharge()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            battle.BeginCombo(0);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                Action(
+                    "replacement-main",
+                    ComboActionCategory.Main,
+                    2,
+                    0,
+                    0,
+                    0,
+                    0.20d),
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(
+                failure,
+                Is.EqualTo(BattleComboReconfigurationFailure.TimelineResolving));
+            Assert.That(validation, Is.Null);
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
         }
 
         [Test]
@@ -2196,6 +2321,290 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(2));
         }
 
+        [Test]
+        public void WhiteCopperRing_DisablesEnemyGuardOnlyDuringFirstRound()
+        {
+            ComboConfiguration strike = MainOnlyCombo("strike", 0, 0, 0, 0.40d);
+            var enemyGuard = new EnemyActionSequence(
+                "guard",
+                "Guard",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "guard",
+                        "Guard",
+                        1,
+                        1,
+                        damageMultiplier: 0d,
+                        resolutionEffect: ActionResolutionEffect.Guard)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 0, 0, 50, 0)),
+                new CombatantState("Enemy", new CombatantStats(500, 0, 0, 50, 0)),
+                new[] { strike },
+                enemyGuard,
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    disableEnemyGuardDuringFirstRound: true));
+
+            SoloComboTurnResult firstRound = battle.ExecuteCombo(0);
+            SoloComboTurnResult secondRound = battle.ExecuteCombo(0);
+
+            Assert.That(firstRound.TotalDamageDealt, Is.GreaterThan(0));
+            Assert.That(
+                firstRound.ActionResolutions.Single(item => item.Side == TimelineActorSide.Player)
+                    .DamageAvoidance,
+                Is.EqualTo(DamageAvoidanceResult.None));
+            Assert.That(secondRound.TotalDamageDealt, Is.Zero);
+            Assert.That(battle.CurrentRound, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void BrassRing_AppliesDefenseCurveAcrossRoundBoundaries()
+        {
+            ComboConfiguration wait = MainOnlyCombo("wait", 0, 0, 0, 0d);
+            var enemyAttack = new EnemyActionSequence(
+                "attack",
+                "Attack",
+                new[]
+                {
+                    new EnemyActionDefinition("attack", "Attack", 1, 1, 0.50d)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(1000, 0, 0, 0, 100)),
+                new CombatantState("Enemy", new CombatantStats(500, 0, 0, 100, 0)),
+                new[] { wait },
+                enemyAttack,
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    applyBrassRingDefenseCurve: true));
+
+            int[] damage = Enumerable.Range(0, 5)
+                .Select(_ => battle.ExecuteCombo(0).EnemyDamageDealt)
+                .ToArray();
+
+            Assert.That(damage[1], Is.EqualTo(damage[0]));
+            Assert.That(damage[2], Is.GreaterThan(damage[1]));
+            Assert.That(damage[3], Is.EqualTo(damage[2]));
+            Assert.That(damage[4], Is.GreaterThan(damage[3]));
+        }
+
+        [Test]
+        public void FreshBloodOrnament_FirstPlayerHitCanPreventMutualDestruction()
+        {
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 0, 0, 100, 0));
+            player.ReceiveDamage(98);
+            var battle = new SoloComboBattleState(
+                player,
+                new CombatantState("Enemy", new CombatantStats(200, 0, 0, 50, 0)),
+                new[] { MainOnlyCombo("strike", 0, 0, 0, 0.50d) },
+                new EnemyActionSequence(
+                    "counter",
+                    "Counter",
+                    new[]
+                    {
+                        new EnemyActionDefinition("counter", "Counter", 1, 1, 0.20d)
+                    }),
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    healFromFirstPlayerDamageEachRound: true));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.Ongoing));
+            Assert.That(player.CurrentHealth, Is.GreaterThan(0));
+            Assert.That(
+                result.ActionResolutions.Single(item =>
+                    item.ActionId == "equipment.ape-beast-fresh-blood-ornament").HealingDone,
+                Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void SlimeOrnament_GuardDoesNotConsumeChargeAndChargeReturnsAfterRoundTwo()
+        {
+            ComboConfiguration guard = DefensiveCombo(ActionResolutionEffect.Guard, 1);
+            ComboConfiguration idle = MainOnlyCombo("idle", 0, 0, 0, 0d);
+            var enemyAttack = new EnemyActionSequence(
+                "blunt",
+                "Blunt",
+                new[]
+                {
+                    new EnemyActionDefinition(
+                        "blunt",
+                        "Blunt",
+                        1,
+                        1,
+                        0.50d,
+                        DamageType.Blunt)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(500, 0, 20, 50, 0)),
+                new CombatantState("Enemy", new CombatantStats(500, 0, 0, 100, 0)),
+                new[] { guard, idle },
+                enemyAttack,
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    nullifyPeriodicIncomingBluntDamage: true));
+
+            SoloComboTurnResult guarded = battle.ExecuteCombo(0);
+            SoloComboTurnResult nullified = battle.ExecuteCombo(1);
+            SoloComboTurnResult recharged = battle.ExecuteCombo(1);
+
+            Assert.That(guarded.EnemyDamageDealt, Is.Zero);
+            Assert.That(nullified.EnemyDamageDealt, Is.Zero);
+            Assert.That(recharged.EnemyDamageDealt, Is.Zero);
+            Assert.That(
+                nullified.ActionResolutions.Any(item =>
+                    item.EquipmentEffectMessage != null
+                    && item.EquipmentEffectMessage.Contains("nullified")),
+                Is.True);
+            Assert.That(
+                recharged.ActionResolutions.Any(item =>
+                    item.EquipmentEffectMessage != null
+                    && item.EquipmentEffectMessage.Contains("nullified")),
+                Is.True);
+        }
+
+        [Test]
+        public void YellowHandkerchief_DeterministicSuccessPreservesActivatedItem()
+        {
+            var potion = new ActionItemCostDefinition(
+                "healing-potion",
+                "Healing Potion",
+                1);
+            var action = new ComboActionDefinition(
+                "potion",
+                "Potion",
+                ComboActionCategory.Main,
+                1,
+                0,
+                0,
+                0,
+                resolutionEvents: new[]
+                {
+                    new ActionResolutionDefinition(
+                        1,
+                        ActionResolutionEffect.Heal,
+                        healingAmount: 10,
+                        itemCost: potion)
+                });
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 0, 0, 50, 0));
+            player.ReceiveDamage(50);
+            var battle = new SoloComboBattleState(
+                player,
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 0, 0)),
+                new[] { MainOnlyConfiguration("potion", action) },
+                PassiveEnemySequence(),
+                0,
+                0,
+                startingItems: new Dictionary<string, int> { { "healing-potion", 1 } },
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    preserveActivatedBattleItems: true),
+                equipmentEffectRandom: new FixedSampleRandom(0d));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(battle.GetItemCount("healing-potion"), Is.EqualTo(1));
+            Assert.That(
+                result.ActionResolutions.Single(item =>
+                    item.ResolutionEffect == ActionResolutionEffect.Heal).ConsumedItemAmount,
+                Is.Zero);
+        }
+
+        [Test]
+        public void RedHandkerchief_CountsGuardedAndEvadedDamageResolutions()
+        {
+            ComboConfiguration guard = DefensiveCombo(ActionResolutionEffect.Guard, 1);
+            ComboConfiguration evade = DefensiveCombo(ActionResolutionEffect.Evade, 1);
+            var enemyAttack = new EnemyActionSequence(
+                "attack",
+                "Attack",
+                new[]
+                {
+                    new EnemyActionDefinition("attack", "Attack", 1, 1, 0.50d)
+                });
+            var battle = new SoloComboBattleState(
+                new CombatantState("Player", new CombatantStats(100, 0, 20, 50, 0)),
+                new CombatantState("Enemy", new CombatantStats(100, 0, 0, 50, 0)),
+                new[] { guard, evade },
+                enemyAttack,
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    trackDamageResolutionsForMaterialRewards: true));
+
+            battle.ExecuteCombo(0);
+            battle.ExecuteCombo(1);
+
+            Assert.That(battle.DamageResolutionCount, Is.EqualTo(2));
+            Assert.That(battle.TracksDamageResolutionsForMaterialRewards, Is.True);
+        }
+
+        [Test]
+        public void ThornBracer_RoundEndCannotKillAndVictoryRestoresFullHealth()
+        {
+            var player = new CombatantState(
+                "Player",
+                new CombatantStats(100, 0, 0, 100, 0));
+            player.ReceiveDamage(85);
+            var battle = new SoloComboBattleState(
+                player,
+                new CombatantState("Enemy", new CombatantStats(200, 0, 0, 0, 0)),
+                new[] { MainOnlyCombo("idle", 0, 0, 0, 0d) },
+                PassiveEnemySequence(),
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    applyThornBracerRoundEndHealth: true));
+
+            battle.ExecuteCombo(0);
+            battle.ExecuteCombo(0);
+
+            Assert.That(player.CurrentHealth, Is.EqualTo(1));
+
+            var victoryPlayer = new CombatantState(
+                "Player",
+                new CombatantStats(100, 0, 0, 100, 0));
+            victoryPlayer.ReceiveDamage(60);
+            var victory = new SoloComboBattleState(
+                victoryPlayer,
+                new CombatantState("Enemy", new CombatantStats(10, 0, 0, 0, 0)),
+                new[] { MainOnlyCombo("finisher", 0, 0, 0, 1d) },
+                PassiveEnemySequence(),
+                0,
+                0,
+                equipmentEffects: new SoloComboEquipmentEffectConfiguration(
+                    applyThornBracerRoundEndHealth: true));
+
+            SoloComboTurnResult result = victory.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.PlayerVictory));
+            Assert.That(victoryPlayer.CurrentHealth, Is.EqualTo(100));
+        }
+
+        private sealed class FixedSampleRandom : Random
+        {
+            private readonly double _sample;
+
+            public FixedSampleRandom(double sample)
+            {
+                _sample = sample;
+            }
+
+            protected override double Sample()
+            {
+                return _sample;
+            }
+        }
+
         private static EnemyActionSequence PassiveEnemySequence()
         {
             return new EnemyActionSequence(
@@ -2213,6 +2622,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
+        {
+            return CreateBattleWithReconfiguration(combos, charges: 0);
+        }
+
+        private static SoloComboBattleState CreateBattleWithReconfiguration(
+            ComboConfiguration[] combos,
+            int charges)
         {
             var player = new CombatantState(
                 "Player",
@@ -2238,7 +2654,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 combos,
                 enemySequence,
                 manaRecoveryPerTurn: 1,
-                staminaRecoveryPerTurn: 2);
+                staminaRecoveryPerTurn: 2,
+                comboReconfigurationCharges: charges);
         }
 
         private static SoloComboBattleState CreateBattleWithDefensiveActiveWindow()

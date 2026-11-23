@@ -190,7 +190,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             if (outcome == BattleOutcome.PlayerDefeat
-                && (grantedRewards.Gold != 0 || grantedRewards.TotalMaterialCount != 0))
+                && grantedRewards.HasAnyReward)
             {
                 validationError = "A defeated player cannot receive Encounter rewards.";
                 return false;

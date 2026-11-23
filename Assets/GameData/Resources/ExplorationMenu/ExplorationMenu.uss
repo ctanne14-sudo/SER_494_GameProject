@@ -851,6 +851,89 @@
     background-color: rgb(28, 27, 24);
 }
 
+.learn-actions-button {
+    color: rgb(232, 205, 145);
+}
+
+.learning-introduction,
+.learning-message,
+.learning-empty,
+.learning-error {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    white-space: normal;
+    background-color: rgba(31, 29, 25, 0.78);
+    border-left-width: 3px;
+    border-left-color: rgb(143, 110, 65);
+    color: rgb(210, 197, 165);
+}
+
+.learning-message {
+    border-left-color: rgb(89, 151, 96);
+    color: rgb(166, 211, 157);
+}
+
+.learning-error {
+    border-left-color: rgb(180, 83, 70);
+    color: rgb(226, 151, 135);
+}
+
+.learning-action-card {
+    min-height: 132px;
+    margin-bottom: 12px;
+    padding: 14px 18px;
+    align-items: stretch;
+    background-color: rgb(45, 43, 38);
+    border-left-width: 3px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(155, 119, 67);
+    border-right-color: rgb(78, 68, 52);
+    border-top-color: rgb(104, 86, 61);
+    border-bottom-color: rgb(61, 53, 42);
+    -unity-text-align: upper-left;
+}
+
+.learning-action-card:hover,
+.learning-action-card:focus {
+    background-color: rgb(65, 58, 47);
+    border-left-color: rgb(219, 175, 99);
+    border-right-color: rgb(170, 136, 82);
+    border-top-color: rgb(170, 136, 82);
+    border-bottom-color: rgb(170, 136, 82);
+}
+
+.learning-action-title {
+    margin-bottom: 5px;
+    color: rgb(241, 223, 176);
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+.learning-action-costs {
+    margin-bottom: 7px;
+    color: rgb(175, 157, 122);
+}
+
+.learning-action-summary {
+    margin-bottom: 7px;
+    color: rgb(218, 207, 181);
+    white-space: normal;
+}
+
+.learning-action-availability {
+    color: rgb(205, 170, 104);
+    -unity-font-style: bold;
+}
+
+.learning-action-known,
+.learning-action-known:hover,
+.learning-action-known:focus {
+    opacity: 0.58;
+    border-left-color: rgb(92, 87, 76);
+}
+
 .unsaved-dialog-overlay {
     position: absolute;
     left: 0;

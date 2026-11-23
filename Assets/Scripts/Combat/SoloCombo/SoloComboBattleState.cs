@@ -5,6 +5,214 @@ using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
 {
+    public enum BattleComboActionSlot
+    {
+        Opening,
+        Main,
+        Closing,
+        Linked
+    }
+
+    public enum BattleComboReconfigurationFailure
+    {
+        None,
+        BattleEnded,
+        TimelineResolving,
+        ComboIndexOutOfRange,
+        NoChargesRemaining,
+        ReplacementActionMissing,
+        SlotIsEmpty,
+        NoChange,
+        InvalidCombo,
+        InvalidLoadout
+    }
+
+    public static class BattleComboReconfigurationRules
+    {
+        public const int BaseCharges = 1;
+        public const int MithrilRingBonusCharges = 2;
+    }
+
+    public sealed class SoloComboEquipmentEffectConfiguration
+    {
+        public static readonly SoloComboEquipmentEffectConfiguration None =
+            new SoloComboEquipmentEffectConfiguration();
+
+        public SoloComboEquipmentEffectConfiguration(
+            bool disableEnemyGuardDuringFirstRound = false,
+            bool applyBrassRingDefenseCurve = false,
+            bool healFromFirstPlayerDamageEachRound = false,
+            bool nullifyPeriodicIncomingBluntDamage = false,
+            bool preserveActivatedBattleItems = false,
+            bool trackDamageResolutionsForMaterialRewards = false,
+            bool applyThornBracerRoundEndHealth = false)
+        {
+            DisableEnemyGuardDuringFirstRound = disableEnemyGuardDuringFirstRound;
+            ApplyBrassRingDefenseCurve = applyBrassRingDefenseCurve;
+            HealFromFirstPlayerDamageEachRound = healFromFirstPlayerDamageEachRound;
+            NullifyPeriodicIncomingBluntDamage = nullifyPeriodicIncomingBluntDamage;
+            PreserveActivatedBattleItems = preserveActivatedBattleItems;
+            TrackDamageResolutionsForMaterialRewards =
+                trackDamageResolutionsForMaterialRewards;
+            ApplyThornBracerRoundEndHealth = applyThornBracerRoundEndHealth;
+        }
+
+        public bool DisableEnemyGuardDuringFirstRound { get; }
+
+        public bool ApplyBrassRingDefenseCurve { get; }
+
+        public bool HealFromFirstPlayerDamageEachRound { get; }
+
+        public bool NullifyPeriodicIncomingBluntDamage { get; }
+
+        public bool PreserveActivatedBattleItems { get; }
+
+        public bool TrackDamageResolutionsForMaterialRewards { get; }
+
+        public bool ApplyThornBracerRoundEndHealth { get; }
+    }
+
+    internal sealed class SoloComboEquipmentEffectState
+    {
+        private const double ItemPreservationChance = 0.35d;
+        private const double FirstDamageHealingFraction = 0.20d;
+        private readonly SoloComboEquipmentEffectConfiguration _configuration;
+        private readonly Random _random;
+        private bool _firstPlayerDamageHealingUsed;
+        private bool _slimeProtectionCharged;
+
+        public SoloComboEquipmentEffectState(
+            SoloComboEquipmentEffectConfiguration configuration,
+            Random random)
+        {
+            _configuration = configuration
+                ?? SoloComboEquipmentEffectConfiguration.None;
+            _random = random ?? new Random();
+            CurrentRound = 1;
+            _slimeProtectionCharged =
+                _configuration.NullifyPeriodicIncomingBluntDamage;
+        }
+
+        public int CurrentRound { get; private set; }
+
+        public int DamageResolutionCount { get; private set; }
+
+        public bool TracksDamageResolutionsForMaterialRewards =>
+            _configuration.TrackDamageResolutionsForMaterialRewards;
+
+        public bool DisablesEnemyGuard =>
+            _configuration.DisableEnemyGuardDuringFirstRound
+            && CurrentRound == 1;
+
+        public double PlayerDefenseModifier
+        {
+            get
+            {
+                if (!_configuration.ApplyBrassRingDefenseCurve)
+                {
+                    return 0d;
+                }
+
+                if (CurrentRound <= 2)
+                {
+                    return 0.25d;
+                }
+
+                return CurrentRound <= 4 ? 0.05d : -0.15d;
+            }
+        }
+
+        public bool HasThornBracer =>
+            _configuration.ApplyThornBracerRoundEndHealth;
+
+        public void CountDamageResolution()
+        {
+            DamageResolutionCount = checked(DamageResolutionCount + 1);
+        }
+
+        public bool TryNullifyIncomingBluntDamage(
+            DamageEffectDefinition effect,
+            DamageAvoidanceResult avoidance,
+            int damage)
+        {
+            if (!_slimeProtectionCharged
+                || avoidance != DamageAvoidanceResult.None
+                || damage <= 0
+                || !ContainsDamageType(effect, DamageType.Blunt))
+            {
+                return false;
+            }
+
+            _slimeProtectionCharged = false;
+            return true;
+        }
+
+        public int GetFirstPlayerDamageHealing(int damage)
+        {
+            if (!_configuration.HealFromFirstPlayerDamageEachRound
+                || _firstPlayerDamageHealingUsed
+                || damage <= 0)
+            {
+                return 0;
+            }
+
+            _firstPlayerDamageHealingUsed = true;
+            return checked((int)Math.Round(
+                damage * FirstDamageHealingFraction,
+                MidpointRounding.AwayFromZero));
+        }
+
+        public bool ShouldPreserveItem(string itemId)
+        {
+            return _configuration.PreserveActivatedBattleItems
+                && IsSupportedBattleItem(itemId)
+                && _random.NextDouble() < ItemPreservationChance;
+        }
+
+        public bool CompleteOngoingRound()
+        {
+            bool rechargedSlimeProtection = false;
+            if (_configuration.NullifyPeriodicIncomingBluntDamage
+                && CurrentRound % 2 == 0
+                && !_slimeProtectionCharged)
+            {
+                _slimeProtectionCharged = true;
+                rechargedSlimeProtection = true;
+            }
+
+            CurrentRound = checked(CurrentRound + 1);
+            _firstPlayerDamageHealingUsed = false;
+            return rechargedSlimeProtection;
+        }
+
+        private static bool ContainsDamageType(
+            DamageEffectDefinition effect,
+            DamageType type)
+        {
+            if (effect == null)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < effect.Components.Count; index++)
+            {
+                if (effect.Components[index].Type == type)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsSupportedBattleItem(string itemId)
+        {
+            return string.Equals(itemId, "healing-potion", StringComparison.Ordinal)
+                || string.Equals(itemId, "greater-healing-potion", StringComparison.Ordinal)
+                || string.Equals(itemId, "vitality-tonic", StringComparison.Ordinal);
+        }
+    }
+
     public enum SoloComboExecutionFailure
     {
         None,
@@ -67,7 +275,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             string failedRequirementDisplayName = null,
             string consumedItemDisplayName = null,
             int consumedItemAmount = 0,
-            int staminaRestored = 0)
+            int staminaRestored = 0,
+            string equipmentEffectMessage = null)
         {
             Side = side;
             ActionId = actionId ?? throw new ArgumentNullException(nameof(actionId));
@@ -109,6 +318,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             StaminaRestored = staminaRestored >= 0
                 ? staminaRestored
                 : throw new ArgumentOutOfRangeException(nameof(staminaRestored));
+            EquipmentEffectMessage = equipmentEffectMessage;
         }
 
         public TimelineActorSide Side { get; }
@@ -164,6 +374,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public string ConsumedItemDisplayName { get; }
 
         public int ConsumedItemAmount { get; }
+
+        public string EquipmentEffectMessage { get; }
     }
 
     public sealed class SoloComboTurnResult
@@ -355,6 +567,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Array.Empty<SoloComboActionResolution>();
 
         private readonly ComboConfiguration[] _combos;
+        private readonly ComboConfiguration[] _initialCombos;
         private readonly int[] _cooldowns;
         private readonly EnemyBehaviorTable _enemyBehavior;
         private readonly Random _enemyRandom;
@@ -363,6 +576,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private readonly int _staminaRecoveryPerTurn;
         private readonly Dictionary<string, int> _itemCounts;
         private readonly IReadOnlyDictionary<string, int> _readOnlyItemCounts;
+        private readonly SoloComboEquipmentEffectState _equipmentEffects;
         private readonly List<SoloComboActionResolution> _activeResolutions =
             new List<SoloComboActionResolution>();
 
@@ -373,6 +587,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private string _previousEnemySequenceId;
         private SoloComboTimingRequest _pendingTimingRequest;
         private SoloComboChargeRequest _pendingChargeRequest;
+        private int _comboReconfigurationChargesRemaining;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -382,7 +597,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int manaRecoveryPerTurn,
             int staminaRecoveryPerTurn,
             BattleDamageConfiguration damageConfiguration = null,
-            IReadOnlyDictionary<string, int> startingItems = null)
+            IReadOnlyDictionary<string, int> startingItems = null,
+            SoloComboEquipmentEffectConfiguration equipmentEffects = null,
+            Random equipmentEffectRandom = null,
+            int comboReconfigurationCharges = 0)
             : this(
                 player,
                 enemy,
@@ -392,7 +610,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 staminaRecoveryPerTurn,
                 damageConfiguration,
                 enemyRandom: null,
-                startingItems: startingItems)
+                startingItems: startingItems,
+                equipmentEffects: equipmentEffects,
+                equipmentEffectRandom: equipmentEffectRandom,
+                comboReconfigurationCharges: comboReconfigurationCharges)
         {
         }
 
@@ -405,7 +626,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
             int staminaRecoveryPerTurn,
             BattleDamageConfiguration damageConfiguration = null,
             Random enemyRandom = null,
-            IReadOnlyDictionary<string, int> startingItems = null)
+            IReadOnlyDictionary<string, int> startingItems = null,
+            SoloComboEquipmentEffectConfiguration equipmentEffects = null,
+            Random equipmentEffectRandom = null,
+            int comboReconfigurationCharges = 0)
         {
             Player = player ?? throw new ArgumentNullException(nameof(player));
             Enemy = enemy ?? throw new ArgumentNullException(nameof(enemy));
@@ -421,9 +645,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 staminaRecoveryPerTurn,
                 nameof(staminaRecoveryPerTurn));
             _combos = CopyAndValidateCombos(combos);
+            _initialCombos = (ComboConfiguration[])_combos.Clone();
             _cooldowns = new int[_combos.Length];
+            _comboReconfigurationChargesRemaining = RequireNonNegative(
+                comboReconfigurationCharges,
+                nameof(comboReconfigurationCharges));
             _itemCounts = CopyAndValidateItems(startingItems);
             _readOnlyItemCounts = new ReadOnlyDictionary<string, int>(_itemCounts);
+            _equipmentEffects = new SoloComboEquipmentEffectState(
+                equipmentEffects,
+                equipmentEffectRandom);
             Outcome = EvaluateOutcome();
             if (Outcome == BattleOutcome.Ongoing)
             {
@@ -436,6 +667,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public CombatantState Enemy { get; }
 
         public IReadOnlyList<ComboConfiguration> Combos => _combos;
+
+        public int ComboReconfigurationChargesRemaining =>
+            _comboReconfigurationChargesRemaining;
+
+        public bool HasComboReconfigurationChanges => !ComboSetsMatch(
+            _combos,
+            _initialCombos);
 
         public EnemyActionSequence EnemySequence => _currentEnemySequence;
 
@@ -450,6 +688,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public int CurrentTimelineTimeStep => _currentTimelineTimeStep;
 
         public int TimelineCompletionTime => _activeSchedule?.CompletionTime ?? 0;
+
+        public int CurrentRound => _equipmentEffects.CurrentRound;
+
+        public int DamageResolutionCount => _equipmentEffects.DamageResolutionCount;
+
+        public bool TracksDamageResolutionsForMaterialRewards =>
+            _equipmentEffects.TracksDamageResolutionsForMaterialRewards;
 
         public InitialTimelineSchedule ActiveTimeline => _activeSchedule;
 
@@ -478,6 +723,85 @@ namespace SER494.Gameplay.Combat.SoloCombo
         {
             ValidateComboIndex(comboIndex);
             return _cooldowns[comboIndex];
+        }
+
+        public BattleComboReconfigurationFailure TryReconfigureCombo(
+            int comboIndex,
+            BattleComboActionSlot slot,
+            ComboActionDefinition replacementAction,
+            ComboValidationLimits validationLimits,
+            out ComboValidationResult validationResult)
+        {
+            validationResult = null;
+            if (Outcome != BattleOutcome.Ongoing)
+            {
+                return BattleComboReconfigurationFailure.BattleEnded;
+            }
+
+            if (IsTimelineResolving)
+            {
+                return BattleComboReconfigurationFailure.TimelineResolving;
+            }
+
+            if (comboIndex < 0 || comboIndex >= _combos.Length)
+            {
+                return BattleComboReconfigurationFailure.ComboIndexOutOfRange;
+            }
+
+            if (_comboReconfigurationChargesRemaining <= 0)
+            {
+                return BattleComboReconfigurationFailure.NoChargesRemaining;
+            }
+
+            if (replacementAction == null)
+            {
+                return BattleComboReconfigurationFailure.ReplacementActionMissing;
+            }
+
+            if (validationLimits == null)
+            {
+                throw new ArgumentNullException(nameof(validationLimits));
+            }
+
+            ComboConfiguration current = _combos[comboIndex];
+            ComboActionDefinition currentAction = GetAction(current, slot);
+            if (currentAction == null)
+            {
+                return BattleComboReconfigurationFailure.SlotIsEmpty;
+            }
+
+            if (string.Equals(
+                    currentAction.ActionId,
+                    replacementAction.ActionId,
+                    StringComparison.Ordinal))
+            {
+                return BattleComboReconfigurationFailure.NoChange;
+            }
+
+            ComboConfiguration replacement = ReplaceAction(
+                current,
+                slot,
+                replacementAction);
+            validationResult = ComboValidator.Validate(replacement, validationLimits);
+            if (!validationResult.IsValid)
+            {
+                return BattleComboReconfigurationFailure.InvalidCombo;
+            }
+
+            var candidateLoadout = (ComboConfiguration[])_combos.Clone();
+            candidateLoadout[comboIndex] = replacement;
+            validationResult = ComboLoadoutValidator.Validate(
+                candidateLoadout,
+                validationLimits);
+            if (!validationResult.IsValid)
+            {
+                return BattleComboReconfigurationFailure.InvalidLoadout;
+            }
+
+            _combos[comboIndex] = replacement;
+            _cooldowns[comboIndex] = 0;
+            _comboReconfigurationChargesRemaining--;
+            return BattleComboReconfigurationFailure.None;
         }
 
         public int GetItemCount(string itemId)
@@ -747,6 +1071,9 @@ namespace SER494.Gameplay.Combat.SoloCombo
             var pendingStatuses = new List<ScheduledTimelineAction>();
             var pendingHeals = new List<ScheduledTimelineAction>();
             var pendingStaminaRecovery = new List<ScheduledTimelineAction>();
+            var consumedItemAmounts = new Dictionary<ScheduledTimelineAction, int>();
+            var equipmentMessages = new Dictionary<ScheduledTimelineAction, string>();
+            int freshBloodHealing = 0;
             ActionResolutionEffect playerDefense = FindDefensiveResolution(
                 step,
                 TimelineActorSide.Player);
@@ -784,7 +1111,20 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
                 if (action.ItemCost != null)
                 {
-                    _itemCounts[action.ItemCost.ItemId] -= action.ItemCost.Amount;
+                    bool preserved = _equipmentEffects.ShouldPreserveItem(
+                        action.ItemCost.ItemId);
+                    int consumedAmount = preserved ? 0 : action.ItemCost.Amount;
+                    if (consumedAmount > 0)
+                    {
+                        _itemCounts[action.ItemCost.ItemId] -= consumedAmount;
+                    }
+
+                    consumedItemAmounts[action] = consumedAmount;
+                    if (preserved)
+                    {
+                        equipmentMessages[action] =
+                            "Yellow Handkerchief preserved the activated battle item.";
+                    }
                 }
 
                 if (action.StatusEffect != null)
@@ -808,6 +1148,26 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 ActionResolutionEffect targetDefense = action.Side == TimelineActorSide.Player
                     ? enemyDefense
                     : playerDefense;
+                string equipmentEffectMessage = equipmentMessages.TryGetValue(
+                    action,
+                    out string existingEquipmentMessage)
+                        ? existingEquipmentMessage
+                        : null;
+                if (action.HasDamage)
+                {
+                    _equipmentEffects.CountDamageResolution();
+                }
+
+                if (action.HasDamage
+                    && action.Side == TimelineActorSide.Player
+                    && targetDefense == ActionResolutionEffect.Guard
+                    && _equipmentEffects.DisablesEnemyGuard)
+                {
+                    targetDefense = ActionResolutionEffect.None;
+                    equipmentEffectMessage =
+                        "White Copper Ring disabled the enemy Guard during Round 1.";
+                }
+
                 DamageAvoidanceResult avoidance = action.HasDamage
                     ? ResolveDamageAvoidance(targetDefense, action.DamageTags)
                     : DamageAvoidanceResult.None;
@@ -836,8 +1196,26 @@ namespace SER494.Gameplay.Combat.SoloCombo
                             clashDamageReduction,
                             attackingClashActivated
                                 ? actor.ClashDamageDealtMultiplierBonus
-                                : 0d)
+                                : 0d,
+                            defenderIsPlayer: action.Side == TimelineActorSide.Enemy)
                         : 0;
+                if (action.Side == TimelineActorSide.Enemy
+                    && _equipmentEffects.TryNullifyIncomingBluntDamage(
+                        action.DamageEffect,
+                        avoidance,
+                        damage))
+                {
+                    damage = 0;
+                    equipmentEffectMessage =
+                        "Slime Ornament nullified the incoming Blunt damage.";
+                }
+
+                if (action.Side == TimelineActorSide.Player && damage > 0)
+                {
+                    freshBloodHealing = checked(
+                        freshBloodHealing
+                        + _equipmentEffects.GetFirstPlayerDamageHealing(damage));
+                }
                 ScheduledTimelineAction disruptedAction = null;
                 ActionDisruptionDefinition attemptedDisruption = null;
                 ActionDisruptionTrigger disruptionTrigger = ActionDisruptionTrigger.None;
@@ -908,7 +1286,12 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     disruptionTrigger: disruptionTrigger,
                     clashDamageReduction: clashDamageReduction,
                     consumedItemDisplayName: action.ItemCost?.DisplayName,
-                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
+                    consumedItemAmount: consumedItemAmounts.TryGetValue(
+                        action,
+                        out int damageItemAmount)
+                            ? damageItemAmount
+                            : 0,
+                    equipmentEffectMessage: equipmentEffectMessage));
 
                 if (action.Side == TimelineActorSide.Player)
                 {
@@ -931,8 +1314,10 @@ namespace SER494.Gameplay.Combat.SoloCombo
                                 Player.GuardCounterPiercingMultiplier),
                             defensiveDamageReduction: 0d,
                             clashDamageReduction: 0d,
-                            additionalDamageDealtModifier: 0d);
+                            additionalDamageDealtModifier: 0d,
+                            defenderIsPlayer: false);
                         pendingEnemyDamage = checked(pendingEnemyDamage + counterDamage);
+                        _equipmentEffects.CountDamageResolution();
                         resolutions.Add(new SoloComboActionResolution(
                             TimelineActorSide.Player,
                             "equipment.thorn.guard-counter",
@@ -951,6 +1336,28 @@ namespace SER494.Gameplay.Combat.SoloCombo
 
             Enemy.ReceiveDamage(pendingEnemyDamage);
             Player.ReceiveDamage(pendingPlayerDamage);
+
+            if (freshBloodHealing > 0)
+            {
+                int healthBeforeHealing = Player.CurrentHealth;
+                Player.RestoreHealth(freshBloodHealing);
+                int healingDone = Player.CurrentHealth - healthBeforeHealing;
+                resolutions.Add(new SoloComboActionResolution(
+                    TimelineActorSide.Player,
+                    "equipment.ape-beast-fresh-blood-ornament",
+                    "Ape Beast Fresh Blood Ornament",
+                    step.TimeStep,
+                    damageDealt: 0,
+                    ActionResolutionEffect.Heal,
+                    DamageAvoidanceResult.None,
+                    DamageResolutionTag.None,
+                    statusDisplayName: null,
+                    statusTarget: ActionStatusTarget.Self,
+                    statusApplied: false,
+                    healingDone: healingDone,
+                    equipmentEffectMessage:
+                        "Ape Beast Fresh Blood Ornament restored HP from the first successful hit this round."));
+            }
 
             for (int healIndex = 0; healIndex < pendingHeals.Count; healIndex++)
             {
@@ -986,7 +1393,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     statusApplied: false,
                     healingDone: healingDone,
                     consumedItemDisplayName: action.ItemCost?.DisplayName,
-                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
+                    consumedItemAmount: consumedItemAmounts.TryGetValue(
+                        action,
+                        out int healItemAmount)
+                            ? healItemAmount
+                            : 0,
+                    equipmentEffectMessage: equipmentMessages.TryGetValue(
+                        action,
+                        out string healEquipmentMessage)
+                            ? healEquipmentMessage
+                            : null));
             }
 
             for (int statusIndex = 0; statusIndex < pendingStatuses.Count; statusIndex++)
@@ -1020,7 +1436,16 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     action.StatusTarget,
                     applied,
                     consumedItemDisplayName: action.ItemCost?.DisplayName,
-                    consumedItemAmount: action.ItemCost?.Amount ?? 0));
+                    consumedItemAmount: consumedItemAmounts.TryGetValue(
+                        action,
+                        out int statusItemAmount)
+                            ? statusItemAmount
+                            : 0,
+                    equipmentEffectMessage: equipmentMessages.TryGetValue(
+                        action,
+                        out string statusEquipmentMessage)
+                            ? statusEquipmentMessage
+                            : null));
             }
 
             for (int recoveryIndex = 0;
@@ -1047,8 +1472,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
                     statusTarget: ActionStatusTarget.Self,
                     statusApplied: false,
                     consumedItemDisplayName: action.ItemCost?.DisplayName,
-                    consumedItemAmount: action.ItemCost?.Amount ?? 0,
-                    staminaRestored: staminaRestored));
+                    consumedItemAmount: consumedItemAmounts.TryGetValue(
+                        action,
+                        out int staminaItemAmount)
+                            ? staminaItemAmount
+                            : 0,
+                    staminaRestored: staminaRestored,
+                    equipmentEffectMessage: equipmentMessages.TryGetValue(
+                        action,
+                        out string staminaEquipmentMessage)
+                            ? staminaEquipmentMessage
+                            : null));
             }
 
             for (int resolutionIndex = 0; resolutionIndex < resolutions.Count; resolutionIndex++)
@@ -1150,11 +1584,59 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private SoloComboTurnResult CompleteActiveRound()
         {
             InitialTimelineSchedule completedSchedule = _activeSchedule;
-            IReadOnlyList<SoloComboActionResolution> completedResolutions =
-                Array.AsReadOnly(_activeResolutions.ToArray());
+
+            if (_equipmentEffects.HasThornBracer)
+            {
+                if (Outcome == BattleOutcome.Ongoing)
+                {
+                    int healthBefore = Player.CurrentHealth;
+                    int healthLoss = Math.Min(10, Math.Max(0, healthBefore - 1));
+                    Player.ReceiveDamage(healthLoss);
+                    _activeResolutions.Add(CreateEquipmentResolution(
+                        "equipment.thorn-bracer.round-end",
+                        "Thorn Bracer",
+                        healthLoss > 0
+                            ? $"Thorn Bracer consumed {healthLoss} HP at round end (minimum 1 HP)."
+                            : "Thorn Bracer could not reduce HP below 1."));
+                }
+                else if (Outcome == BattleOutcome.PlayerVictory
+                    || Outcome == BattleOutcome.Draw)
+                {
+                    int healthBefore = Player.CurrentHealth;
+                    Player.RestoreHealth(Player.Stats.MaxHealth);
+                    int healingDone = Player.CurrentHealth - healthBefore;
+                    _activeResolutions.Add(new SoloComboActionResolution(
+                        TimelineActorSide.Player,
+                        "equipment.thorn-bracer.battle-end",
+                        "Thorn Bracer",
+                        _currentTimelineTimeStep,
+                        damageDealt: 0,
+                        ActionResolutionEffect.Heal,
+                        DamageAvoidanceResult.None,
+                        DamageResolutionTag.None,
+                        statusDisplayName: null,
+                        statusTarget: ActionStatusTarget.Self,
+                        statusApplied: false,
+                        healingDone: healingDone,
+                        equipmentEffectMessage:
+                            "Thorn Bracer restored HP to full after the successful battle outcome."));
+                }
+            }
 
             RecoverAfterRound(out int manaRecovered, out int staminaRecovered);
             AdvanceRoundStatuses();
+
+            if (Outcome == BattleOutcome.Ongoing
+                && _equipmentEffects.CompleteOngoingRound())
+            {
+                _activeResolutions.Add(CreateEquipmentResolution(
+                    "equipment.slime-ornament.recharge",
+                    "Slime Ornament",
+                    "Slime Ornament recharged after two completed rounds."));
+            }
+
+            IReadOnlyList<SoloComboActionResolution> completedResolutions =
+                Array.AsReadOnly(_activeResolutions.ToArray());
 
             var result = SoloComboTurnResult.Completed(
                 completedResolutions,
@@ -1175,6 +1657,26 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return result;
+        }
+
+        private SoloComboActionResolution CreateEquipmentResolution(
+            string actionId,
+            string displayName,
+            string message)
+        {
+            return new SoloComboActionResolution(
+                TimelineActorSide.Player,
+                actionId,
+                displayName,
+                _currentTimelineTimeStep,
+                damageDealt: 0,
+                ActionResolutionEffect.None,
+                DamageAvoidanceResult.None,
+                DamageResolutionTag.None,
+                statusDisplayName: null,
+                statusTarget: ActionStatusTarget.Self,
+                statusApplied: false,
+                equipmentEffectMessage: message);
         }
 
         private SoloComboTimingRequest FindWindowStartingAt(int timeStep)
@@ -1300,14 +1802,17 @@ namespace SER494.Gameplay.Combat.SoloCombo
             DamageEffectDefinition damageEffect,
             double defensiveDamageReduction,
             double clashDamageReduction,
-            double additionalDamageDealtModifier = 0d)
+            double additionalDamageDealtModifier = 0d,
+            bool defenderIsPlayer = false)
         {
             return DamageCalculator.CalculateEffect(
                 damageEffect,
                 weaponAttack: attacker.Stats.Attack,
                 attackModifier: 0d,
                 baseDefense: defender.Stats.Defense,
-                defenseModifier: 0d,
+                defenseModifier: defenderIsPlayer
+                    ? _equipmentEffects.PlayerDefenseModifier
+                    : 0d,
                 damageDealtModifiers: attacker.DamageDealtModifiers,
                 damageTakenModifiers: defender.DamageTakenModifiers,
                 clashDamageReduction: clashDamageReduction,
@@ -1519,6 +2024,92 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return copy;
+        }
+
+        private static ComboActionDefinition GetAction(
+            ComboConfiguration combo,
+            BattleComboActionSlot slot)
+        {
+            switch (slot)
+            {
+                case BattleComboActionSlot.Opening:
+                    return combo.OpeningAction;
+                case BattleComboActionSlot.Main:
+                    return combo.MainAction;
+                case BattleComboActionSlot.Closing:
+                    return combo.ClosingAction;
+                case BattleComboActionSlot.Linked:
+                    return combo.LinkedAction;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(slot));
+            }
+        }
+
+        private static ComboConfiguration ReplaceAction(
+            ComboConfiguration combo,
+            BattleComboActionSlot slot,
+            ComboActionDefinition replacement)
+        {
+            return new ComboConfiguration(
+                combo.Name,
+                slot == BattleComboActionSlot.Opening
+                    ? replacement
+                    : combo.OpeningAction,
+                slot == BattleComboActionSlot.Main
+                    ? replacement
+                    : combo.MainAction,
+                slot == BattleComboActionSlot.Closing
+                    ? replacement
+                    : combo.ClosingAction,
+                slot == BattleComboActionSlot.Linked
+                    ? replacement
+                    : combo.LinkedAction,
+                combo.LinkedPlacement);
+        }
+
+        private static bool ComboSetsMatch(
+            IReadOnlyList<ComboConfiguration> left,
+            IReadOnlyList<ComboConfiguration> right)
+        {
+            if (left.Count != right.Count)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < left.Count; index++)
+            {
+                if (!CombosMatch(left[index], right[index]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool CombosMatch(
+            ComboConfiguration left,
+            ComboConfiguration right)
+        {
+            return string.Equals(left.Name, right.Name, StringComparison.Ordinal)
+                && ActionIdsMatch(left.OpeningAction, right.OpeningAction)
+                && ActionIdsMatch(left.MainAction, right.MainAction)
+                && ActionIdsMatch(left.ClosingAction, right.ClosingAction)
+                && ActionIdsMatch(left.LinkedAction, right.LinkedAction)
+                && left.LinkedPlacement == right.LinkedPlacement;
+        }
+
+        private static bool ActionIdsMatch(
+            ComboActionDefinition left,
+            ComboActionDefinition right)
+        {
+            return left == null
+                ? right == null
+                : right != null
+                    && string.Equals(
+                        left.ActionId,
+                        right.ActionId,
+                        StringComparison.Ordinal);
         }
 
         private static Dictionary<string, int> CopyAndValidateItems(

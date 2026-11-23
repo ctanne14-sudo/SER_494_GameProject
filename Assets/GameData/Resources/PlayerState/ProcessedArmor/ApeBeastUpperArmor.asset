@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 2
   effectDamageType: 0
   effectAmount: 0.04
+  effectDescription: Maximum HP +4%.
+  setEffectDescription:

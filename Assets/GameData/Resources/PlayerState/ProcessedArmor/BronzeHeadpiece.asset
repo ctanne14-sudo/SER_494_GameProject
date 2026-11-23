@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 1
   effectDamageType: 2
   effectAmount: 0.02
+  effectDescription: Piercing damage taken -2%.
+  setEffectDescription:

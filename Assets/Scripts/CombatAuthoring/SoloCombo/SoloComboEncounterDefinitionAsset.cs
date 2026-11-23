@@ -49,6 +49,28 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
     }
 
     [Serializable]
+    public sealed class EncounterGoldRewardAuthoringData
+    {
+        [SerializeField]
+        [Min(0)]
+        private int amount;
+
+        [SerializeField]
+        [Min(1)]
+        private int weight = 1;
+
+        public EncounterGoldRewardAuthoringData(int amount, int weight)
+        {
+            this.amount = amount;
+            this.weight = weight;
+        }
+
+        public int Amount => amount;
+
+        public int Weight => weight;
+    }
+
+    [Serializable]
     public sealed class EnemyResolutionEventAuthoringData
     {
         [SerializeField, Min(0)] private int offset;
@@ -534,6 +556,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
         private int rewardGold;
 
         [SerializeField]
+        private EncounterGoldRewardAuthoringData[] rewardGoldDrops =
+            Array.Empty<EncounterGoldRewardAuthoringData>();
+
+        [SerializeField]
         [Min(0)]
         private int rewardMaterialRollCount;
 
@@ -566,7 +592,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             EnemySequenceAuthoringData[] newScriptedSequences,
             int newRewardGold = 0,
             int newRewardMaterialRollCount = 0,
-            EncounterRewardDropAuthoringData[] newRewardMaterialDrops = null)
+            EncounterRewardDropAuthoringData[] newRewardMaterialDrops = null,
+            EncounterGoldRewardAuthoringData[] newRewardGoldDrops = null)
         {
             encounterId = newEncounterId;
             displayName = newDisplayName;
@@ -583,6 +610,8 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             rewardMaterialRollCount = newRewardMaterialRollCount;
             rewardMaterialDrops = newRewardMaterialDrops
                 ?? Array.Empty<EncounterRewardDropAuthoringData>();
+            rewardGoldDrops = newRewardGoldDrops
+                ?? Array.Empty<EncounterGoldRewardAuthoringData>();
         }
 
         public bool TryCreateDefinition(
@@ -660,7 +689,10 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
             rewards = null;
             EncounterRewardDropAuthoringData[] authoredDrops = rewardMaterialDrops
                 ?? Array.Empty<EncounterRewardDropAuthoringData>();
+            EncounterGoldRewardAuthoringData[] authoredGoldDrops = rewardGoldDrops
+                ?? Array.Empty<EncounterGoldRewardAuthoringData>();
             var drops = new WeightedMaterialReward[authoredDrops.Length];
+            var goldDrops = new WeightedGoldReward[authoredGoldDrops.Length];
             try
             {
                 for (int index = 0; index < authoredDrops.Length; index++)
@@ -675,10 +707,23 @@ namespace SER494.Gameplay.Combat.Authoring.SoloCombo
                     drops[index] = new WeightedMaterialReward(drop.ItemId, drop.Weight);
                 }
 
+                for (int index = 0; index < authoredGoldDrops.Length; index++)
+                {
+                    EncounterGoldRewardAuthoringData drop = authoredGoldDrops[index];
+                    if (drop == null)
+                    {
+                        validationError = $"{name} contains a null Gold reward at index {index}.";
+                        return false;
+                    }
+
+                    goldDrops[index] = new WeightedGoldReward(drop.Amount, drop.Weight);
+                }
+
                 rewards = new EncounterRewardDefinition(
                     rewardGold,
                     rewardMaterialRollCount,
-                    drops);
+                    drops,
+                    goldDrops);
                 validationError = null;
                 return true;
             }

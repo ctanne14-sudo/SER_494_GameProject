@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.Authoring.Equipment;
+using SER494.Gameplay.Combat.Authoring.Weapons;
+using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
@@ -14,18 +16,49 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
     public sealed class ProcessingShopController : MonoBehaviour
     {
         private const string SelectedClass = "processing-selected";
+        private const string SelectedTabClass = "processing-tab-selected";
         private const string UnavailableClass = "processing-unavailable";
+
+        private enum BrowseDepth
+        {
+            Root,
+            Equipment
+        }
 
         private static ProcessingShopController _active;
 
-        private readonly List<string> _seriesNames = new List<string>();
-        private readonly List<Button> _seriesButtons = new List<Button>();
+        private static readonly EquipmentCategory[] Categories =
+        {
+            EquipmentCategory.Weapon,
+            EquipmentCategory.Armor,
+            EquipmentCategory.Accessory
+        };
+
+        private static readonly WeaponType[] WeaponTypes =
+        {
+            WeaponType.Greatsword,
+            WeaponType.SwordAndShield,
+            WeaponType.GlaiveAndShield
+        };
+
+        private readonly List<Button> _tabButtons = new List<Button>();
+        private readonly List<Button> _navigationButtons = new List<Button>();
         private readonly List<ProcessingRecipe> _visibleRecipes = new List<ProcessingRecipe>();
-        private readonly List<Button> _recipeButtons = new List<Button>();
+        private readonly int[] _rootSelectionByTab = new int[3];
+        private readonly int[] _equipmentSelectionByTab = new int[3];
+        private readonly BrowseDepth[] _depthByTab =
+        {
+            BrowseDepth.Root,
+            BrowseDepth.Root,
+            BrowseDepth.Equipment
+        };
 
         private VisualElement _root;
-        private VisualElement _seriesContainer;
-        private VisualElement _recipeContainer;
+        private VisualElement _navigationContainer;
+        private ScrollView _navigationScroll;
+        private Label _navigationTitle;
+        private Label _navigationHint;
+        private Button _navigationBackButton;
         private Label _goldLabel;
         private Label _recipeName;
         private Label _recipeStats;
@@ -38,9 +71,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private Button _confirmButton;
         private Button _cancelButton;
         private PlayerEquipmentCatalogAsset _equipmentCatalog;
-        private int _selectedSeriesIndex;
-        private int _selectedRecipeIndex;
-        private bool _recipeColumnActive;
+        private int _selectedTabIndex;
         private bool _confirmingCraft;
         private bool _confirmChoice;
         private bool _isOpen;
@@ -50,6 +81,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private bool _previousCursorVisible;
         private bool _previousInputGate;
         private ProcessingRecipe _pendingRecipe;
+
+        private EquipmentCategory ActiveCategory => Categories[_selectedTabIndex];
+
+        private BrowseDepth ActiveDepth
+        {
+            get => _depthByTab[_selectedTabIndex];
+            set => _depthByTab[_selectedTabIndex] = value;
+        }
 
         public static bool TryOpen()
         {
@@ -82,8 +121,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             UIDocument document = GetComponent<UIDocument>();
             _root = document.rootVisualElement.Q<VisualElement>("processingShopOverlay");
-            _seriesContainer = _root.Q<VisualElement>("seriesContainer");
-            _recipeContainer = _root.Q<VisualElement>("recipeContainer");
+            _navigationContainer = _root.Q<VisualElement>("navigationContainer");
+            _navigationScroll = _root.Q<ScrollView>("navigationScroll");
+            _navigationTitle = _root.Q<Label>("navigationTitle");
+            _navigationHint = _root.Q<Label>("navigationHint");
+            _navigationBackButton = _root.Q<Button>("navigationBackButton");
             _goldLabel = _root.Q<Label>("goldLabel");
             _recipeName = _root.Q<Label>("recipeName");
             _recipeStats = _root.Q<Label>("recipeStats");
@@ -96,13 +138,22 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _confirmButton = _root.Q<Button>("confirmCraftButton");
             _cancelButton = _root.Q<Button>("cancelCraftButton");
 
+            _tabButtons.Add(_root.Q<Button>("weaponsTab"));
+            _tabButtons.Add(_root.Q<Button>("armorTab"));
+            _tabButtons.Add(_root.Q<Button>("accessoriesTab"));
+            for (int index = 0; index < _tabButtons.Count; index++)
+            {
+                int captured = index;
+                _tabButtons[index].clicked += () => SelectTab(captured);
+            }
+
             _root.Q<Button>("closeButton").clicked += Close;
+            _navigationBackButton.clicked += NavigateBackOrClose;
             _craftButton.clicked += BeginCraftConfirmation;
             _confirmButton.clicked += ConfirmCraft;
             _cancelButton.clicked += CancelCraft;
             _root.style.display = DisplayStyle.None;
             _confirmOverlay.style.display = DisplayStyle.None;
-            BuildSeriesButtons();
         }
 
         private void OnDestroy()
@@ -131,21 +182,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 || (Gamepad.current != null
                     && (Gamepad.current.buttonEast.wasPressedThisFrame
                         || Gamepad.current.startButton.wasPressedThisFrame));
-            if (backPressed)
-            {
-                if (_confirmingCraft)
-                {
-                    CancelCraft();
-                }
-                else
-                {
-                    Close();
-                }
-                return;
-            }
-
-            int vertical = ReadVerticalNavigation();
-            int horizontal = ReadHorizontalNavigation();
             bool confirmPressed = (Keyboard.current != null
                     && (Keyboard.current.enterKey.wasPressedThisFrame
                         || Keyboard.current.numpadEnterKey.wasPressedThisFrame
@@ -154,7 +190,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             if (_confirmingCraft)
             {
-                if (vertical != 0 || horizontal != 0)
+                if (backPressed)
+                {
+                    CancelCraft();
+                    return;
+                }
+
+                if (ReadConfirmationNavigation())
                 {
                     _confirmChoice = !_confirmChoice;
                     RefreshConfirmSelection();
@@ -168,46 +210,32 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            if (horizontal < 0)
+            int tabDirection = ReadTabNavigation();
+            if (tabDirection != 0)
             {
-                _recipeColumnActive = false;
-            }
-            else if (horizontal > 0 && _visibleRecipes.Count > 0)
-            {
-                _recipeColumnActive = true;
+                SelectTab(_selectedTabIndex + tabDirection);
+                return;
             }
 
-            if (vertical != 0)
+            if (backPressed)
             {
-                if (_recipeColumnActive && _visibleRecipes.Count > 0)
-                {
-                    _selectedRecipeIndex = Wrap(
-                        _selectedRecipeIndex + vertical,
-                        _visibleRecipes.Count);
-                    SelectRecipe(_selectedRecipeIndex);
-                }
-                else if (_seriesNames.Count > 0)
-                {
-                    _selectedSeriesIndex = Wrap(
-                        _selectedSeriesIndex + vertical,
-                        _seriesNames.Count);
-                    SelectSeries(_selectedSeriesIndex);
-                }
+                NavigateBackOrClose();
+                return;
+            }
+
+            int vertical = ReadVerticalNavigation();
+            if (vertical != 0 && _navigationButtons.Count > 0)
+            {
+                int selection = ActiveDepth == BrowseDepth.Root
+                    ? _rootSelectionByTab[_selectedTabIndex]
+                    : _equipmentSelectionByTab[_selectedTabIndex];
+                SelectNavigation(selection + vertical, true);
             }
 
             if (confirmPressed)
             {
-                if (_recipeColumnActive)
-                {
-                    BeginCraftConfirmation();
-                }
-                else if (_visibleRecipes.Count > 0)
-                {
-                    _recipeColumnActive = true;
-                }
+                ConfirmCurrentSelection();
             }
-
-            RefreshSelectionClasses();
         }
 
         private void Open()
@@ -221,12 +249,20 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = true;
             ExplorationMenuInputGate.IsOpen = true;
             _isOpen = true;
-            _recipeColumnActive = false;
-            _selectedSeriesIndex = 0;
-            _selectedRecipeIndex = 0;
-            _message.text = "Choose a series, then select one armor piece to process.";
+            _selectedTabIndex = 0;
+            Array.Clear(_rootSelectionByTab, 0, _rootSelectionByTab.Length);
+            Array.Clear(_equipmentSelectionByTab, 0, _equipmentSelectionByTab.Length);
+            _depthByTab[0] = BrowseDepth.Root;
+            _depthByTab[1] = BrowseDepth.Root;
+            _depthByTab[2] = BrowseDepth.Equipment;
+            _stickLatched = false;
+            _confirmingCraft = false;
+            _confirmChoice = false;
+            _pendingRecipe = null;
+            _confirmOverlay.style.display = DisplayStyle.None;
+            _message.text = "Choose equipment to process.";
             _root.style.display = DisplayStyle.Flex;
-            SelectSeries(0);
+            SelectTab(0);
         }
 
         private void Close()
@@ -241,86 +277,253 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = _previousCursorVisible;
         }
 
-        private void BuildSeriesButtons()
+        private void SelectTab(int index)
         {
-            _seriesNames.Clear();
-            _seriesButtons.Clear();
-            _seriesContainer.Clear();
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
+            _selectedTabIndex = Wrap(index, Categories.Length);
+            if (ActiveCategory == EquipmentCategory.Accessory)
             {
-                if (seen.Add(recipe.SeriesDisplayName))
+                ActiveDepth = BrowseDepth.Equipment;
+            }
+            BuildNavigation();
+            RefreshTabClasses();
+            FocusSelectedButton();
+        }
+
+        private void BuildNavigation()
+        {
+            _navigationButtons.Clear();
+            _visibleRecipes.Clear();
+            _navigationContainer.Clear();
+
+            bool hasBack = ActiveDepth == BrowseDepth.Equipment
+                && ActiveCategory != EquipmentCategory.Accessory;
+            _navigationBackButton.style.display = hasBack
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+
+            if (ActiveDepth == BrowseDepth.Root)
+            {
+                BuildRootNavigation();
+                ClearDetails();
+            }
+            else
+            {
+                BuildEquipmentNavigation();
+            }
+
+            RefreshSelectionClasses();
+            RefreshGold();
+        }
+
+        private void BuildRootNavigation()
+        {
+            if (ActiveCategory == EquipmentCategory.Weapon)
+            {
+                _navigationTitle.text = "Weapon Type";
+                _navigationHint.text = "Choose a weapon type to view its available series.";
+                for (int index = 0; index < WeaponTypes.Length; index++)
                 {
-                    _seriesNames.Add(recipe.SeriesDisplayName);
+                    int captured = index;
+                    AddNavigationButton(FormatWeaponType(WeaponTypes[index]), () =>
+                    {
+                        _rootSelectionByTab[_selectedTabIndex] = captured;
+                        EnterSelectedGroup();
+                    });
+                }
+            }
+            else
+            {
+                _navigationTitle.text = "Armor Series";
+                _navigationHint.text = "Choose a series to view its head, upper, and lower armor.";
+                IReadOnlyList<string> seriesNames = GetArmorSeriesNames();
+                for (int index = 0; index < seriesNames.Count; index++)
+                {
+                    int captured = index;
+                    AddNavigationButton(seriesNames[index], () =>
+                    {
+                        _rootSelectionByTab[_selectedTabIndex] = captured;
+                        EnterSelectedGroup();
+                    });
                 }
             }
 
-            for (int index = 0; index < _seriesNames.Count; index++)
+            NormalizeSelection(_rootSelectionByTab, _navigationButtons.Count);
+        }
+
+        private void BuildEquipmentNavigation()
+        {
+            PopulateVisibleRecipes();
+            switch (ActiveCategory)
+            {
+                case EquipmentCategory.Weapon:
+                    WeaponType weaponType = WeaponTypes[Wrap(
+                        _rootSelectionByTab[_selectedTabIndex],
+                        WeaponTypes.Length)];
+                    _navigationTitle.text = FormatWeaponType(weaponType);
+                    _navigationHint.text = "Choose a series weapon to inspect its recipe.";
+                    break;
+                case EquipmentCategory.Armor:
+                    IReadOnlyList<string> seriesNames = GetArmorSeriesNames();
+                    _navigationTitle.text = seriesNames.Count > 0
+                        ? seriesNames[Wrap(_rootSelectionByTab[_selectedTabIndex], seriesNames.Count)]
+                        : "Armor";
+                    _navigationHint.text = "Choose an armor part to inspect its recipe.";
+                    break;
+                default:
+                    _navigationTitle.text = "Accessories";
+                    _navigationHint.text = "Choose an accessory to inspect its recipe.";
+                    break;
+            }
+
+            for (int index = 0; index < _visibleRecipes.Count; index++)
             {
                 int captured = index;
-                var button = new Button(() => SelectSeries(captured))
-                {
-                    text = _seriesNames[index]
-                };
-                button.AddToClassList("processing-series-button");
-                _seriesContainer.Add(button);
-                _seriesButtons.Add(button);
+                Button button = AddNavigationButton(string.Empty, () => SelectNavigation(captured, true));
+                button.AddToClassList("processing-equipment-button");
+            }
+
+            NormalizeSelection(_equipmentSelectionByTab, _navigationButtons.Count);
+            RefreshRecipeCards();
+            if (_visibleRecipes.Count > 0)
+            {
+                RefreshDetails(_visibleRecipes[_equipmentSelectionByTab[_selectedTabIndex]]);
+            }
+            else
+            {
+                ClearDetails();
             }
         }
 
-        private void SelectSeries(int index)
+        private Button AddNavigationButton(string text, Action clicked)
         {
-            if (_seriesNames.Count == 0)
-            {
-                return;
-            }
+            var button = new Button(clicked) { text = text };
+            button.AddToClassList("processing-navigation-button");
+            _navigationContainer.Add(button);
+            _navigationButtons.Add(button);
+            return button;
+        }
 
-            _selectedSeriesIndex = Wrap(index, _seriesNames.Count);
-            _selectedRecipeIndex = 0;
-            _visibleRecipes.Clear();
-            _recipeButtons.Clear();
-            _recipeContainer.Clear();
-            string series = _seriesNames[_selectedSeriesIndex];
+        private void PopulateVisibleRecipes()
+        {
+            IReadOnlyList<string> armorSeries = ActiveCategory == EquipmentCategory.Armor
+                ? GetArmorSeriesNames()
+                : Array.Empty<string>();
+            string selectedArmorSeries = armorSeries.Count > 0
+                ? armorSeries[Wrap(_rootSelectionByTab[_selectedTabIndex], armorSeries.Count)]
+                : string.Empty;
+            WeaponType selectedWeaponType = WeaponTypes[Wrap(
+                _rootSelectionByTab[_selectedTabIndex],
+                WeaponTypes.Length)];
+
             foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
             {
-                if (string.Equals(recipe.SeriesDisplayName, series, StringComparison.Ordinal))
+                if (recipe.Category != ActiveCategory)
+                {
+                    continue;
+                }
+
+                if (ActiveCategory == EquipmentCategory.Weapon)
+                {
+                    if (TryGetWeapon(recipe, out WeaponDefinitionAsset weapon)
+                        && weapon.WeaponType == selectedWeaponType)
+                    {
+                        _visibleRecipes.Add(recipe);
+                    }
+                }
+                else if (ActiveCategory == EquipmentCategory.Armor)
+                {
+                    if (string.Equals(
+                        recipe.SeriesDisplayName,
+                        selectedArmorSeries,
+                        StringComparison.Ordinal))
+                    {
+                        _visibleRecipes.Add(recipe);
+                    }
+                }
+                else
                 {
                     _visibleRecipes.Add(recipe);
                 }
             }
-
-            for (int recipeIndex = 0; recipeIndex < _visibleRecipes.Count; recipeIndex++)
-            {
-                int captured = recipeIndex;
-                ProcessingRecipe recipe = _visibleRecipes[recipeIndex];
-                var button = new Button(() =>
-                {
-                    _recipeColumnActive = true;
-                    SelectRecipe(captured);
-                });
-                button.AddToClassList("processing-recipe-button");
-                _recipeContainer.Add(button);
-                _recipeButtons.Add(button);
-            }
-
-            if (_visibleRecipes.Count > 0)
-            {
-                SelectRecipe(0);
-            }
-            RefreshSelectionClasses();
         }
 
-        private void SelectRecipe(int index)
+        private IReadOnlyList<string> GetArmorSeriesNames()
         {
-            if (_visibleRecipes.Count == 0)
+            var names = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
+            {
+                if (recipe.Category == EquipmentCategory.Armor
+                    && seen.Add(recipe.SeriesDisplayName))
+                {
+                    names.Add(recipe.SeriesDisplayName);
+                }
+            }
+            return names;
+        }
+
+        private void EnterSelectedGroup()
+        {
+            if (ActiveCategory == EquipmentCategory.Accessory)
             {
                 return;
             }
 
-            _selectedRecipeIndex = Wrap(index, _visibleRecipes.Count);
-            RefreshRecipeCards();
-            RefreshDetails(_visibleRecipes[_selectedRecipeIndex]);
+            ActiveDepth = BrowseDepth.Equipment;
+            BuildNavigation();
+            FocusSelectedButton();
+        }
+
+        private void NavigateBackOrClose()
+        {
+            if (ActiveDepth == BrowseDepth.Equipment
+                && ActiveCategory != EquipmentCategory.Accessory)
+            {
+                ActiveDepth = BrowseDepth.Root;
+                BuildNavigation();
+                FocusSelectedButton();
+                return;
+            }
+
+            Close();
+        }
+
+        private void ConfirmCurrentSelection()
+        {
+            if (ActiveDepth == BrowseDepth.Root)
+            {
+                EnterSelectedGroup();
+            }
+            else
+            {
+                BeginCraftConfirmation();
+            }
+        }
+
+        private void SelectNavigation(int index, bool focus)
+        {
+            if (_navigationButtons.Count == 0)
+            {
+                return;
+            }
+
+            int wrapped = Wrap(index, _navigationButtons.Count);
+            if (ActiveDepth == BrowseDepth.Root)
+            {
+                _rootSelectionByTab[_selectedTabIndex] = wrapped;
+            }
+            else
+            {
+                _equipmentSelectionByTab[_selectedTabIndex] = wrapped;
+                RefreshRecipeCards();
+                RefreshDetails(_visibleRecipes[wrapped]);
+            }
+
             RefreshSelectionClasses();
+            if (focus)
+            {
+                FocusSelectedButton();
+            }
         }
 
         private void RefreshRecipeCards()
@@ -334,12 +537,12 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 ProcessingRecipe recipe = _visibleRecipes[index];
                 bool owned = service.State.Equipment.Owns(
-                    EquipmentCategory.Armor,
+                    recipe.Category,
                     recipe.EquipmentId);
-                _recipeButtons[index].text = owned
+                _navigationButtons[index].text = owned
                     ? recipe.DisplayName + "\nOWNED"
                     : recipe.DisplayName + $"\n{recipe.GoldCost} Gold";
-                _recipeButtons[index].EnableInClassList(UnavailableClass, owned);
+                _navigationButtons[index].EnableInClassList(UnavailableClass, owned);
             }
         }
 
@@ -351,19 +554,35 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
 
             PersistentPlayerState state = service.State;
-            bool owned = state.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId);
+            bool owned = state.Equipment.Owns(recipe.Category, recipe.EquipmentId);
             _goldLabel.text = $"Gold  {state.Currencies.Gold}";
             _recipeName.text = recipe.DisplayName;
-            _recipeStats.text = TryGetArmor(recipe, out ArmorDefinitionAsset armor)
-                ? $"DEF  {armor.Defense}     Slot  {FormatSlot(recipe.SlotId)}"
-                : $"Slot  {FormatSlot(recipe.SlotId)}";
-            _recipeEffect.text = TryGetArmor(recipe, out armor)
-                ? FormatEffect(armor)
-                : "Armor effect data will be available after content generation.";
+            PopulateEquipmentDetails(recipe);
             _recipeCosts.text = FormatCosts(state, recipe);
-            _craftButton.text = owned ? "Already Owned" : "Process Armor";
+            _craftButton.text = owned ? "Already Owned" : $"Process {FormatCategory(recipe.Category)}";
             _craftButton.SetEnabled(!owned && CanAfford(state, recipe));
             RefreshRecipeCards();
+        }
+
+        private void ClearDetails()
+        {
+            RefreshGold();
+            _recipeName.text = ActiveCategory == EquipmentCategory.Weapon
+                ? "Select a Weapon Type"
+                : "Select an Armor Series";
+            _recipeStats.text = string.Empty;
+            _recipeEffect.text = "Choose a category on the left to view equipment details.";
+            _recipeCosts.text = string.Empty;
+            _craftButton.text = "Process Equipment";
+            _craftButton.SetEnabled(false);
+        }
+
+        private void RefreshGold()
+        {
+            if (PlayerStateService.TryGetActive(out PlayerStateService service))
+            {
+                _goldLabel.text = $"Gold  {service.State.Currencies.Gold}";
+            }
         }
 
         private bool TryGetArmor(ProcessingRecipe recipe, out ArmorDefinitionAsset armor)
@@ -371,6 +590,66 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             armor = null;
             return _equipmentCatalog != null
                 && _equipmentCatalog.TryGetArmor(recipe.EquipmentId, out armor, out _);
+        }
+
+        private bool TryGetWeapon(ProcessingRecipe recipe, out WeaponDefinitionAsset weapon)
+        {
+            weapon = null;
+            if (_equipmentCatalog == null)
+            {
+                return false;
+            }
+
+            foreach (WeaponDefinitionAsset candidate in _equipmentCatalog.Weapons)
+            {
+                if (candidate != null
+                    && string.Equals(candidate.WeaponId, recipe.EquipmentId, StringComparison.Ordinal))
+                {
+                    weapon = candidate;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool TryGetAccessory(ProcessingRecipe recipe, out AccessoryDefinitionAsset accessory)
+        {
+            accessory = null;
+            return _equipmentCatalog != null
+                && _equipmentCatalog.TryGetAccessory(recipe.EquipmentId, out accessory, out _);
+        }
+
+        private void PopulateEquipmentDetails(ProcessingRecipe recipe)
+        {
+            switch (recipe.Category)
+            {
+                case EquipmentCategory.Weapon:
+                    if (TryGetWeapon(recipe, out WeaponDefinitionAsset weapon))
+                    {
+                        _recipeStats.text = EquipmentPresentationText.FormatWeaponStats(weapon);
+                        _recipeEffect.text = "Weapon attack power and compatible action type.";
+                    }
+                    else
+                    {
+                        _recipeStats.text = "Weapon data unavailable.";
+                        _recipeEffect.text = string.Empty;
+                    }
+                    break;
+                case EquipmentCategory.Accessory:
+                    _recipeStats.text = "Slot  Accessory";
+                    _recipeEffect.text = TryGetAccessory(recipe, out AccessoryDefinitionAsset accessory)
+                        ? EquipmentPresentationText.FormatAccessoryEffect(accessory)
+                        : "Accessory effect data unavailable.";
+                    break;
+                default:
+                    _recipeStats.text = TryGetArmor(recipe, out ArmorDefinitionAsset armor)
+                        ? $"DEF  {armor.Defense}     Slot  {FormatSlot(recipe.SlotId)}"
+                        : $"Slot  {FormatSlot(recipe.SlotId)}";
+                    _recipeEffect.text = TryGetArmor(recipe, out armor)
+                        ? EquipmentPresentationText.FormatArmorEffect(armor)
+                        : "Armor effect data unavailable.";
+                    break;
+            }
         }
 
         private static string FormatCosts(PersistentPlayerState state, ProcessingRecipe recipe)
@@ -386,53 +665,21 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             return string.Join("\n", lines);
         }
 
-        private static string FormatEffect(ArmorDefinitionAsset armor)
-        {
-            int percent = (int)Math.Round(armor.EffectAmount * 100f, MidpointRounding.AwayFromZero);
-            switch (armor.EffectType)
-            {
-                case ArmorEffectType.None:
-                    switch (armor.SeriesId)
-                    {
-                        case "armor-series.yellow-silk":
-                            return "Full set: Gold earned after battle +20%.";
-                        case "armor-series.red-silk":
-                            return "Full set: one additional material reward roll.";
-                        default:
-                            return "No individual armor effect.";
-                    }
-                case ArmorEffectType.DamageTakenMultiplier:
-                    return $"{armor.EffectDamageType} damage taken -{percent}%."
-                        + (armor.SeriesId == "armor-series.pure-gold"
-                            ? "\nFull set: successful Clash damage +50%."
-                            : string.Empty);
-                case ArmorEffectType.MaximumHealthMultiplier:
-                    return $"Maximum HP +{percent}%.";
-                case ArmorEffectType.HealingPotionMultiplier:
-                    return $"Healing and Greater Healing Potion recovery +{percent}%.";
-                case ArmorEffectType.GuardCounterPiercingMultiplier:
-                    return $"Successful Guard deals an extra {percent}% Piercing damage.";
-                case ArmorEffectType.AllDamageDealtMultiplier:
-                    return $"All damage dealt +{percent}%."
-                        + "\nFull set: all damage dealt +10%.";
-                default:
-                    return "Unknown armor effect.";
-            }
-        }
-
         private void BeginCraftConfirmation()
         {
-            if (_visibleRecipes.Count == 0
+            if (ActiveDepth != BrowseDepth.Equipment
+                || _visibleRecipes.Count == 0
                 || !PlayerStateService.TryGetActive(out PlayerStateService service))
             {
                 return;
             }
 
-            ProcessingRecipe recipe = _visibleRecipes[_selectedRecipeIndex];
+            int selected = _equipmentSelectionByTab[_selectedTabIndex];
+            ProcessingRecipe recipe = _visibleRecipes[selected];
             if (!CanAfford(service.State, recipe)
-                || service.State.Equipment.Owns(EquipmentCategory.Armor, recipe.EquipmentId))
+                || service.State.Equipment.Owns(recipe.Category, recipe.EquipmentId))
             {
-                _message.text = "This armor cannot currently be processed.";
+                _message.text = "This equipment cannot currently be processed.";
                 return;
             }
 
@@ -481,20 +728,49 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _cancelButton.EnableInClassList(SelectedClass, !_confirmChoice);
         }
 
+        private void RefreshTabClasses()
+        {
+            for (int index = 0; index < _tabButtons.Count; index++)
+            {
+                _tabButtons[index].EnableInClassList(
+                    SelectedTabClass,
+                    index == _selectedTabIndex);
+            }
+        }
+
         private void RefreshSelectionClasses()
         {
-            for (int index = 0; index < _seriesButtons.Count; index++)
+            int selected = ActiveDepth == BrowseDepth.Root
+                ? _rootSelectionByTab[_selectedTabIndex]
+                : _equipmentSelectionByTab[_selectedTabIndex];
+            for (int index = 0; index < _navigationButtons.Count; index++)
             {
-                _seriesButtons[index].EnableInClassList(
+                _navigationButtons[index].EnableInClassList(
                     SelectedClass,
-                    !_recipeColumnActive && index == _selectedSeriesIndex);
+                    index == selected);
             }
-            for (int index = 0; index < _recipeButtons.Count; index++)
+        }
+
+        private void FocusSelectedButton()
+        {
+            if (_navigationButtons.Count == 0)
             {
-                _recipeButtons[index].EnableInClassList(
-                    SelectedClass,
-                    _recipeColumnActive && index == _selectedRecipeIndex);
+                return;
             }
+
+            int selected = ActiveDepth == BrowseDepth.Root
+                ? _rootSelectionByTab[_selectedTabIndex]
+                : _equipmentSelectionByTab[_selectedTabIndex];
+            Button button = _navigationButtons[Wrap(selected, _navigationButtons.Count)];
+            button.Focus();
+            _navigationScroll.schedule.Execute(() => _navigationScroll.ScrollTo(button)).ExecuteLater(1);
+        }
+
+        private void NormalizeSelection(int[] selections, int count)
+        {
+            selections[_selectedTabIndex] = count > 0
+                ? Wrap(selections[_selectedTabIndex], count)
+                : 0;
         }
 
         private static bool CanAfford(PersistentPlayerState state, ProcessingRecipe recipe)
@@ -518,7 +794,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             switch (failure)
             {
                 case ProcessingCraftFailure.AlreadyOwned:
-                    return "That armor is already owned.";
+                    return "That equipment is already owned.";
                 case ProcessingCraftFailure.InsufficientGold:
                     return "Not enough Gold.";
                 case ProcessingCraftFailure.InsufficientMaterials:
@@ -539,43 +815,61 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
+        private static string FormatCategory(EquipmentCategory category)
+        {
+            switch (category)
+            {
+                case EquipmentCategory.Armor: return "Armor";
+                case EquipmentCategory.Weapon: return "Weapon";
+                case EquipmentCategory.Accessory: return "Accessory";
+                default: throw new ArgumentOutOfRangeException(nameof(category));
+            }
+        }
+
+        private static string FormatWeaponType(WeaponType weaponType)
+        {
+            switch (weaponType)
+            {
+                case WeaponType.Greatsword: return "Greatsword";
+                case WeaponType.SwordAndShield: return "Sword and Shield";
+                case WeaponType.GlaiveAndShield: return "Glaive and Shield";
+                default: return weaponType.ToString();
+            }
+        }
+
+        private int ReadTabNavigation()
+        {
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.qKey.wasPressedThisFrame) return -1;
+                if (Keyboard.current.eKey.wasPressedThisFrame) return 1;
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                if (gamepad.leftShoulder.wasPressedThisFrame) return -1;
+                if (gamepad.rightShoulder.wasPressedThisFrame) return 1;
+            }
+            return 0;
+        }
+
         private int ReadVerticalNavigation()
         {
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.upArrowKey.wasPressedThisFrame || Keyboard.current.wKey.wasPressedThisFrame) return -1;
-                if (Keyboard.current.downArrowKey.wasPressedThisFrame || Keyboard.current.sKey.wasPressedThisFrame) return 1;
+                if (Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame) return -1;
+                if (Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame) return 1;
             }
-            return ReadGamepadAxis(true);
-        }
 
-        private int ReadHorizontalNavigation()
-        {
-            if (Keyboard.current != null)
-            {
-                if (Keyboard.current.leftArrowKey.wasPressedThisFrame || Keyboard.current.aKey.wasPressedThisFrame) return -1;
-                if (Keyboard.current.rightArrowKey.wasPressedThisFrame || Keyboard.current.dKey.wasPressedThisFrame) return 1;
-            }
-            return ReadGamepadAxis(false);
-        }
-
-        private int ReadGamepadAxis(bool vertical)
-        {
             Gamepad gamepad = Gamepad.current;
             if (gamepad == null) return 0;
-            if (vertical)
-            {
-                if (gamepad.dpad.up.wasPressedThisFrame) return -1;
-                if (gamepad.dpad.down.wasPressedThisFrame) return 1;
-            }
-            else
-            {
-                if (gamepad.dpad.left.wasPressedThisFrame) return -1;
-                if (gamepad.dpad.right.wasPressedThisFrame) return 1;
-            }
+            if (gamepad.dpad.up.wasPressedThisFrame) return -1;
+            if (gamepad.dpad.down.wasPressedThisFrame) return 1;
 
-            Vector2 stick = gamepad.leftStick.ReadValue();
-            float primary = vertical ? -stick.y : stick.x;
+            float primary = -gamepad.leftStick.ReadValue().y;
             if (Mathf.Abs(primary) < 0.25f)
             {
                 _stickLatched = false;
@@ -584,6 +878,48 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (_stickLatched || Mathf.Abs(primary) < 0.65f) return 0;
             _stickLatched = true;
             return primary < 0f ? -1 : 1;
+        }
+
+        private bool ReadConfirmationNavigation()
+        {
+            if (Keyboard.current != null
+                && (Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.leftArrowKey.wasPressedThisFrame
+                    || Keyboard.current.rightArrowKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame
+                    || Keyboard.current.aKey.wasPressedThisFrame
+                    || Keyboard.current.dKey.wasPressedThisFrame))
+            {
+                return true;
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad == null)
+            {
+                return false;
+            }
+            if (gamepad.dpad.up.wasPressedThisFrame
+                || gamepad.dpad.down.wasPressedThisFrame
+                || gamepad.dpad.left.wasPressedThisFrame
+                || gamepad.dpad.right.wasPressedThisFrame)
+            {
+                return true;
+            }
+
+            Vector2 stick = gamepad.leftStick.ReadValue();
+            if (stick.magnitude < 0.25f)
+            {
+                _stickLatched = false;
+                return false;
+            }
+            if (_stickLatched || stick.magnitude < 0.65f)
+            {
+                return false;
+            }
+            _stickLatched = true;
+            return true;
         }
 
         private static int Wrap(int value, int length)

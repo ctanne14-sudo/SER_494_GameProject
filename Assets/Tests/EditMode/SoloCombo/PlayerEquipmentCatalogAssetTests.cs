@@ -97,5 +97,52 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 Is.EqualTo(AccessoryEffectType.AllDamageDealtMultiplier));
             Assert.That(rubyRing.EffectAmount, Is.EqualTo(0.05f).Within(0.0001f));
         }
+
+        [Test]
+        public void DefaultCatalog_ContainsAllProcessingShopEquipmentIncludingMithrilRing()
+        {
+            PlayerEquipmentCatalogAsset catalog = PlayerEquipmentCatalogAsset.LoadDefault();
+
+            Assert.That(catalog.Weapons.Count, Is.EqualTo(29));
+            Assert.That(catalog.Armor.Count, Is.EqualTo(39));
+            Assert.That(catalog.Accessories.Count, Is.EqualTo(13));
+            Assert.That(
+                catalog.TryGetWeapon(
+                    "weapon.sword-and-shield.crystal",
+                    out WeaponDefinition weapon,
+                    out string weaponError),
+                Is.True,
+                weaponError);
+            Assert.That(weapon.WeaponAttack, Is.EqualTo(120));
+
+            Assert.That(
+                catalog.TryGetArmor(
+                    "armor.mithril.lower",
+                    out ArmorDefinitionAsset armor,
+                    out string armorError),
+                Is.True,
+                armorError);
+            Assert.That(armor.Defense, Is.EqualTo(75));
+            Assert.That(armor.EffectDescription, Is.EqualTo("Maximum Stamina +10."));
+
+            Assert.That(
+                catalog.TryGetAccessory(
+                    "accessory.crystal-pendant",
+                    out AccessoryDefinitionAsset accessory,
+                    out string accessoryError),
+                Is.True,
+                accessoryError);
+            Assert.That(accessory.EffectType, Is.EqualTo(AccessoryEffectType.Custom));
+            Assert.That(accessory.EffectDescription, Does.Contain("50%").And.Contain("70%"));
+            Assert.That(
+                catalog.TryGetAccessory(
+                    "accessory.mithril-ring",
+                    out AccessoryDefinitionAsset mithrilRing,
+                    out string mithrilRingError),
+                Is.True,
+                mithrilRingError);
+            Assert.That(mithrilRing.EffectType, Is.EqualTo(AccessoryEffectType.Custom));
+            Assert.That(mithrilRing.EffectDescription, Does.Contain("+2").And.Contain("1 to 3"));
+        }
     }
 }

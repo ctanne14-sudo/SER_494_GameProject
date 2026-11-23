@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 0
   effectDamageType: 0
   effectAmount: 0
+  effectDescription: No individual armor effect.
+  setEffectDescription: 'Full set: Gold earned after battle +20%.'

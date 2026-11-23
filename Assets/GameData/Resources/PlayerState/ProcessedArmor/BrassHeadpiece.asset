@@ -20,3 +20,5 @@ MonoBehaviour:
   effectType: 1
   effectDamageType: 1
   effectAmount: 0.02
+  effectDescription: Blunt damage taken -2%.
+  setEffectDescription:

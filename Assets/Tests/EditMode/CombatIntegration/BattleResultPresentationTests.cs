@@ -9,8 +9,11 @@ namespace SER494.Gameplay.CombatIntegration.Tests
     [Category("CombatIntegration")]
     public sealed class BattleResultPresentationTests
     {
+        private const string HorizontalSlashActionId =
+            "sword-and-shield.opening.horizontal-slash";
+
         [Test]
-        public void Victory_PresentsCommittedGoldMaterialsAndExplorationReturn()
+        public void Victory_PresentsCommittedGoldMaterialsLearnedActionAndExplorationReturn()
         {
             var rewards = new BattleRewardSummary(
                 200,
@@ -18,7 +21,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 {
                     [BattleRewardSummary.BrassMaterialId] = 2,
                     [BattleRewardSummary.BronzeMaterialId] = 1
-                });
+                },
+                HorizontalSlashActionId);
 
             BattleResultPresentation result = BattleResultPresentationFactory.Create(
                 BattleOutcome.PlayerVictory,
@@ -32,6 +36,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(result.Materials[0].DisplayName, Is.EqualTo("Brass"));
             Assert.That(result.Materials[0].Quantity, Is.EqualTo(2));
             Assert.That(result.Materials[1].DisplayName, Is.EqualTo("Bronze"));
+            Assert.That(result.HasLearnedAction, Is.True);
+            Assert.That(result.LearnedActionName, Is.EqualTo("Horizontal Slash [O]"));
             Assert.That(result.ContinueLabel, Is.EqualTo("Continue Exploring"));
             Assert.That(result.HasRewards, Is.True);
         }
@@ -44,7 +50,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 new Dictionary<string, int>
                 {
                     [BattleRewardSummary.WhiteCopperMaterialId] = 3
-                });
+                },
+                HorizontalSlashActionId);
 
             BattleResultPresentation result = BattleResultPresentationFactory.Create(
                 BattleOutcome.PlayerDefeat,
@@ -55,6 +62,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(result.EnemyName, Is.EqualTo("Ape Beast"));
             Assert.That(result.Gold, Is.Zero);
             Assert.That(result.Materials.Count, Is.Zero);
+            Assert.That(result.HasLearnedAction, Is.False);
+            Assert.That(result.LearnedActionName, Is.Null);
             Assert.That(result.HasRewards, Is.False);
             Assert.That(result.ContinueLabel, Is.EqualTo("Return to Last Save"));
         }
@@ -62,7 +71,10 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         [Test]
         public void MutualDestruction_PreservesRewardsAndExplainsOneResourceReturn()
         {
-            var rewards = new BattleRewardSummary(150, null);
+            var rewards = new BattleRewardSummary(
+                150,
+                null,
+                HorizontalSlashActionId);
 
             BattleResultPresentation result = BattleResultPresentationFactory.Create(
                 BattleOutcome.Draw,
@@ -71,6 +83,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 
             Assert.That(result.OutcomeTitle, Is.EqualTo("MUTUAL DESTRUCTION"));
             Assert.That(result.Gold, Is.EqualTo(150));
+            Assert.That(result.HasLearnedAction, Is.True);
+            Assert.That(result.LearnedActionName, Is.EqualTo("Horizontal Slash [O]"));
             Assert.That(result.ConsequenceBody, Does.Contain("1 HP"));
             Assert.That(result.ConsequenceBody, Does.Contain("1 Stamina"));
             Assert.That(result.ContinueLabel, Is.EqualTo("Return to Save Point"));

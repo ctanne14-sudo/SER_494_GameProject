@@ -17,6 +17,10 @@
                         <ui:Label text="Gold" class="battle-result-reward-name" />
                         <ui:Label name="goldValue" class="battle-result-reward-value" />
                     </ui:VisualElement>
+                    <ui:VisualElement name="learnedActionRow" class="battle-result-reward-row battle-result-learned-action-row">
+                        <ui:Label text="New Action" class="battle-result-reward-name" />
+                        <ui:Label name="learnedActionName" class="battle-result-learned-action-name" />
+                    </ui:VisualElement>
                     <ui:VisualElement name="materialList" class="battle-result-material-list" />
                     <ui:Label name="emptyRewards" text="No rewards were granted." class="battle-result-empty-rewards" />
                 </ui:VisualElement>

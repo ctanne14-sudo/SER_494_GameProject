@@ -12,6 +12,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
     public static class PlayerStateLoadoutSessionBuilder
     {
         public const int MaximumTimelineCost = 30;
+        public const string NoConfiguredComboError =
+            "No Combo is configured. Configure at least one Combo before entering battle.";
 
         public static bool TryPrepare(
             PersistentPlayerState playerState,
@@ -87,6 +89,12 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 return false;
             }
 
+            if (configurations.Count == 0)
+            {
+                validationError = NoConfiguredComboError;
+                return false;
+            }
+
             // Weapon compatibility is intentionally omitted here. It is a warning
             // for Combo Configuration, not a condition for entering battle.
             ComboValidationResult result = ComboLoadoutValidator.Validate(
@@ -132,8 +140,14 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             var created = new List<ComboConfiguration>(loadout.Combos.Count);
             for (int index = 0; index < loadout.Combos.Count; index++)
             {
+                PreparedComboState prepared = loadout.Combos[index];
+                if (prepared != null && prepared.GetAssignedActionIds().Count == 0)
+                {
+                    continue;
+                }
+
                 if (!TryBuildCombo(
-                        loadout.Combos[index],
+                        prepared,
                         playerState,
                         actionCatalog,
                         out ComboConfiguration configuration,

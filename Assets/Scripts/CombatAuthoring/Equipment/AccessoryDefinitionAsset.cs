@@ -6,7 +6,8 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
     public enum AccessoryEffectType
     {
         MaximumHealthFlat,
-        AllDamageDealtMultiplier
+        AllDamageDealtMultiplier,
+        Custom
     }
 
     [CreateAssetMenu(
@@ -28,6 +29,10 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         [SerializeField]
         private float effectAmount;
 
+        [SerializeField, TextArea]
+        [Tooltip("Player-facing effect description. Custom effects are resolved by their dedicated gameplay system.")]
+        private string effectDescription = string.Empty;
+
         public string AccessoryId => accessoryId;
 
         public string DisplayName => displayName;
@@ -35,6 +40,8 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
         public AccessoryEffectType EffectType => effectType;
 
         public float EffectAmount => effectAmount;
+
+        public string EffectDescription => effectDescription;
 
         public bool TryValidate(out string validationError)
         {
@@ -59,6 +66,13 @@ namespace SER494.Gameplay.Combat.Authoring.Equipment
             if (effectAmount < 0f || float.IsNaN(effectAmount) || float.IsInfinity(effectAmount))
             {
                 validationError = $"{name} has an invalid Accessory Effect Amount.";
+                return false;
+            }
+
+            if (effectType == AccessoryEffectType.Custom
+                && string.IsNullOrWhiteSpace(effectDescription))
+            {
+                validationError = $"{name} has a custom effect without a description.";
                 return false;
             }
 

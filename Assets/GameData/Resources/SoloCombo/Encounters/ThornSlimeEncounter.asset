@@ -1,0 +1,1077 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b40c8ca10ece8340bab41854a9f5896, type: 3}
+  m_Name: ThornSlimeEncounter
+  m_EditorClassIdentifier: SER494.Combat.Authoring::SER494.Gameplay.Combat.Authoring.SoloCombo.SoloComboEncounterDefinitionAsset
+  encounterId: encounter.thorn-slime
+  displayName: Thorn Slime Encounter
+  description: A four-round Thorn Slime combat cycle.
+  enemyDisplayName: Thorn Slime
+  enemyMaximumHealth: 450
+  enemyAttack: 40
+  enemyDefense: 15
+  manaRecoveryPerTurn: 1
+  staminaRecoveryPerTurn: 10
+  startingItems: []
+  rewardGold: 150
+  rewardGoldDrops: []
+  rewardMaterialRollCount: 3
+  rewardMaterialDrops:
+  - itemId: material.thorn
+    weight: 50
+  - itemId: material.slime-chunk
+    weight: 50
+  scriptedSequences:
+  - sequenceId: enemy.thorn-slime.round-1
+    displayName: Round 1
+    actions:
+    - actionId: enemy.thorn-slime.action-1
+      displayName: Action 1
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-5
+      displayName: Action 5
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 4
+        effect: 4
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: status.thorn-slime.slashing-resistance
+        statusDisplayName: Slashing Damage Taken -20%
+        statusDuration: 30
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 2
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: -0.2
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 4
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: status.thorn-slime.piercing-power
+        statusDisplayName: Piercing Damage Dealt +20%
+        statusDuration: 30
+        statusDurationType: 0
+        statusModifierDirection: 0
+        statusModifierScope: 2
+        statusModifierFamily: 0
+        statusModifierType: 2
+        statusModifierAmount: 0.2
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 3
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+  - sequenceId: enemy.thorn-slime.round-2
+    displayName: Round 2
+    actions:
+    - actionId: enemy.thorn-slime.action-2
+      displayName: Action 2
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.7
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-6
+      displayName: Action 6
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 1
+        effect: 1
+        damageMultiplier: 0.2
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 2
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 3
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 9
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows:
+      - windowId: enemy.thorn-slime.action-4.damage-reduction
+        displayName: Damage Taken -50%
+        startOffset: 1
+        endOffset: 10
+        effect: 0
+        damageReduction: 0.5
+        superArmorLevel: 0
+        disruptionPolicy: 0
+  - sequenceId: enemy.thorn-slime.round-3
+    displayName: Round 3
+    actions:
+    - actionId: enemy.thorn-slime.action-1
+      displayName: Action 1
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-4
+      displayName: Action 4
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows:
+      - windowId: enemy.thorn-slime.action-4.damage-reduction
+        displayName: Damage Taken -50%
+        startOffset: 1
+        endOffset: 10
+        effect: 0
+        damageReduction: 0.5
+        superArmorLevel: 0
+        disruptionPolicy: 0
+    - actionId: enemy.thorn-slime.action-2
+      displayName: Action 2
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.7
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+  - sequenceId: enemy.thorn-slime.round-4
+    displayName: Round 4
+    actions:
+    - actionId: enemy.thorn-slime.action-5
+      displayName: Action 5
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 4
+        effect: 4
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: status.thorn-slime.slashing-resistance
+        statusDisplayName: Slashing Damage Taken -20%
+        statusDuration: 30
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 2
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: -0.2
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 4
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: status.thorn-slime.piercing-power
+        statusDisplayName: Piercing Damage Dealt +20%
+        statusDuration: 30
+        statusDurationType: 0
+        statusModifierDirection: 0
+        statusModifierScope: 2
+        statusModifierFamily: 0
+        statusModifierType: 2
+        statusModifierAmount: 0.2
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-7
+      displayName: Action 7
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 3
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 5
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 6
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 7
+        effect: 1
+        damageMultiplier: 0.1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 1
+        damageType: 2
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []
+    - actionId: enemy.thorn-slime.action-3
+      displayName: Action 3
+      timelineCost: 10
+      resolutionEffect: 1
+      damageMultiplier: 0
+      damageType: 0
+      damageTags: 0
+      appliesOnHitDisruption: 0
+      onHitDisruptionType: 2
+      onHitDisruptionDuration: 1
+      appliesOnEvadedDisruption: 0
+      onEvadedDisruptionType: 2
+      onEvadedDisruptionDuration: 1
+      flinchResponse: 3
+      staggerResponse: 3
+      knockdownResponse: 3
+      resolutionEvents:
+      - offset: 3
+        effect: 1
+        damageMultiplier: 0.3
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 4
+        effect: 3
+        damageMultiplier: 0
+        damageType: 0
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      - offset: 8
+        effect: 1
+        damageMultiplier: 0.4
+        damageType: 1
+        damageTags: 0
+        appliesOnHitDisruption: 0
+        onHitDisruptionType: 2
+        onHitDisruptionDuration: 1
+        appliesOnEvadedDisruption: 0
+        onEvadedDisruptionType: 2
+        onEvadedDisruptionDuration: 1
+        hasClash: 0
+        clashDamageReduction: 0.3
+        clashSuperArmorLevel: 0
+        statusId: 
+        statusDisplayName: 
+        statusDuration: 1
+        statusDurationType: 0
+        statusModifierDirection: 1
+        statusModifierScope: 0
+        statusModifierFamily: 0
+        statusModifierType: 0
+        statusModifierAmount: 0
+        statusStackingPolicy: 1
+        statusTarget: 0
+      activeWindows: []

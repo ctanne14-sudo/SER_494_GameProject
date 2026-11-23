@@ -6,6 +6,7 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.CombatIntegration.Unity;
+using SER494.Gameplay.PlayerState;
 using UnityEngine;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
@@ -248,6 +249,54 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(battle.Player.Stats.Defense, Is.EqualTo(10));
             Assert.That(battle.GetItemCount("item.potion"), Is.EqualTo(2));
             Assert.That(battle.Enemy.DisplayName, Is.EqualTo("Wanderer"));
+            Assert.That(
+                battle.ComboReconfigurationChargesRemaining,
+                Is.EqualTo(BattleComboReconfigurationRules.BaseCharges));
+        }
+
+        [TestCase("pure-gold", 220, 100, 10)]
+        [TestCase("crystal", 200, 100, 13)]
+        [TestCase("mithril", 200, 110, 10)]
+        public void BattleAdapter_AppliesLatestArmorStatEffects(
+            string seriesId,
+            int expectedDefense,
+            int expectedMaximumStamina,
+            int expectedRecovery)
+        {
+            BattleSessionService service = CreateService("Battle Sessions");
+            var playerState = new PersistentPlayerState(100, 30, 100);
+            EquipStartingGear(playerState);
+            EquipArmor(playerState, "armor.head", $"armor.{seriesId}.head");
+            EquipArmor(playerState, "armor.upper-body", $"armor.{seriesId}.upper");
+            EquipArmor(playerState, "armor.lower-body", $"armor.{seriesId}.lower");
+            playerState.SetCurrentCombatStamina(50);
+            SoloComboLoadoutSession loadout = CreatePreparedLoadout(
+                weapon: null,
+                damageMultiplier: 0.01d);
+            BeginBattle(
+                service,
+                CreateValidEncounter(enemyMaximumHealth: 1000, enemyAttack: 0),
+                loadout);
+
+            Assert.That(
+                BattleSessionBattleAdapter.TryCreateBattle(
+                    service.CurrentSession,
+                    playerState,
+                    out SoloComboBattleState battle,
+                    out string error),
+                Is.True,
+                error);
+
+            Assert.That(battle.Player.Stats.Defense, Is.EqualTo(expectedDefense));
+            Assert.That(battle.Player.Stats.MaxStamina,
+                Is.EqualTo(expectedMaximumStamina));
+            Assert.That(playerState.MaximumCombatStamina,
+                Is.EqualTo(expectedMaximumStamina));
+
+            SoloComboTurnResult result = battle.ExecuteCombo(0);
+
+            Assert.That(result.Outcome, Is.EqualTo(BattleOutcome.Ongoing));
+            Assert.That(result.StaminaRecovered, Is.EqualTo(expectedRecovery));
         }
 
         [Test]
@@ -277,6 +326,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 service.CurrentSession,
                 playerState,
                 battle,
+                new System.Random(3),
                 out string commitError);
 
             Assert.That(committed, Is.True, commitError);
@@ -291,7 +341,16 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            string learnedActionId = service.CurrentSession.GrantedRewards.LearnedActionId;
+            string manualItemId = ActionManualLearningService.CreateManualItemId(
+                learnedActionId);
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.Zero);
+            Assert.That(
+                playerState.ActionLibrary.Owns(learnedActionId),
+                Is.True,
+                "Battle rewards should learn the Action directly without creating a manual.");
 
             bool committedAgain = BattleSessionBattleAdapter.TryCommitBattleResult(
                 service,
@@ -304,6 +363,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(duplicateError, Does.Contain("already complete"));
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            Assert.That(playerState.Inventory.GetCount(manualItemId), Is.Zero);
+            Assert.That(playerState.ActionLibrary.Owns(learnedActionId), Is.True);
         }
 
         [Test]
@@ -344,6 +405,7 @@ namespace SER494.Gameplay.CombatIntegration.Tests
                 service.CurrentSession,
                 playerState,
                 battle,
+                new System.Random(3),
                 out string commitError);
 
             Assert.That(committed, Is.True, commitError);
@@ -351,7 +413,13 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(playerState.CurrentHealth, Is.Zero);
             Assert.That(playerState.Currencies.Gold, Is.EqualTo(200));
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.EqualTo(3));
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.True);
             Assert.That(TotalRewardMaterials(playerState), Is.EqualTo(3));
+            Assert.That(TotalActionManuals(playerState), Is.Zero);
+            Assert.That(
+                playerState.ActionLibrary.Owns(
+                    service.CurrentSession.GrantedRewards.LearnedActionId),
+                Is.True);
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.True);
@@ -404,6 +472,8 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(TotalRewardMaterials(playerState), Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.Gold, Is.Zero);
             Assert.That(service.CurrentSession.GrantedRewards.TotalMaterialCount, Is.Zero);
+            Assert.That(service.CurrentSession.GrantedRewards.HasLearnedAction, Is.False);
+            Assert.That(TotalActionManuals(playerState), Is.Zero);
             Assert.That(
                 service.IsEncounterDefeated("Floor1_Cell_A", "wanderer-01"),
                 Is.False);
@@ -516,6 +586,22 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             return playerState.Inventory.GetCount(BattleRewardSummary.WhiteCopperMaterialId)
                 + playerState.Inventory.GetCount(BattleRewardSummary.BronzeMaterialId)
                 + playerState.Inventory.GetCount(BattleRewardSummary.BrassMaterialId);
+        }
+
+        private static int TotalActionManuals(PersistentPlayerState playerState)
+        {
+            int total = 0;
+            foreach (KeyValuePair<string, int> item in playerState.Inventory.ItemCounts)
+            {
+                if (item.Key.StartsWith(
+                        ActionManualLearningService.ManualItemPrefix,
+                        System.StringComparison.Ordinal))
+                {
+                    total += item.Value;
+                }
+            }
+
+            return total;
         }
 
         private SoloComboLoadoutSession CreatePreparedLoadout(

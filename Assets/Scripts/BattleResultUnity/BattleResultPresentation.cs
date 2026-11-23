@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using SER494.Gameplay.Combat;
+using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 
@@ -32,6 +33,7 @@ namespace SER494.Gameplay.BattleResult.Unity
             string rewardHeading,
             int gold,
             IReadOnlyList<BattleResultMaterialLine> materials,
+            string learnedActionName,
             string consequenceHeading,
             string consequenceBody,
             string continueLabel,
@@ -43,6 +45,7 @@ namespace SER494.Gameplay.BattleResult.Unity
             RewardHeading = rewardHeading;
             Gold = gold;
             Materials = materials;
+            LearnedActionName = learnedActionName;
             ConsequenceHeading = consequenceHeading;
             ConsequenceBody = consequenceBody;
             ContinueLabel = continueLabel;
@@ -61,6 +64,10 @@ namespace SER494.Gameplay.BattleResult.Unity
 
         public IReadOnlyList<BattleResultMaterialLine> Materials { get; }
 
+        public string LearnedActionName { get; }
+
+        public bool HasLearnedAction => !string.IsNullOrWhiteSpace(LearnedActionName);
+
         public string ConsequenceHeading { get; }
 
         public string ConsequenceBody { get; }
@@ -69,7 +76,7 @@ namespace SER494.Gameplay.BattleResult.Unity
 
         public string OutcomeStyleClass { get; }
 
-        public bool HasRewards => Gold > 0 || Materials.Count > 0;
+        public bool HasRewards => Gold > 0 || Materials.Count > 0 || HasLearnedAction;
     }
 
     public static class BattleResultPresentationFactory
@@ -84,7 +91,14 @@ namespace SER494.Gameplay.BattleResult.Unity
                     [BattleRewardSummary.ApeBeastPeltMaterialId] = "Ape Beast Pelt",
                     [BattleRewardSummary.ApeBeastArmguardMaterialId] = "Ape Beast Armguard",
                     [BattleRewardSummary.ApeBeastBlackFurMaterialId] = "Ape Beast Black Fur",
-                    [BattleRewardSummary.ApeBeastBloodMaterialId] = "Ape Beast Blood"
+                    [BattleRewardSummary.ApeBeastBloodMaterialId] = "Ape Beast Blood",
+                    [BattleRewardSummary.SlimeChunkMaterialId] = "Slime Chunk",
+                    [BattleRewardSummary.ThornMaterialId] = "Thorn",
+                    [BattleRewardSummary.CrystalMaterialId] = "Crystal",
+                    [BattleRewardSummary.PureGoldMaterialId] = "Pure Gold",
+                    [BattleRewardSummary.MithrilMaterialId] = "Mithril",
+                    [BattleRewardSummary.YellowSilkMaterialId] = "Yellow Silk",
+                    [BattleRewardSummary.RedSilkMaterialId] = "Red Silk"
                 });
 
         public static BattleResultPresentation Create(BattleSession session)
@@ -130,6 +144,7 @@ namespace SER494.Gameplay.BattleResult.Unity
 
             rewards = rewards ?? BattleRewardSummary.None;
             IReadOnlyList<BattleResultMaterialLine> materials = CreateMaterialLines(rewards);
+            string learnedActionName = CreateLearnedActionName(rewards);
 
             switch (outcome)
             {
@@ -141,6 +156,7 @@ namespace SER494.Gameplay.BattleResult.Unity
                         "Battle Rewards",
                         rewards.Gold,
                         materials,
+                        learnedActionName,
                         "Enemy Defeated",
                         "The defeated enemy will not reappear. Continue exploring from the battle location.",
                         "Continue Exploring",
@@ -154,6 +170,7 @@ namespace SER494.Gameplay.BattleResult.Unity
                         "No Rewards",
                         0,
                         Array.Empty<BattleResultMaterialLine>(),
+                        null,
                         "Return to Last Save",
                         "Progress made after the last save will be discarded.",
                         "Return to Last Save",
@@ -167,6 +184,7 @@ namespace SER494.Gameplay.BattleResult.Unity
                         "Rewards Secured",
                         rewards.Gold,
                         materials,
+                        learnedActionName,
                         "Enemy Defeated",
                         "Rewards are kept. Return to the last Save Point with 1 HP and 1 Stamina.",
                         "Return to Save Point",
@@ -197,6 +215,42 @@ namespace SER494.Gameplay.BattleResult.Unity
                 right.DisplayName,
                 StringComparison.Ordinal));
             return new ReadOnlyCollection<BattleResultMaterialLine>(lines);
+        }
+
+        private static string CreateLearnedActionName(BattleRewardSummary rewards)
+        {
+            if (!rewards.HasLearnedAction)
+            {
+                return null;
+            }
+
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            if (catalog != null
+                && catalog.TryCreateDefinition(
+                    rewards.LearnedActionId,
+                    out ComboActionDefinition definition,
+                    out _))
+            {
+                return definition.DisplayName;
+            }
+
+            return FormatUnknownActionName(rewards.LearnedActionId);
+        }
+
+        private static string FormatUnknownActionName(string actionId)
+        {
+            string[] words = actionId.Split(
+                new[] { '-', '_', '.' },
+                StringSplitOptions.RemoveEmptyEntries);
+            for (int index = 0; index < words.Length; index++)
+            {
+                string word = words[index];
+                words[index] = word.Length == 0
+                    ? word
+                    : char.ToUpperInvariant(word[0]) + word.Substring(1);
+            }
+
+            return words.Length == 0 ? actionId : string.Join(" ", words);
         }
 
         private static string FormatUnknownMaterialName(string materialId)

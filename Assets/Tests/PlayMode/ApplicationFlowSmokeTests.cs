@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using SER494.Gameplay.BattleResult.Unity;
 using SER494.Gameplay.Combat;
@@ -6,6 +8,7 @@ using SER494.Gameplay.Combat.Authoring.SoloCombo;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.ExplorationMenu.Unity;
+using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -57,6 +60,7 @@ namespace SER494.Gameplay.PlayModeTests
             }
 
             stateService.StartNewGame();
+            ConfigureStarterCombo(stateService.State);
             _runtimeLoadoutSession =
                 ScriptableObject.CreateInstance<SoloComboLoadoutSession>();
             Assert.That(
@@ -241,6 +245,170 @@ namespace SER494.Gameplay.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ExplorationMenu_OpensComboLoadoutsWithoutGrantingPreviewContent()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            stateService.StartNewGame();
+            string[] expectedStartingActions =
+            {
+                "greatsword.opening.sweeping-slash",
+                "greatsword.opening.draw-slash",
+                "greatsword.opening.vertical-slash",
+                "common.opening.prepare",
+                "greatsword.main.charged-slash",
+                "greatsword.main.clash-slash",
+                "greatsword.main.rising-strong-strike",
+                "common.main.use-healing-potion",
+                "greatsword.closing.empowered-sheathe",
+                "greatsword.closing.sidestep-sheathe",
+                "greatsword.closing.double-sweep",
+                "common.closing.breather-1",
+                "greatsword.linked.shoulder-tackle",
+                "greatsword.linked.guarding-charge",
+                "greatsword.linked.vertical-slash",
+                "common.linked.use-vitality-tonic"
+            };
+            CollectionAssert.AreEquivalent(
+                expectedStartingActions,
+                stateService.State.ActionLibrary.OwnedActionIds);
+            Assert.That(
+                stateService.State.ComboLoadouts.ActiveLoadout.Combos,
+                Has.All.Matches<SER494.Gameplay.PlayerState.PreparedComboState>(
+                    combo => combo.GetAssignedActionIds().Count == 0));
+
+            ExplorationMenuController controller =
+                Object.FindAnyObjectByType<ExplorationMenuController>();
+            Assert.That(controller, Is.Not.Null);
+            controller.gameObject.SendMessage(
+                "TryOpenMenu",
+                false,
+                SendMessageOptions.RequireReceiver);
+            controller.gameObject.SendMessage(
+                "OnCombosClicked",
+                SendMessageOptions.RequireReceiver);
+            yield return null;
+
+            Assert.That(stateService.State.ActionLibrary.OwnedActionIds,
+                Has.Count.EqualTo(16),
+                "Opening the Exploration Menu must not grant Editor preview Actions.");
+            CollectionAssert.AreEquivalent(
+                expectedStartingActions,
+                stateService.State.ActionLibrary.OwnedActionIds);
+            Assert.That(stateService.State.ComboLoadouts.UnlockedSlotCount,
+                Is.EqualTo(1),
+                "Opening the Exploration Menu must not unlock preview Loadouts.");
+
+            UIDocument document = controller.GetComponent<UIDocument>();
+            Assert.That(document, Is.Not.Null);
+            List<Button> loadoutCards = document.rootVisualElement
+                .Query<Button>(className: "loadout-card-button")
+                .ToList();
+            Assert.That(loadoutCards, Is.Not.Empty,
+                "The Combo Loadouts page did not render its Loadout cards.");
+            for (int index = 0; index < loadoutCards.Count; index++)
+            {
+                Assert.That(
+                    loadoutCards[index]
+                        .Query<VisualElement>(className: "loadout-combo-preview-row")
+                        .ToList(),
+                    Has.Count.EqualTo(4),
+                    $"Loadout card {index + 1} must render all four Combo rows.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ExplorationMenu_RendersOwnedActionManualWithoutLearningItAutomatically()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            stateService.StartNewGame();
+            const string actionId = "sword-and-shield.opening.horizontal-slash";
+            string manualId = ActionManualLearningService.CreateManualItemId(actionId);
+            stateService.State.Inventory.Add(manualId, 1);
+
+            ExplorationMenuController controller =
+                Object.FindAnyObjectByType<ExplorationMenuController>();
+            Assert.That(controller, Is.Not.Null);
+            controller.gameObject.SendMessage(
+                "TryOpenMenu",
+                false,
+                SendMessageOptions.RequireReceiver);
+            controller.gameObject.SendMessage(
+                "ShowActionLearning",
+                SendMessageOptions.RequireReceiver);
+            yield return null;
+
+            UIDocument document = controller.GetComponent<UIDocument>();
+            Assert.That(document, Is.Not.Null);
+            List<Button> manualCards = document.rootVisualElement
+                .Query<Button>(className: "learning-action-card")
+                .ToList();
+            Assert.That(manualCards, Has.Count.EqualTo(1));
+            Assert.That(
+                manualCards[0].Query<Label>(className: "learning-action-title").First().text,
+                Does.Contain("Horizontal Slash [O]").And.Contain("×1"));
+            Assert.That(manualCards[0].enabledInHierarchy, Is.True);
+            Assert.That(stateService.State.ActionLibrary.Owns(actionId), Is.False,
+                "Opening the learning page must not consume a Manual or learn its Action.");
+            Assert.That(stateService.State.Inventory.GetCount(manualId), Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator ExplorationMenu_AppliesSelectedComboWithoutValidatingEmptySiblings()
+        {
+            yield return LoadScene(ExplorationSceneName);
+
+            Assert.That(PlayerStateService.TryGetActive(out PlayerStateService stateService),
+                Is.True);
+            stateService.StartNewGame();
+
+            SER494.Gameplay.PlayerState.PlayerComboLoadoutState loadout =
+                stateService.State.ComboLoadouts.ActiveLoadout;
+            var draft = new SER494.Gameplay.PlayerState.PlayerComboLoadoutDraft(loadout);
+            draft.Combos[0].SetAction(
+                SER494.Gameplay.PlayerState.PreparedComboActionSlot.Opening,
+                "greatsword.opening.sweeping-slash");
+            draft.Combos[0].SetAction(
+                SER494.Gameplay.PlayerState.PreparedComboActionSlot.Main,
+                "greatsword.main.charged-slash");
+            draft.Combos[0].SetAction(
+                SER494.Gameplay.PlayerState.PreparedComboActionSlot.Closing,
+                "greatsword.closing.empowered-sheathe");
+            draft.Combos[0].SetAction(
+                SER494.Gameplay.PlayerState.PreparedComboActionSlot.Linked,
+                "greatsword.linked.shoulder-tackle");
+
+            Assert.That(draft.Combos[1].CreatePreparedState().GetAssignedActionIds(),
+                Is.Empty,
+                "The regression requires an invalid empty sibling Combo.");
+
+            ExplorationMenuController controller =
+                Object.FindAnyObjectByType<ExplorationMenuController>();
+            Assert.That(controller, Is.Not.Null);
+            SetPrivateField(controller, "_selectedLoadout", loadout);
+            SetPrivateField(controller, "_selectedLoadoutDraft", draft);
+            SetPrivateField(controller, "_selectedComboIndex", 0);
+
+            MethodInfo applyMethod = typeof(ExplorationMenuController).GetMethod(
+                "TryApplyCurrentCombo",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(applyMethod, Is.Not.Null);
+            object[] arguments = { null };
+            bool applied = (bool)applyMethod.Invoke(controller, arguments);
+
+            Assert.That(applied, Is.True, arguments[0] as string);
+            Assert.That(loadout.Combos[0].MainActionId,
+                Is.EqualTo("greatsword.main.charged-slash"));
+            Assert.That(loadout.Combos[1].GetAssignedActionIds(), Is.Empty,
+                "Applying Combo 1 must not modify or require Combo 2.");
+        }
+
+        [UnityTest]
         public IEnumerator CombatScene_ConsumesPreparedBattleSession()
         {
             yield return LoadScene(ExplorationSceneName);
@@ -255,6 +423,7 @@ namespace SER494.Gameplay.PlayModeTests
             }
 
             stateService.StartNewGame();
+            ConfigureStarterCombo(stateService.State);
             _runtimeLoadoutSession =
                 ScriptableObject.CreateInstance<SoloComboLoadoutSession>();
             Assert.That(
@@ -322,6 +491,7 @@ namespace SER494.Gameplay.PlayModeTests
             }
 
             stateService.StartNewGame();
+            ConfigureStarterCombo(stateService.State);
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             Assert.That(player, Is.Not.Null);
             Collider playerCollider = player.GetComponentInChildren<Collider>();
@@ -436,6 +606,7 @@ namespace SER494.Gameplay.PlayModeTests
             }
 
             stateService.StartNewGame();
+            ConfigureStarterCombo(stateService.State);
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             Assert.That(player, Is.Not.Null);
             Collider playerCollider = player.GetComponentInChildren<Collider>();
@@ -513,6 +684,29 @@ namespace SER494.Gameplay.PlayModeTests
 
             // Allow scene-loaded bootstraps and component Start methods to run.
             yield return null;
+        }
+
+        private static void ConfigureStarterCombo(
+            SER494.Gameplay.PlayerState.PlayerState state)
+        {
+            state.ComboLoadouts.ActiveLoadout.SetCombo(
+                0,
+                new SER494.Gameplay.PlayerState.PreparedComboState(
+                    "Smoke Test Combo",
+                    "greatsword.opening.sweeping-slash",
+                    "greatsword.main.charged-slash",
+                    "greatsword.closing.empowered-sheathe",
+                    "greatsword.linked.shoulder-tackle",
+                    SER494.Gameplay.PlayerState.PreparedLinkedActionPlacement.AfterMain));
+        }
+
+        private static void SetPrivateField(object target, string name, object value)
+        {
+            FieldInfo field = target.GetType().GetField(
+                name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"Private field '{name}' was not found.");
+            field.SetValue(target, value);
         }
     }
 }
