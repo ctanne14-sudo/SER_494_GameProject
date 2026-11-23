@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Authoring.Weapons;
+using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.PlayerState;
 using SER494.Gameplay.PlayerState.Unity;
 using UnityEngine;
@@ -15,27 +16,49 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
     public sealed class ProcessingShopController : MonoBehaviour
     {
         private const string SelectedClass = "processing-selected";
+        private const string SelectedTabClass = "processing-tab-selected";
         private const string UnavailableClass = "processing-unavailable";
+
+        private enum BrowseDepth
+        {
+            Root,
+            Equipment
+        }
 
         private static ProcessingShopController _active;
 
         private static readonly EquipmentCategory[] Categories =
         {
-            EquipmentCategory.Armor,
             EquipmentCategory.Weapon,
+            EquipmentCategory.Armor,
             EquipmentCategory.Accessory
         };
 
-        private readonly List<Button> _categoryButtons = new List<Button>();
-        private readonly List<string> _seriesNames = new List<string>();
-        private readonly List<Button> _seriesButtons = new List<Button>();
+        private static readonly WeaponType[] WeaponTypes =
+        {
+            WeaponType.Greatsword,
+            WeaponType.SwordAndShield,
+            WeaponType.GlaiveAndShield
+        };
+
+        private readonly List<Button> _tabButtons = new List<Button>();
+        private readonly List<Button> _navigationButtons = new List<Button>();
         private readonly List<ProcessingRecipe> _visibleRecipes = new List<ProcessingRecipe>();
-        private readonly List<Button> _recipeButtons = new List<Button>();
+        private readonly int[] _rootSelectionByTab = new int[3];
+        private readonly int[] _equipmentSelectionByTab = new int[3];
+        private readonly BrowseDepth[] _depthByTab =
+        {
+            BrowseDepth.Root,
+            BrowseDepth.Root,
+            BrowseDepth.Equipment
+        };
 
         private VisualElement _root;
-        private VisualElement _categoryContainer;
-        private VisualElement _seriesContainer;
-        private VisualElement _recipeContainer;
+        private VisualElement _navigationContainer;
+        private ScrollView _navigationScroll;
+        private Label _navigationTitle;
+        private Label _navigationHint;
+        private Button _navigationBackButton;
         private Label _goldLabel;
         private Label _recipeName;
         private Label _recipeStats;
@@ -48,10 +71,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private Button _confirmButton;
         private Button _cancelButton;
         private PlayerEquipmentCatalogAsset _equipmentCatalog;
-        private int _selectedCategoryIndex;
-        private int _selectedSeriesIndex;
-        private int _selectedRecipeIndex;
-        private int _navigationColumn;
+        private int _selectedTabIndex;
         private bool _confirmingCraft;
         private bool _confirmChoice;
         private bool _isOpen;
@@ -61,6 +81,14 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private bool _previousCursorVisible;
         private bool _previousInputGate;
         private ProcessingRecipe _pendingRecipe;
+
+        private EquipmentCategory ActiveCategory => Categories[_selectedTabIndex];
+
+        private BrowseDepth ActiveDepth
+        {
+            get => _depthByTab[_selectedTabIndex];
+            set => _depthByTab[_selectedTabIndex] = value;
+        }
 
         public static bool TryOpen()
         {
@@ -93,9 +121,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             UIDocument document = GetComponent<UIDocument>();
             _root = document.rootVisualElement.Q<VisualElement>("processingShopOverlay");
-            _categoryContainer = _root.Q<VisualElement>("categoryContainer");
-            _seriesContainer = _root.Q<VisualElement>("seriesContainer");
-            _recipeContainer = _root.Q<VisualElement>("recipeContainer");
+            _navigationContainer = _root.Q<VisualElement>("navigationContainer");
+            _navigationScroll = _root.Q<ScrollView>("navigationScroll");
+            _navigationTitle = _root.Q<Label>("navigationTitle");
+            _navigationHint = _root.Q<Label>("navigationHint");
+            _navigationBackButton = _root.Q<Button>("navigationBackButton");
             _goldLabel = _root.Q<Label>("goldLabel");
             _recipeName = _root.Q<Label>("recipeName");
             _recipeStats = _root.Q<Label>("recipeStats");
@@ -108,14 +138,22 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _confirmButton = _root.Q<Button>("confirmCraftButton");
             _cancelButton = _root.Q<Button>("cancelCraftButton");
 
+            _tabButtons.Add(_root.Q<Button>("weaponsTab"));
+            _tabButtons.Add(_root.Q<Button>("armorTab"));
+            _tabButtons.Add(_root.Q<Button>("accessoriesTab"));
+            for (int index = 0; index < _tabButtons.Count; index++)
+            {
+                int captured = index;
+                _tabButtons[index].clicked += () => SelectTab(captured);
+            }
+
             _root.Q<Button>("closeButton").clicked += Close;
+            _navigationBackButton.clicked += NavigateBackOrClose;
             _craftButton.clicked += BeginCraftConfirmation;
             _confirmButton.clicked += ConfirmCraft;
             _cancelButton.clicked += CancelCraft;
             _root.style.display = DisplayStyle.None;
             _confirmOverlay.style.display = DisplayStyle.None;
-            BuildCategoryButtons();
-            BuildSeriesButtons();
         }
 
         private void OnDestroy()
@@ -144,21 +182,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 || (Gamepad.current != null
                     && (Gamepad.current.buttonEast.wasPressedThisFrame
                         || Gamepad.current.startButton.wasPressedThisFrame));
-            if (backPressed)
-            {
-                if (_confirmingCraft)
-                {
-                    CancelCraft();
-                }
-                else
-                {
-                    Close();
-                }
-                return;
-            }
-
-            int vertical = ReadVerticalNavigation();
-            int horizontal = ReadHorizontalNavigation();
             bool confirmPressed = (Keyboard.current != null
                     && (Keyboard.current.enterKey.wasPressedThisFrame
                         || Keyboard.current.numpadEnterKey.wasPressedThisFrame
@@ -167,7 +190,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
             if (_confirmingCraft)
             {
-                if (vertical != 0 || horizontal != 0)
+                if (backPressed)
+                {
+                    CancelCraft();
+                    return;
+                }
+
+                if (ReadConfirmationNavigation())
                 {
                     _confirmChoice = !_confirmChoice;
                     RefreshConfirmSelection();
@@ -181,54 +210,32 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
-            if (horizontal != 0)
+            int tabDirection = ReadTabNavigation();
+            if (tabDirection != 0)
             {
-                int maximumColumn = _visibleRecipes.Count > 0 ? 2 : _seriesNames.Count > 0 ? 1 : 0;
-                _navigationColumn = Mathf.Clamp(_navigationColumn + horizontal, 0, maximumColumn);
+                SelectTab(_selectedTabIndex + tabDirection);
+                return;
             }
 
-            if (vertical != 0)
+            if (backPressed)
             {
-                if (_navigationColumn == 2 && _visibleRecipes.Count > 0)
-                {
-                    _selectedRecipeIndex = Wrap(
-                        _selectedRecipeIndex + vertical,
-                        _visibleRecipes.Count);
-                    SelectRecipe(_selectedRecipeIndex);
-                }
-                else if (_navigationColumn == 1 && _seriesNames.Count > 0)
-                {
-                    _selectedSeriesIndex = Wrap(
-                        _selectedSeriesIndex + vertical,
-                        _seriesNames.Count);
-                    SelectSeries(_selectedSeriesIndex);
-                }
-                else
-                {
-                    _selectedCategoryIndex = Wrap(
-                        _selectedCategoryIndex + vertical,
-                        Categories.Length);
-                    SelectCategory(_selectedCategoryIndex);
-                }
+                NavigateBackOrClose();
+                return;
+            }
+
+            int vertical = ReadVerticalNavigation();
+            if (vertical != 0 && _navigationButtons.Count > 0)
+            {
+                int selection = ActiveDepth == BrowseDepth.Root
+                    ? _rootSelectionByTab[_selectedTabIndex]
+                    : _equipmentSelectionByTab[_selectedTabIndex];
+                SelectNavigation(selection + vertical, true);
             }
 
             if (confirmPressed)
             {
-                if (_navigationColumn == 2)
-                {
-                    BeginCraftConfirmation();
-                }
-                else if (_navigationColumn == 1 && _visibleRecipes.Count > 0)
-                {
-                    _navigationColumn = 2;
-                }
-                else if (_seriesNames.Count > 0)
-                {
-                    _navigationColumn = 1;
-                }
+                ConfirmCurrentSelection();
             }
-
-            RefreshSelectionClasses();
         }
 
         private void Open()
@@ -242,25 +249,20 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = true;
             ExplorationMenuInputGate.IsOpen = true;
             _isOpen = true;
-            _navigationColumn = 0;
-            _selectedCategoryIndex = 0;
-            _selectedSeriesIndex = 0;
-            _selectedRecipeIndex = 0;
+            _selectedTabIndex = 0;
+            Array.Clear(_rootSelectionByTab, 0, _rootSelectionByTab.Length);
+            Array.Clear(_equipmentSelectionByTab, 0, _equipmentSelectionByTab.Length);
+            _depthByTab[0] = BrowseDepth.Root;
+            _depthByTab[1] = BrowseDepth.Root;
+            _depthByTab[2] = BrowseDepth.Equipment;
             _stickLatched = false;
             _confirmingCraft = false;
             _confirmChoice = false;
             _pendingRecipe = null;
             _confirmOverlay.style.display = DisplayStyle.None;
-            _message.text = "Choose a category, series, and equipment item to process.";
+            _message.text = "Choose equipment to process.";
             _root.style.display = DisplayStyle.Flex;
-            SelectCategory(0);
-            _root.schedule.Execute(() =>
-            {
-                if (_isOpen && _categoryButtons.Count > 0)
-                {
-                    _categoryButtons[0].Focus();
-                }
-            }).ExecuteLater(1);
+            SelectTab(0);
         }
 
         private void Close()
@@ -275,126 +277,253 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             UnityEngine.Cursor.visible = _previousCursorVisible;
         }
 
-        private void BuildCategoryButtons()
+        private void SelectTab(int index)
         {
-            _categoryButtons.Clear();
-            _categoryContainer.Clear();
-            for (int index = 0; index < Categories.Length; index++)
+            _selectedTabIndex = Wrap(index, Categories.Length);
+            if (ActiveCategory == EquipmentCategory.Accessory)
             {
-                int captured = index;
-                var button = new Button(() =>
-                {
-                    _navigationColumn = 0;
-                    SelectCategory(captured);
-                })
-                {
-                    text = FormatCategory(Categories[index])
-                };
-                button.AddToClassList("processing-category-button");
-                _categoryContainer.Add(button);
-                _categoryButtons.Add(button);
+                ActiveDepth = BrowseDepth.Equipment;
             }
+            BuildNavigation();
+            RefreshTabClasses();
+            FocusSelectedButton();
         }
 
-        private void SelectCategory(int index)
+        private void BuildNavigation()
         {
-            _selectedCategoryIndex = Wrap(index, Categories.Length);
-            _selectedSeriesIndex = 0;
-            _selectedRecipeIndex = 0;
-            BuildSeriesButtons();
-            if (_seriesNames.Count > 0)
+            _navigationButtons.Clear();
+            _visibleRecipes.Clear();
+            _navigationContainer.Clear();
+
+            bool hasBack = ActiveDepth == BrowseDepth.Equipment
+                && ActiveCategory != EquipmentCategory.Accessory;
+            _navigationBackButton.style.display = hasBack
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+
+            if (ActiveDepth == BrowseDepth.Root)
             {
-                SelectSeries(0);
+                BuildRootNavigation();
+                ClearDetails();
             }
+            else
+            {
+                BuildEquipmentNavigation();
+            }
+
             RefreshSelectionClasses();
+            RefreshGold();
         }
 
-        private void BuildSeriesButtons()
+        private void BuildRootNavigation()
         {
-            _seriesNames.Clear();
-            _seriesButtons.Clear();
-            _seriesContainer.Clear();
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
+            if (ActiveCategory == EquipmentCategory.Weapon)
             {
-                if (recipe.Category == Categories[_selectedCategoryIndex]
-                    && seen.Add(recipe.SeriesDisplayName))
+                _navigationTitle.text = "Weapon Type";
+                _navigationHint.text = "Choose a weapon type to view its available series.";
+                for (int index = 0; index < WeaponTypes.Length; index++)
                 {
-                    _seriesNames.Add(recipe.SeriesDisplayName);
+                    int captured = index;
+                    AddNavigationButton(FormatWeaponType(WeaponTypes[index]), () =>
+                    {
+                        _rootSelectionByTab[_selectedTabIndex] = captured;
+                        EnterSelectedGroup();
+                    });
+                }
+            }
+            else
+            {
+                _navigationTitle.text = "Armor Series";
+                _navigationHint.text = "Choose a series to view its head, upper, and lower armor.";
+                IReadOnlyList<string> seriesNames = GetArmorSeriesNames();
+                for (int index = 0; index < seriesNames.Count; index++)
+                {
+                    int captured = index;
+                    AddNavigationButton(seriesNames[index], () =>
+                    {
+                        _rootSelectionByTab[_selectedTabIndex] = captured;
+                        EnterSelectedGroup();
+                    });
                 }
             }
 
-            for (int index = 0; index < _seriesNames.Count; index++)
+            NormalizeSelection(_rootSelectionByTab, _navigationButtons.Count);
+        }
+
+        private void BuildEquipmentNavigation()
+        {
+            PopulateVisibleRecipes();
+            switch (ActiveCategory)
+            {
+                case EquipmentCategory.Weapon:
+                    WeaponType weaponType = WeaponTypes[Wrap(
+                        _rootSelectionByTab[_selectedTabIndex],
+                        WeaponTypes.Length)];
+                    _navigationTitle.text = FormatWeaponType(weaponType);
+                    _navigationHint.text = "Choose a series weapon to inspect its recipe.";
+                    break;
+                case EquipmentCategory.Armor:
+                    IReadOnlyList<string> seriesNames = GetArmorSeriesNames();
+                    _navigationTitle.text = seriesNames.Count > 0
+                        ? seriesNames[Wrap(_rootSelectionByTab[_selectedTabIndex], seriesNames.Count)]
+                        : "Armor";
+                    _navigationHint.text = "Choose an armor part to inspect its recipe.";
+                    break;
+                default:
+                    _navigationTitle.text = "Accessories";
+                    _navigationHint.text = "Choose an accessory to inspect its recipe.";
+                    break;
+            }
+
+            for (int index = 0; index < _visibleRecipes.Count; index++)
             {
                 int captured = index;
-                var button = new Button(() =>
-                {
-                    _navigationColumn = 1;
-                    SelectSeries(captured);
-                })
-                {
-                    text = _seriesNames[index]
-                };
-                button.AddToClassList("processing-series-button");
-                _seriesContainer.Add(button);
-                _seriesButtons.Add(button);
+                Button button = AddNavigationButton(string.Empty, () => SelectNavigation(captured, true));
+                button.AddToClassList("processing-equipment-button");
+            }
+
+            NormalizeSelection(_equipmentSelectionByTab, _navigationButtons.Count);
+            RefreshRecipeCards();
+            if (_visibleRecipes.Count > 0)
+            {
+                RefreshDetails(_visibleRecipes[_equipmentSelectionByTab[_selectedTabIndex]]);
+            }
+            else
+            {
+                ClearDetails();
             }
         }
 
-        private void SelectSeries(int index)
+        private Button AddNavigationButton(string text, Action clicked)
         {
-            if (_seriesNames.Count == 0)
-            {
-                return;
-            }
+            var button = new Button(clicked) { text = text };
+            button.AddToClassList("processing-navigation-button");
+            _navigationContainer.Add(button);
+            _navigationButtons.Add(button);
+            return button;
+        }
 
-            _selectedSeriesIndex = Wrap(index, _seriesNames.Count);
-            _selectedRecipeIndex = 0;
-            _visibleRecipes.Clear();
-            _recipeButtons.Clear();
-            _recipeContainer.Clear();
-            string series = _seriesNames[_selectedSeriesIndex];
+        private void PopulateVisibleRecipes()
+        {
+            IReadOnlyList<string> armorSeries = ActiveCategory == EquipmentCategory.Armor
+                ? GetArmorSeriesNames()
+                : Array.Empty<string>();
+            string selectedArmorSeries = armorSeries.Count > 0
+                ? armorSeries[Wrap(_rootSelectionByTab[_selectedTabIndex], armorSeries.Count)]
+                : string.Empty;
+            WeaponType selectedWeaponType = WeaponTypes[Wrap(
+                _rootSelectionByTab[_selectedTabIndex],
+                WeaponTypes.Length)];
+
             foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
             {
-                if (recipe.Category == Categories[_selectedCategoryIndex]
-                    && string.Equals(recipe.SeriesDisplayName, series, StringComparison.Ordinal))
+                if (recipe.Category != ActiveCategory)
+                {
+                    continue;
+                }
+
+                if (ActiveCategory == EquipmentCategory.Weapon)
+                {
+                    if (TryGetWeapon(recipe, out WeaponDefinitionAsset weapon)
+                        && weapon.WeaponType == selectedWeaponType)
+                    {
+                        _visibleRecipes.Add(recipe);
+                    }
+                }
+                else if (ActiveCategory == EquipmentCategory.Armor)
+                {
+                    if (string.Equals(
+                        recipe.SeriesDisplayName,
+                        selectedArmorSeries,
+                        StringComparison.Ordinal))
+                    {
+                        _visibleRecipes.Add(recipe);
+                    }
+                }
+                else
                 {
                     _visibleRecipes.Add(recipe);
                 }
             }
-
-            for (int recipeIndex = 0; recipeIndex < _visibleRecipes.Count; recipeIndex++)
-            {
-                int captured = recipeIndex;
-                ProcessingRecipe recipe = _visibleRecipes[recipeIndex];
-                var button = new Button(() =>
-                {
-                    _navigationColumn = 2;
-                    SelectRecipe(captured);
-                });
-                button.AddToClassList("processing-recipe-button");
-                _recipeContainer.Add(button);
-                _recipeButtons.Add(button);
-            }
-
-            if (_visibleRecipes.Count > 0)
-            {
-                SelectRecipe(0);
-            }
-            RefreshSelectionClasses();
         }
 
-        private void SelectRecipe(int index)
+        private IReadOnlyList<string> GetArmorSeriesNames()
         {
-            if (_visibleRecipes.Count == 0)
+            var names = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ProcessingRecipe recipe in ProcessingRecipeCatalog.All)
+            {
+                if (recipe.Category == EquipmentCategory.Armor
+                    && seen.Add(recipe.SeriesDisplayName))
+                {
+                    names.Add(recipe.SeriesDisplayName);
+                }
+            }
+            return names;
+        }
+
+        private void EnterSelectedGroup()
+        {
+            if (ActiveCategory == EquipmentCategory.Accessory)
             {
                 return;
             }
 
-            _selectedRecipeIndex = Wrap(index, _visibleRecipes.Count);
-            RefreshRecipeCards();
-            RefreshDetails(_visibleRecipes[_selectedRecipeIndex]);
+            ActiveDepth = BrowseDepth.Equipment;
+            BuildNavigation();
+            FocusSelectedButton();
+        }
+
+        private void NavigateBackOrClose()
+        {
+            if (ActiveDepth == BrowseDepth.Equipment
+                && ActiveCategory != EquipmentCategory.Accessory)
+            {
+                ActiveDepth = BrowseDepth.Root;
+                BuildNavigation();
+                FocusSelectedButton();
+                return;
+            }
+
+            Close();
+        }
+
+        private void ConfirmCurrentSelection()
+        {
+            if (ActiveDepth == BrowseDepth.Root)
+            {
+                EnterSelectedGroup();
+            }
+            else
+            {
+                BeginCraftConfirmation();
+            }
+        }
+
+        private void SelectNavigation(int index, bool focus)
+        {
+            if (_navigationButtons.Count == 0)
+            {
+                return;
+            }
+
+            int wrapped = Wrap(index, _navigationButtons.Count);
+            if (ActiveDepth == BrowseDepth.Root)
+            {
+                _rootSelectionByTab[_selectedTabIndex] = wrapped;
+            }
+            else
+            {
+                _equipmentSelectionByTab[_selectedTabIndex] = wrapped;
+                RefreshRecipeCards();
+                RefreshDetails(_visibleRecipes[wrapped]);
+            }
+
             RefreshSelectionClasses();
+            if (focus)
+            {
+                FocusSelectedButton();
+            }
         }
 
         private void RefreshRecipeCards()
@@ -410,10 +539,10 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 bool owned = service.State.Equipment.Owns(
                     recipe.Category,
                     recipe.EquipmentId);
-                _recipeButtons[index].text = owned
+                _navigationButtons[index].text = owned
                     ? recipe.DisplayName + "\nOWNED"
                     : recipe.DisplayName + $"\n{recipe.GoldCost} Gold";
-                _recipeButtons[index].EnableInClassList(UnavailableClass, owned);
+                _navigationButtons[index].EnableInClassList(UnavailableClass, owned);
             }
         }
 
@@ -433,6 +562,27 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _craftButton.text = owned ? "Already Owned" : $"Process {FormatCategory(recipe.Category)}";
             _craftButton.SetEnabled(!owned && CanAfford(state, recipe));
             RefreshRecipeCards();
+        }
+
+        private void ClearDetails()
+        {
+            RefreshGold();
+            _recipeName.text = ActiveCategory == EquipmentCategory.Weapon
+                ? "Select a Weapon Type"
+                : "Select an Armor Series";
+            _recipeStats.text = string.Empty;
+            _recipeEffect.text = "Choose a category on the left to view equipment details.";
+            _recipeCosts.text = string.Empty;
+            _craftButton.text = "Process Equipment";
+            _craftButton.SetEnabled(false);
+        }
+
+        private void RefreshGold()
+        {
+            if (PlayerStateService.TryGetActive(out PlayerStateService service))
+            {
+                _goldLabel.text = $"Gold  {service.State.Currencies.Gold}";
+            }
         }
 
         private bool TryGetArmor(ProcessingRecipe recipe, out ArmorDefinitionAsset armor)
@@ -459,7 +609,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     return true;
                 }
             }
-
             return false;
         }
 
@@ -518,13 +667,15 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void BeginCraftConfirmation()
         {
-            if (_visibleRecipes.Count == 0
+            if (ActiveDepth != BrowseDepth.Equipment
+                || _visibleRecipes.Count == 0
                 || !PlayerStateService.TryGetActive(out PlayerStateService service))
             {
                 return;
             }
 
-            ProcessingRecipe recipe = _visibleRecipes[_selectedRecipeIndex];
+            int selected = _equipmentSelectionByTab[_selectedTabIndex];
+            ProcessingRecipe recipe = _visibleRecipes[selected];
             if (!CanAfford(service.State, recipe)
                 || service.State.Equipment.Owns(recipe.Category, recipe.EquipmentId))
             {
@@ -577,26 +728,49 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _cancelButton.EnableInClassList(SelectedClass, !_confirmChoice);
         }
 
+        private void RefreshTabClasses()
+        {
+            for (int index = 0; index < _tabButtons.Count; index++)
+            {
+                _tabButtons[index].EnableInClassList(
+                    SelectedTabClass,
+                    index == _selectedTabIndex);
+            }
+        }
+
         private void RefreshSelectionClasses()
         {
-            for (int index = 0; index < _categoryButtons.Count; index++)
+            int selected = ActiveDepth == BrowseDepth.Root
+                ? _rootSelectionByTab[_selectedTabIndex]
+                : _equipmentSelectionByTab[_selectedTabIndex];
+            for (int index = 0; index < _navigationButtons.Count; index++)
             {
-                _categoryButtons[index].EnableInClassList(
+                _navigationButtons[index].EnableInClassList(
                     SelectedClass,
-                    _navigationColumn == 0 && index == _selectedCategoryIndex);
+                    index == selected);
             }
-            for (int index = 0; index < _seriesButtons.Count; index++)
+        }
+
+        private void FocusSelectedButton()
+        {
+            if (_navigationButtons.Count == 0)
             {
-                _seriesButtons[index].EnableInClassList(
-                    SelectedClass,
-                    _navigationColumn == 1 && index == _selectedSeriesIndex);
+                return;
             }
-            for (int index = 0; index < _recipeButtons.Count; index++)
-            {
-                _recipeButtons[index].EnableInClassList(
-                    SelectedClass,
-                    _navigationColumn == 2 && index == _selectedRecipeIndex);
-            }
+
+            int selected = ActiveDepth == BrowseDepth.Root
+                ? _rootSelectionByTab[_selectedTabIndex]
+                : _equipmentSelectionByTab[_selectedTabIndex];
+            Button button = _navigationButtons[Wrap(selected, _navigationButtons.Count)];
+            button.Focus();
+            _navigationScroll.schedule.Execute(() => _navigationScroll.ScrollTo(button)).ExecuteLater(1);
+        }
+
+        private void NormalizeSelection(int[] selections, int count)
+        {
+            selections[_selectedTabIndex] = count > 0
+                ? Wrap(selections[_selectedTabIndex], count)
+                : 0;
         }
 
         private static bool CanAfford(PersistentPlayerState state, ProcessingRecipe recipe)
@@ -646,49 +820,56 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             switch (category)
             {
                 case EquipmentCategory.Armor: return "Armor";
-                case EquipmentCategory.Weapon: return "Weapons";
-                case EquipmentCategory.Accessory: return "Accessories";
+                case EquipmentCategory.Weapon: return "Weapon";
+                case EquipmentCategory.Accessory: return "Accessory";
                 default: throw new ArgumentOutOfRangeException(nameof(category));
             }
+        }
+
+        private static string FormatWeaponType(WeaponType weaponType)
+        {
+            switch (weaponType)
+            {
+                case WeaponType.Greatsword: return "Greatsword";
+                case WeaponType.SwordAndShield: return "Sword and Shield";
+                case WeaponType.GlaiveAndShield: return "Glaive and Shield";
+                default: return weaponType.ToString();
+            }
+        }
+
+        private int ReadTabNavigation()
+        {
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.qKey.wasPressedThisFrame) return -1;
+                if (Keyboard.current.eKey.wasPressedThisFrame) return 1;
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                if (gamepad.leftShoulder.wasPressedThisFrame) return -1;
+                if (gamepad.rightShoulder.wasPressedThisFrame) return 1;
+            }
+            return 0;
         }
 
         private int ReadVerticalNavigation()
         {
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.upArrowKey.wasPressedThisFrame || Keyboard.current.wKey.wasPressedThisFrame) return -1;
-                if (Keyboard.current.downArrowKey.wasPressedThisFrame || Keyboard.current.sKey.wasPressedThisFrame) return 1;
+                if (Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame) return -1;
+                if (Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame) return 1;
             }
-            return ReadGamepadAxis(true);
-        }
 
-        private int ReadHorizontalNavigation()
-        {
-            if (Keyboard.current != null)
-            {
-                if (Keyboard.current.leftArrowKey.wasPressedThisFrame || Keyboard.current.aKey.wasPressedThisFrame) return -1;
-                if (Keyboard.current.rightArrowKey.wasPressedThisFrame || Keyboard.current.dKey.wasPressedThisFrame) return 1;
-            }
-            return ReadGamepadAxis(false);
-        }
-
-        private int ReadGamepadAxis(bool vertical)
-        {
             Gamepad gamepad = Gamepad.current;
             if (gamepad == null) return 0;
-            if (vertical)
-            {
-                if (gamepad.dpad.up.wasPressedThisFrame) return -1;
-                if (gamepad.dpad.down.wasPressedThisFrame) return 1;
-            }
-            else
-            {
-                if (gamepad.dpad.left.wasPressedThisFrame) return -1;
-                if (gamepad.dpad.right.wasPressedThisFrame) return 1;
-            }
+            if (gamepad.dpad.up.wasPressedThisFrame) return -1;
+            if (gamepad.dpad.down.wasPressedThisFrame) return 1;
 
-            Vector2 stick = gamepad.leftStick.ReadValue();
-            float primary = vertical ? -stick.y : stick.x;
+            float primary = -gamepad.leftStick.ReadValue().y;
             if (Mathf.Abs(primary) < 0.25f)
             {
                 _stickLatched = false;
@@ -697,6 +878,48 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (_stickLatched || Mathf.Abs(primary) < 0.65f) return 0;
             _stickLatched = true;
             return primary < 0f ? -1 : 1;
+        }
+
+        private bool ReadConfirmationNavigation()
+        {
+            if (Keyboard.current != null
+                && (Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.leftArrowKey.wasPressedThisFrame
+                    || Keyboard.current.rightArrowKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame
+                    || Keyboard.current.aKey.wasPressedThisFrame
+                    || Keyboard.current.dKey.wasPressedThisFrame))
+            {
+                return true;
+            }
+
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad == null)
+            {
+                return false;
+            }
+            if (gamepad.dpad.up.wasPressedThisFrame
+                || gamepad.dpad.down.wasPressedThisFrame
+                || gamepad.dpad.left.wasPressedThisFrame
+                || gamepad.dpad.right.wasPressedThisFrame)
+            {
+                return true;
+            }
+
+            Vector2 stick = gamepad.leftStick.ReadValue();
+            if (stick.magnitude < 0.25f)
+            {
+                _stickLatched = false;
+                return false;
+            }
+            if (_stickLatched || stick.magnitude < 0.65f)
+            {
+                return false;
+            }
+            _stickLatched = true;
+            return true;
         }
 
         private static int Wrap(int value, int length)
