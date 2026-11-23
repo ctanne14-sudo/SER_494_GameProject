@@ -2,6 +2,7 @@ using System;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.Combat.SoloCombo;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 namespace SER494.Gameplay.CombatIntegration.Unity
@@ -24,7 +25,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             double allDamageTakenModifier = 0d,
             int flatVictoryGoldBonus = 0,
             int materialRewardRollModifier = 0,
-            double actionLearningChance = ActionLearningRewardRoller.LearnChance)
+            double actionLearningChance = ActionLearningRewardRoller.LearnChance,
+            string statefulAccessoryId = null)
         {
             MaximumHealthBonus = maximumHealthBonus;
             AllDamageDealtModifier = allDamageDealtModifier;
@@ -42,6 +44,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             FlatVictoryGoldBonus = flatVictoryGoldBonus;
             MaterialRewardRollModifier = materialRewardRollModifier;
             ActionLearningChance = actionLearningChance;
+            StatefulAccessoryId = statefulAccessoryId;
         }
 
         public int MaximumHealthBonus { get; }
@@ -75,6 +78,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
         public int FlatVictoryGoldBonus { get; }
 
         public double ActionLearningChance { get; }
+
+        public string StatefulAccessoryId { get; }
 
         public static bool TryResolve(
             PersistentPlayerState playerState,
@@ -110,6 +115,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             int flatVictoryGoldBonus = 0;
             int materialRewardRollModifier = 0;
             double actionLearningChance = ActionLearningRewardRoller.LearnChance;
+            string statefulAccessoryId = null;
             var equippedSeriesCounts = new System.Collections.Generic.Dictionary<string, int>(
                 StringComparer.Ordinal);
 
@@ -212,6 +218,15 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                                 materialRewardRollModifier -= 1;
                                 flatVictoryGoldBonus = checked(flatVictoryGoldBonus + 300);
                                 break;
+                            case "accessory.white-copper-ring":
+                            case "accessory.brass-ring":
+                            case "accessory.ape-beast-fresh-blood-ornament":
+                            case "accessory.slime-ornament":
+                            case "accessory.yellow-handkerchief":
+                            case "accessory.red-handkerchief":
+                            case "accessory.thorn-bracer":
+                                statefulAccessoryId = accessory.AccessoryId;
+                                break;
                         }
                         break;
                     default:
@@ -271,7 +286,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 allDamageTakenModifier,
                 flatVictoryGoldBonus,
                 materialRewardRollModifier,
-                actionLearningChance);
+                actionLearningChance,
+                statefulAccessoryId);
             validationError = null;
             return true;
         }
@@ -373,6 +389,39 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 HealingPotionMultiplierBonus,
                 GuardCounterPiercingMultiplier,
                 ClashDamageDealtMultiplierBonus);
+        }
+
+        public SoloComboEquipmentEffectConfiguration CreateBattleEffectConfiguration()
+        {
+            return new SoloComboEquipmentEffectConfiguration(
+                disableEnemyGuardDuringFirstRound: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.white-copper-ring",
+                    StringComparison.Ordinal),
+                applyBrassRingDefenseCurve: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.brass-ring",
+                    StringComparison.Ordinal),
+                healFromFirstPlayerDamageEachRound: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.ape-beast-fresh-blood-ornament",
+                    StringComparison.Ordinal),
+                nullifyPeriodicIncomingBluntDamage: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.slime-ornament",
+                    StringComparison.Ordinal),
+                preserveActivatedBattleItems: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.yellow-handkerchief",
+                    StringComparison.Ordinal),
+                trackDamageResolutionsForMaterialRewards: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.red-handkerchief",
+                    StringComparison.Ordinal),
+                applyThornBracerRoundEndHealth: string.Equals(
+                    StatefulAccessoryId,
+                    "accessory.thorn-bracer",
+                    StringComparison.Ordinal));
         }
 
         private static int RoundToInt(float value)

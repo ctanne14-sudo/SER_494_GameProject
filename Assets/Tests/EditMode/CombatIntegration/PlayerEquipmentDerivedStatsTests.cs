@@ -2,6 +2,7 @@ using NUnit.Framework;
 using SER494.Gameplay.Combat;
 using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Damage;
+using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.CombatIntegration.Unity;
 using SER494.Gameplay.PlayerState;
 using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
@@ -206,6 +207,33 @@ namespace SER494.Gameplay.CombatIntegration.Tests
 
             Assert.That(state.MaximumCombatStamina, Is.EqualTo(100));
             Assert.That(state.CurrentCombatStamina, Is.EqualTo(100));
+        }
+
+        [TestCase("accessory.white-copper-ring")]
+        [TestCase("accessory.brass-ring")]
+        [TestCase("accessory.ape-beast-fresh-blood-ornament")]
+        [TestCase("accessory.slime-ornament")]
+        [TestCase("accessory.yellow-handkerchief")]
+        [TestCase("accessory.red-handkerchief")]
+        [TestCase("accessory.thorn-bracer")]
+        public void StatefulAccessory_CreatesItsPerBattleConfiguration(
+            string accessoryId)
+        {
+            PlayerEquipmentDerivedStats stats = Resolve(
+                CreateStateWithAccessory(accessoryId));
+            SoloComboEquipmentEffectConfiguration configuration =
+                stats.CreateBattleEffectConfiguration();
+
+            Assert.That(stats.StatefulAccessoryId, Is.EqualTo(accessoryId));
+            Assert.That(
+                configuration.DisableEnemyGuardDuringFirstRound
+                || configuration.ApplyBrassRingDefenseCurve
+                || configuration.HealFromFirstPlayerDamageEachRound
+                || configuration.NullifyPeriodicIncomingBluntDamage
+                || configuration.PreserveActivatedBattleItems
+                || configuration.TrackDamageResolutionsForMaterialRewards
+                || configuration.ApplyThornBracerRoundEndHealth,
+                Is.True);
         }
 
         private static PlayerEquipmentDerivedStats Resolve(PersistentPlayerState state)

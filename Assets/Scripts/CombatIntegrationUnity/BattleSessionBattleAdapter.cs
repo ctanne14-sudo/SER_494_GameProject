@@ -33,6 +33,23 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             out SoloComboBattleState battle,
             out string validationError)
         {
+            return TryCreateBattle(
+                session,
+                playerState,
+                equipmentCatalog,
+                new Random(),
+                out battle,
+                out validationError);
+        }
+
+        public static bool TryCreateBattle(
+            BattleSession session,
+            PersistentPlayerState playerState,
+            PlayerEquipmentCatalogAsset equipmentCatalog,
+            Random equipmentEffectRandom,
+            out SoloComboBattleState battle,
+            out string validationError)
+        {
             battle = null;
             if (session == null)
             {
@@ -56,6 +73,12 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             {
                 validationError =
                     $"Player Equipment Catalog is missing from Resources/{PlayerEquipmentCatalogAsset.DefaultResourcesPath}.asset.";
+                return false;
+            }
+
+            if (equipmentEffectRandom == null)
+            {
+                validationError = "An equipment-effect random source is required.";
                 return false;
             }
 
@@ -117,7 +140,9 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     derivedStats.ApplyStaminaRecoveryPerRound(
                         playerState.BaseStaminaRecoveryPerRound),
                     enemyRandom: new Random(594),
-                    startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState));
+                    startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState),
+                    equipmentEffects: derivedStats.CreateBattleEffectConfiguration(),
+                    equipmentEffectRandom: equipmentEffectRandom);
             }
             catch (Exception exception) when (
                 exception is ArgumentException || exception is InvalidOperationException)
@@ -205,6 +230,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     playerState,
                     rewardRandom,
                     ResolveRewardEquipmentStats(playerState),
+                    battle,
                     out BattleRewardSummary rewards,
                     out validationError))
             {
@@ -248,6 +274,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             PersistentPlayerState playerState,
             Random random,
             PlayerEquipmentDerivedStats equipmentStats,
+            SoloComboBattleState battle,
             out BattleRewardSummary rewards,
             out string validationError)
         {
@@ -259,8 +286,14 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             }
 
             int baseGold = definition.RollGold(random);
+            int extraMaterialRolls = RollRedHandkerchiefMaterialSlots(
+                equipmentStats,
+                battle,
+                random);
             IReadOnlyDictionary<string, int> materials =
-                definition.RollMaterials(random, equipmentStats.MaterialRewardRollModifier);
+                definition.RollMaterials(
+                    random,
+                    checked(equipmentStats.MaterialRewardRollModifier + extraMaterialRolls));
             if (!ActionLearningRewardRoller.TryRoll(
                     playerState,
                     ComboActionCatalogAsset.LoadDefault(),
@@ -279,6 +312,34 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 learnedActionId);
             validationError = null;
             return true;
+        }
+
+        private static int RollRedHandkerchiefMaterialSlots(
+            PlayerEquipmentDerivedStats equipmentStats,
+            SoloComboBattleState battle,
+            Random random)
+        {
+            if (!string.Equals(
+                    equipmentStats.StatefulAccessoryId,
+                    "accessory.red-handkerchief",
+                    StringComparison.Ordinal)
+                || battle == null
+                || !battle.TracksDamageResolutionsForMaterialRewards)
+            {
+                return 0;
+            }
+
+            double chance = Math.Min(100, battle.DamageResolutionCount) / 100d;
+            int successes = 0;
+            for (int slot = 0; slot < 3; slot++)
+            {
+                if (random.NextDouble() < chance)
+                {
+                    successes++;
+                }
+            }
+
+            return successes;
         }
 
         private static PlayerEquipmentDerivedStats ResolveRewardEquipmentStats(

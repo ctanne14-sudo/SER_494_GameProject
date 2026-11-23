@@ -1883,6 +1883,15 @@ namespace SER494.Gameplay.CombatSandbox
                 return;
             }
 
+            if (resolution.ResolutionEffect == ActionResolutionEffect.None
+                && !string.IsNullOrWhiteSpace(resolution.EquipmentEffectMessage))
+            {
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {resolution.EquipmentEffectMessage}",
+                    CombatLogTone.Player);
+                return;
+            }
+
             if (resolution.DamageAvoidance == DamageAvoidanceResult.Guarded)
             {
                 AppendLog(
@@ -1970,6 +1979,13 @@ namespace SER494.Gameplay.CombatSandbox
             if (resolution.ResolutionEffect == ActionResolutionEffect.Damage)
             {
                 AppendDisruptionResolution(resolution);
+            }
+
+            if (!string.IsNullOrWhiteSpace(resolution.EquipmentEffectMessage))
+            {
+                AppendLog(
+                    $"  T{resolution.TimeStep}: {resolution.EquipmentEffectMessage}",
+                    CombatLogTone.Player);
             }
         }
 
