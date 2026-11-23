@@ -157,6 +157,11 @@ namespace SER494.Gameplay.CombatSandbox
 
         public int CurrentRoundNumber => _completedRoundCount + 1;
 
+        public bool CanReconfigureFormalCombo => ShouldShowFormalBattleHud
+            && !_isTimelinePlaying
+            && _battle != null
+            && _battle.ComboReconfigurationChargesRemaining > 0;
+
         public int PlaybackTimeStep => _playbackTimeStep;
 
         public int PlaybackEndTimeStep => _playbackEndTimeStep;
@@ -1286,6 +1291,108 @@ namespace SER494.Gameplay.CombatSandbox
             }
         }
 
+        public bool TryGetFormalReconfigurationCandidates(
+            BattleComboActionSlot slot,
+            out IReadOnlyList<ComboActionDefinition> candidates,
+            out string validationError)
+        {
+            candidates = Array.Empty<ComboActionDefinition>();
+            if (!CanReconfigureFormalCombo || _playerStateService?.State == null)
+            {
+                validationError = "Combo reconfiguration is not available right now.";
+                return false;
+            }
+
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            if (catalog == null)
+            {
+                validationError = "The Combo Action Catalog is unavailable.";
+                return false;
+            }
+
+            if (!catalog.TryCreateDefinitions(
+                    _playerStateService.State.ActionLibrary.OwnedActionIds,
+                    out IReadOnlyList<ComboActionDefinition> ownedActions,
+                    out validationError))
+            {
+                return false;
+            }
+
+            ComboActionCategory category = CategoryFor(slot);
+            var filtered = new List<ComboActionDefinition>();
+            for (int index = 0; index < ownedActions.Count; index++)
+            {
+                if (ownedActions[index].Category == category)
+                {
+                    filtered.Add(ownedActions[index]);
+                }
+            }
+
+            candidates = filtered.AsReadOnly();
+            validationError = null;
+            return true;
+        }
+
+        public bool TryReconfigureFormalCombo(
+            int comboIndex,
+            BattleComboActionSlot slot,
+            string replacementActionId,
+            out string validationError)
+        {
+            if (!CanReconfigureFormalCombo || _playerStateService?.State == null)
+            {
+                validationError = "Combo reconfiguration is not available right now.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(replacementActionId)
+                || !_playerStateService.State.ActionLibrary.Owns(replacementActionId))
+            {
+                validationError = "The selected Action is not in the player's Action Set.";
+                return false;
+            }
+
+            ComboActionCatalogAsset catalog = ComboActionCatalogAsset.LoadDefault();
+            if (catalog == null)
+            {
+                validationError = "The Combo Action Catalog is unavailable.";
+                return false;
+            }
+
+            if (!catalog.TryCreateDefinition(
+                    replacementActionId,
+                    out ComboActionDefinition replacement,
+                    out validationError))
+            {
+                return false;
+            }
+
+            BattleComboReconfigurationFailure failure = _battle.TryReconfigureCombo(
+                comboIndex,
+                slot,
+                replacement,
+                new ComboValidationLimits(
+                    PlayerStateLoadoutSessionBuilder.MaximumTimelineCost,
+                    _battle.Player.Stats.MaxMana,
+                    _battle.Player.Stats.MaxStamina),
+                out ComboValidationResult validation);
+            if (failure != BattleComboReconfigurationFailure.None)
+            {
+                validationError = ReconfigurationFailureText(failure, validation);
+                return false;
+            }
+
+            ClearComboPreview();
+            AppendLog(
+                $"Combo reconfigured: {_battle.Combos[comboIndex].Name} now uses "
+                + $"{replacement.DisplayName}. Remaining changes: "
+                + $"{_battle.ComboReconfigurationChargesRemaining}.",
+                CombatLogTone.System);
+            RefreshPresentation();
+            validationError = null;
+            return true;
+        }
+
         public bool TrySelectFormalTimingCandidate()
         {
             if (!IsFormalTimingReady || _timingSelectionRequested)
@@ -2240,6 +2347,50 @@ namespace SER494.Gameplay.CombatSandbox
                     return "Mutual Destruction";
                 default:
                     return "Battle in Progress";
+            }
+        }
+
+        private static ComboActionCategory CategoryFor(BattleComboActionSlot slot)
+        {
+            switch (slot)
+            {
+                case BattleComboActionSlot.Opening:
+                    return ComboActionCategory.Opening;
+                case BattleComboActionSlot.Main:
+                    return ComboActionCategory.Main;
+                case BattleComboActionSlot.Closing:
+                    return ComboActionCategory.Closing;
+                case BattleComboActionSlot.Linked:
+                    return ComboActionCategory.Linked;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(slot));
+            }
+        }
+
+        private static string ReconfigurationFailureText(
+            BattleComboReconfigurationFailure failure,
+            ComboValidationResult validation)
+        {
+            if (validation != null && validation.Issues.Count > 0)
+            {
+                ComboValidationIssue issue = validation.Issues[0];
+                return $"The replacement would create an invalid Combo: {issue.Code}.";
+            }
+
+            switch (failure)
+            {
+                case BattleComboReconfigurationFailure.NoChargesRemaining:
+                    return "No Combo reconfiguration charges remain.";
+                case BattleComboReconfigurationFailure.NoChange:
+                    return "Choose a different Action.";
+                case BattleComboReconfigurationFailure.SlotIsEmpty:
+                    return "Only an existing Action can be replaced.";
+                case BattleComboReconfigurationFailure.TimelineResolving:
+                    return "A Combo cannot be changed while the timeline is resolving.";
+                case BattleComboReconfigurationFailure.BattleEnded:
+                    return "The battle has already ended.";
+                default:
+                    return $"Combo reconfiguration failed: {failure}.";
             }
         }
     }

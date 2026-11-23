@@ -249,6 +249,9 @@ namespace SER494.Gameplay.CombatIntegration.Tests
             Assert.That(battle.Player.Stats.Defense, Is.EqualTo(10));
             Assert.That(battle.GetItemCount("item.potion"), Is.EqualTo(2));
             Assert.That(battle.Enemy.DisplayName, Is.EqualTo("Wanderer"));
+            Assert.That(
+                battle.ComboReconfigurationChargesRemaining,
+                Is.EqualTo(BattleComboReconfigurationRules.BaseCharges));
         }
 
         [TestCase("pure-gold", 220, 100, 10)]

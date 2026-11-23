@@ -26,7 +26,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             int flatVictoryGoldBonus = 0,
             int materialRewardRollModifier = 0,
             double actionLearningChance = ActionLearningRewardRoller.LearnChance,
-            string statefulAccessoryId = null)
+            string statefulAccessoryId = null,
+            int comboReconfigurationChargeBonus = 0)
         {
             MaximumHealthBonus = maximumHealthBonus;
             AllDamageDealtModifier = allDamageDealtModifier;
@@ -45,6 +46,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             MaterialRewardRollModifier = materialRewardRollModifier;
             ActionLearningChance = actionLearningChance;
             StatefulAccessoryId = statefulAccessoryId;
+            ComboReconfigurationChargeBonus = comboReconfigurationChargeBonus;
         }
 
         public int MaximumHealthBonus { get; }
@@ -81,6 +83,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
 
         public string StatefulAccessoryId { get; }
 
+        public int ComboReconfigurationChargeBonus { get; }
+
         public static bool TryResolve(
             PersistentPlayerState playerState,
             PlayerEquipmentCatalogAsset catalog,
@@ -116,6 +120,7 @@ namespace SER494.Gameplay.CombatIntegration.Unity
             int materialRewardRollModifier = 0;
             double actionLearningChance = ActionLearningRewardRoller.LearnChance;
             string statefulAccessoryId = null;
+            int comboReconfigurationChargeBonus = 0;
             var equippedSeriesCounts = new System.Collections.Generic.Dictionary<string, int>(
                 StringComparer.Ordinal);
 
@@ -218,6 +223,11 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                                 materialRewardRollModifier -= 1;
                                 flatVictoryGoldBonus = checked(flatVictoryGoldBonus + 300);
                                 break;
+                            case "accessory.mithril-ring":
+                                comboReconfigurationChargeBonus = checked(
+                                    comboReconfigurationChargeBonus
+                                    + BattleComboReconfigurationRules.MithrilRingBonusCharges);
+                                break;
                             case "accessory.white-copper-ring":
                             case "accessory.brass-ring":
                             case "accessory.ape-beast-fresh-blood-ornament":
@@ -287,7 +297,8 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                 flatVictoryGoldBonus,
                 materialRewardRollModifier,
                 actionLearningChance,
-                statefulAccessoryId);
+                statefulAccessoryId,
+                comboReconfigurationChargeBonus);
             validationError = null;
             return true;
         }

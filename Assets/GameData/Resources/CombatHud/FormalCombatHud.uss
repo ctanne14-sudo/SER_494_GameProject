@@ -619,6 +619,22 @@
     border-bottom-color: rgb(105, 81, 47);
 }
 
+.combat-hud-combo-header-actions {
+    flex-direction: row;
+    align-items: center;
+}
+
+.combat-hud-reconfigure-count {
+    margin-right: 7px;
+    color: rgb(191, 169, 116);
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-combo-header-actions .combat-hud-clear-button {
+    margin-left: 5px;
+}
+
 .combat-hud-combo-list {
     flex-grow: 1;
     flex-direction: row;
@@ -865,6 +881,127 @@
     border-right-color: rgb(151, 113, 61);
     border-top-color: rgb(151, 113, 61);
     border-bottom-color: rgb(151, 113, 61);
+}
+
+.combat-hud-reconfigure-dialog {
+    width: 820px;
+    max-width: 90%;
+    height: 690px;
+    max-height: 86%;
+    padding: 20px 24px 16px 24px;
+    background-color: rgb(27, 25, 22);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(151, 113, 61);
+    border-right-color: rgb(151, 113, 61);
+    border-top-color: rgb(151, 113, 61);
+    border-bottom-color: rgb(151, 113, 61);
+}
+
+.combat-hud-reconfigure-heading {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    color: rgb(214, 194, 148);
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-reconfigure-choice-row {
+    min-height: 42px;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combat-hud-reconfigure-choice,
+.combat-hud-reconfigure-action,
+.combat-hud-reconfigure-apply {
+    background-color: rgb(49, 44, 36);
+    color: rgb(218, 204, 169);
+    border-left-color: rgb(105, 81, 47);
+    border-right-color: rgb(105, 81, 47);
+    border-top-color: rgb(105, 81, 47);
+    border-bottom-color: rgb(105, 81, 47);
+}
+
+.combat-hud-reconfigure-choice {
+    min-width: 130px;
+    height: 36px;
+    margin-right: 7px;
+    margin-bottom: 5px;
+}
+
+.combat-hud-reconfigure-choice-selected,
+.combat-hud-reconfigure-choice:hover,
+.combat-hud-reconfigure-choice:focus,
+.combat-hud-reconfigure-action:hover,
+.combat-hud-reconfigure-action:focus {
+    background-color: rgb(85, 63, 34);
+    color: rgb(255, 228, 160);
+    border-left-color: rgb(219, 166, 76);
+    border-right-color: rgb(219, 166, 76);
+    border-top-color: rgb(219, 166, 76);
+    border-bottom-color: rgb(219, 166, 76);
+}
+
+.combat-hud-reconfigure-action-scroll {
+    flex-grow: 1;
+    min-height: 160px;
+    margin-bottom: 7px;
+    padding: 6px;
+    background-color: rgb(19, 18, 16);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(83, 66, 43);
+    border-right-color: rgb(83, 66, 43);
+    border-top-color: rgb(83, 66, 43);
+    border-bottom-color: rgb(83, 66, 43);
+}
+
+.combat-hud-reconfigure-action-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.combat-hud-reconfigure-action {
+    width: 48%;
+    min-height: 58px;
+    margin-right: 1%;
+    margin-bottom: 6px;
+    padding: 6px 9px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
+
+.combat-hud-reconfigure-selection {
+    min-height: 25px;
+    color: rgb(223, 207, 165);
+}
+
+.combat-hud-reconfigure-error {
+    min-height: 22px;
+    color: rgb(224, 107, 91);
+    -unity-font-style: bold;
+}
+
+.combat-hud-reconfigure-apply {
+    height: 42px;
+    margin-top: 4px;
+    font-size: 16px;
+    -unity-font-style: bold;
+}
+
+.combat-hud-reconfigure-apply:hover,
+.combat-hud-reconfigure-apply:focus {
+    background-color: rgb(105, 76, 38);
+    color: rgb(255, 235, 184);
+}
+
+.combat-hud-reconfigure-apply:disabled {
+    opacity: 0.38;
 }
 
 .combat-hud-status-dialog-header {

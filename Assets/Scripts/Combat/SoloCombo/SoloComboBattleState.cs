@@ -5,6 +5,34 @@ using SER494.Gameplay.Combat.Damage;
 
 namespace SER494.Gameplay.Combat.SoloCombo
 {
+    public enum BattleComboActionSlot
+    {
+        Opening,
+        Main,
+        Closing,
+        Linked
+    }
+
+    public enum BattleComboReconfigurationFailure
+    {
+        None,
+        BattleEnded,
+        TimelineResolving,
+        ComboIndexOutOfRange,
+        NoChargesRemaining,
+        ReplacementActionMissing,
+        SlotIsEmpty,
+        NoChange,
+        InvalidCombo,
+        InvalidLoadout
+    }
+
+    public static class BattleComboReconfigurationRules
+    {
+        public const int BaseCharges = 1;
+        public const int MithrilRingBonusCharges = 2;
+    }
+
     public sealed class SoloComboEquipmentEffectConfiguration
     {
         public static readonly SoloComboEquipmentEffectConfiguration None =
@@ -539,6 +567,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Array.Empty<SoloComboActionResolution>();
 
         private readonly ComboConfiguration[] _combos;
+        private readonly ComboConfiguration[] _initialCombos;
         private readonly int[] _cooldowns;
         private readonly EnemyBehaviorTable _enemyBehavior;
         private readonly Random _enemyRandom;
@@ -558,6 +587,7 @@ namespace SER494.Gameplay.Combat.SoloCombo
         private string _previousEnemySequenceId;
         private SoloComboTimingRequest _pendingTimingRequest;
         private SoloComboChargeRequest _pendingChargeRequest;
+        private int _comboReconfigurationChargesRemaining;
 
         public SoloComboBattleState(
             CombatantState player,
@@ -569,7 +599,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             BattleDamageConfiguration damageConfiguration = null,
             IReadOnlyDictionary<string, int> startingItems = null,
             SoloComboEquipmentEffectConfiguration equipmentEffects = null,
-            Random equipmentEffectRandom = null)
+            Random equipmentEffectRandom = null,
+            int comboReconfigurationCharges = 0)
             : this(
                 player,
                 enemy,
@@ -581,7 +612,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 enemyRandom: null,
                 startingItems: startingItems,
                 equipmentEffects: equipmentEffects,
-                equipmentEffectRandom: equipmentEffectRandom)
+                equipmentEffectRandom: equipmentEffectRandom,
+                comboReconfigurationCharges: comboReconfigurationCharges)
         {
         }
 
@@ -596,7 +628,8 @@ namespace SER494.Gameplay.Combat.SoloCombo
             Random enemyRandom = null,
             IReadOnlyDictionary<string, int> startingItems = null,
             SoloComboEquipmentEffectConfiguration equipmentEffects = null,
-            Random equipmentEffectRandom = null)
+            Random equipmentEffectRandom = null,
+            int comboReconfigurationCharges = 0)
         {
             Player = player ?? throw new ArgumentNullException(nameof(player));
             Enemy = enemy ?? throw new ArgumentNullException(nameof(enemy));
@@ -612,7 +645,11 @@ namespace SER494.Gameplay.Combat.SoloCombo
                 staminaRecoveryPerTurn,
                 nameof(staminaRecoveryPerTurn));
             _combos = CopyAndValidateCombos(combos);
+            _initialCombos = (ComboConfiguration[])_combos.Clone();
             _cooldowns = new int[_combos.Length];
+            _comboReconfigurationChargesRemaining = RequireNonNegative(
+                comboReconfigurationCharges,
+                nameof(comboReconfigurationCharges));
             _itemCounts = CopyAndValidateItems(startingItems);
             _readOnlyItemCounts = new ReadOnlyDictionary<string, int>(_itemCounts);
             _equipmentEffects = new SoloComboEquipmentEffectState(
@@ -630,6 +667,13 @@ namespace SER494.Gameplay.Combat.SoloCombo
         public CombatantState Enemy { get; }
 
         public IReadOnlyList<ComboConfiguration> Combos => _combos;
+
+        public int ComboReconfigurationChargesRemaining =>
+            _comboReconfigurationChargesRemaining;
+
+        public bool HasComboReconfigurationChanges => !ComboSetsMatch(
+            _combos,
+            _initialCombos);
 
         public EnemyActionSequence EnemySequence => _currentEnemySequence;
 
@@ -679,6 +723,85 @@ namespace SER494.Gameplay.Combat.SoloCombo
         {
             ValidateComboIndex(comboIndex);
             return _cooldowns[comboIndex];
+        }
+
+        public BattleComboReconfigurationFailure TryReconfigureCombo(
+            int comboIndex,
+            BattleComboActionSlot slot,
+            ComboActionDefinition replacementAction,
+            ComboValidationLimits validationLimits,
+            out ComboValidationResult validationResult)
+        {
+            validationResult = null;
+            if (Outcome != BattleOutcome.Ongoing)
+            {
+                return BattleComboReconfigurationFailure.BattleEnded;
+            }
+
+            if (IsTimelineResolving)
+            {
+                return BattleComboReconfigurationFailure.TimelineResolving;
+            }
+
+            if (comboIndex < 0 || comboIndex >= _combos.Length)
+            {
+                return BattleComboReconfigurationFailure.ComboIndexOutOfRange;
+            }
+
+            if (_comboReconfigurationChargesRemaining <= 0)
+            {
+                return BattleComboReconfigurationFailure.NoChargesRemaining;
+            }
+
+            if (replacementAction == null)
+            {
+                return BattleComboReconfigurationFailure.ReplacementActionMissing;
+            }
+
+            if (validationLimits == null)
+            {
+                throw new ArgumentNullException(nameof(validationLimits));
+            }
+
+            ComboConfiguration current = _combos[comboIndex];
+            ComboActionDefinition currentAction = GetAction(current, slot);
+            if (currentAction == null)
+            {
+                return BattleComboReconfigurationFailure.SlotIsEmpty;
+            }
+
+            if (string.Equals(
+                    currentAction.ActionId,
+                    replacementAction.ActionId,
+                    StringComparison.Ordinal))
+            {
+                return BattleComboReconfigurationFailure.NoChange;
+            }
+
+            ComboConfiguration replacement = ReplaceAction(
+                current,
+                slot,
+                replacementAction);
+            validationResult = ComboValidator.Validate(replacement, validationLimits);
+            if (!validationResult.IsValid)
+            {
+                return BattleComboReconfigurationFailure.InvalidCombo;
+            }
+
+            var candidateLoadout = (ComboConfiguration[])_combos.Clone();
+            candidateLoadout[comboIndex] = replacement;
+            validationResult = ComboLoadoutValidator.Validate(
+                candidateLoadout,
+                validationLimits);
+            if (!validationResult.IsValid)
+            {
+                return BattleComboReconfigurationFailure.InvalidLoadout;
+            }
+
+            _combos[comboIndex] = replacement;
+            _cooldowns[comboIndex] = 0;
+            _comboReconfigurationChargesRemaining--;
+            return BattleComboReconfigurationFailure.None;
         }
 
         public int GetItemCount(string itemId)
@@ -1901,6 +2024,92 @@ namespace SER494.Gameplay.Combat.SoloCombo
             }
 
             return copy;
+        }
+
+        private static ComboActionDefinition GetAction(
+            ComboConfiguration combo,
+            BattleComboActionSlot slot)
+        {
+            switch (slot)
+            {
+                case BattleComboActionSlot.Opening:
+                    return combo.OpeningAction;
+                case BattleComboActionSlot.Main:
+                    return combo.MainAction;
+                case BattleComboActionSlot.Closing:
+                    return combo.ClosingAction;
+                case BattleComboActionSlot.Linked:
+                    return combo.LinkedAction;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(slot));
+            }
+        }
+
+        private static ComboConfiguration ReplaceAction(
+            ComboConfiguration combo,
+            BattleComboActionSlot slot,
+            ComboActionDefinition replacement)
+        {
+            return new ComboConfiguration(
+                combo.Name,
+                slot == BattleComboActionSlot.Opening
+                    ? replacement
+                    : combo.OpeningAction,
+                slot == BattleComboActionSlot.Main
+                    ? replacement
+                    : combo.MainAction,
+                slot == BattleComboActionSlot.Closing
+                    ? replacement
+                    : combo.ClosingAction,
+                slot == BattleComboActionSlot.Linked
+                    ? replacement
+                    : combo.LinkedAction,
+                combo.LinkedPlacement);
+        }
+
+        private static bool ComboSetsMatch(
+            IReadOnlyList<ComboConfiguration> left,
+            IReadOnlyList<ComboConfiguration> right)
+        {
+            if (left.Count != right.Count)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < left.Count; index++)
+            {
+                if (!CombosMatch(left[index], right[index]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool CombosMatch(
+            ComboConfiguration left,
+            ComboConfiguration right)
+        {
+            return string.Equals(left.Name, right.Name, StringComparison.Ordinal)
+                && ActionIdsMatch(left.OpeningAction, right.OpeningAction)
+                && ActionIdsMatch(left.MainAction, right.MainAction)
+                && ActionIdsMatch(left.ClosingAction, right.ClosingAction)
+                && ActionIdsMatch(left.LinkedAction, right.LinkedAction)
+                && left.LinkedPlacement == right.LinkedPlacement;
+        }
+
+        private static bool ActionIdsMatch(
+            ComboActionDefinition left,
+            ComboActionDefinition right)
+        {
+            return left == null
+                ? right == null
+                : right != null
+                    && string.Equals(
+                        left.ActionId,
+                        right.ActionId,
+                        StringComparison.Ordinal);
         }
 
         private static Dictionary<string, int> CopyAndValidateItems(

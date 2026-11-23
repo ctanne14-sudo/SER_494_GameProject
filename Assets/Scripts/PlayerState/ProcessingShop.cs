@@ -232,6 +232,8 @@ namespace SER494.Gameplay.PlayerState
                 new ProcessingMaterialCost(CrystalId, "Crystal", 2));
             AddAccessoryRecipe(recipes, "gold-ring", "Gold Ring", "Pure Gold", 490,
                 new ProcessingMaterialCost(PureGoldId, "Pure Gold", 2));
+            AddAccessoryRecipe(recipes, "mithril-ring", "Mithril Ring", "Mithril", 490,
+                new ProcessingMaterialCost(MithrilId, "Mithril", 2));
         }
 
         private static void AddUniformSeries(

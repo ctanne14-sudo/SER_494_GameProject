@@ -99,13 +99,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
-        public void DefaultCatalog_ContainsAllProcessingShopEquipmentExceptDeferredMithrilRing()
+        public void DefaultCatalog_ContainsAllProcessingShopEquipmentIncludingMithrilRing()
         {
             PlayerEquipmentCatalogAsset catalog = PlayerEquipmentCatalogAsset.LoadDefault();
 
             Assert.That(catalog.Weapons.Count, Is.EqualTo(29));
             Assert.That(catalog.Armor.Count, Is.EqualTo(39));
-            Assert.That(catalog.Accessories.Count, Is.EqualTo(12));
+            Assert.That(catalog.Accessories.Count, Is.EqualTo(13));
             Assert.That(
                 catalog.TryGetWeapon(
                     "weapon.sword-and-shield.crystal",
@@ -135,8 +135,14 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
             Assert.That(accessory.EffectType, Is.EqualTo(AccessoryEffectType.Custom));
             Assert.That(accessory.EffectDescription, Does.Contain("50%").And.Contain("70%"));
             Assert.That(
-                catalog.TryGetAccessory("accessory.mithril-ring", out _, out _),
-                Is.False);
+                catalog.TryGetAccessory(
+                    "accessory.mithril-ring",
+                    out AccessoryDefinitionAsset mithrilRing,
+                    out string mithrilRingError),
+                Is.True,
+                mithrilRingError);
+            Assert.That(mithrilRing.EffectType, Is.EqualTo(AccessoryEffectType.Custom));
+            Assert.That(mithrilRing.EffectDescription, Does.Contain("+2").And.Contain("1 to 3"));
         }
     }
 }

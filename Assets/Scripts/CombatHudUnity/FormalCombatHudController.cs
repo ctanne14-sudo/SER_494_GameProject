@@ -47,6 +47,17 @@ namespace SER494.Gameplay.CombatHud.Unity
         private Button _enemyIntentDetailsButton;
         private VisualElement _comboList;
         private Button _clearPreviewButton;
+        private Label _reconfigurationChargesLabel;
+        private Button _openReconfigurationButton;
+        private VisualElement _reconfigurationOverlay;
+        private Label _reconfigurationSummary;
+        private VisualElement _reconfigurationComboList;
+        private VisualElement _reconfigurationSlotList;
+        private VisualElement _reconfigurationActionList;
+        private Label _reconfigurationSelection;
+        private Label _reconfigurationError;
+        private Button _applyReconfigurationButton;
+        private Button _closeReconfigurationButton;
         private VisualElement _statusDetailsOverlay;
         private Label _statusDetailsTitle;
         private Label _statusDetailsSummary;
@@ -84,6 +95,10 @@ namespace SER494.Gameplay.CombatHud.Unity
         private bool _isEnemyIntentDetailsOpen;
         private string _qteLayoutSignature;
         private bool _isQteVisible;
+        private bool _isReconfigurationOpen;
+        private int _reconfigurationComboIndex;
+        private BattleComboActionSlot _reconfigurationSlot = BattleComboActionSlot.Main;
+        private string _reconfigurationActionId;
 
         private void Awake()
         {
@@ -114,6 +129,28 @@ namespace SER494.Gameplay.CombatHud.Unity
                 documentRoot.Q<Button>("enemyIntentDetailsButton");
             _comboList = documentRoot.Q<VisualElement>("comboList");
             _clearPreviewButton = documentRoot.Q<Button>("clearPreviewButton");
+            _reconfigurationChargesLabel =
+                documentRoot.Q<Label>("reconfigurationChargesLabel");
+            _openReconfigurationButton =
+                documentRoot.Q<Button>("openReconfigurationButton");
+            _reconfigurationOverlay =
+                documentRoot.Q<VisualElement>("reconfigurationOverlay");
+            _reconfigurationSummary =
+                documentRoot.Q<Label>("reconfigurationSummary");
+            _reconfigurationComboList =
+                documentRoot.Q<VisualElement>("reconfigurationComboList");
+            _reconfigurationSlotList =
+                documentRoot.Q<VisualElement>("reconfigurationSlotList");
+            _reconfigurationActionList =
+                documentRoot.Q<VisualElement>("reconfigurationActionList");
+            _reconfigurationSelection =
+                documentRoot.Q<Label>("reconfigurationSelection");
+            _reconfigurationError =
+                documentRoot.Q<Label>("reconfigurationError");
+            _applyReconfigurationButton =
+                documentRoot.Q<Button>("applyReconfigurationButton");
+            _closeReconfigurationButton =
+                documentRoot.Q<Button>("closeReconfigurationButton");
             _statusDetailsOverlay =
                 documentRoot.Q<VisualElement>("statusDetailsOverlay");
             _statusDetailsTitle = documentRoot.Q<Label>("statusDetailsTitle");
@@ -148,6 +185,9 @@ namespace SER494.Gameplay.CombatHud.Unity
             _qteActionButton = documentRoot.Q<Button>("qteActionButton");
             _qteInputHint = documentRoot.Q<Label>("qteInputHint");
             _clearPreviewButton.clicked += ClearPreview;
+            _openReconfigurationButton.clicked += OpenReconfiguration;
+            _applyReconfigurationButton.clicked += ApplyReconfiguration;
+            _closeReconfigurationButton.clicked += CloseReconfiguration;
             _previousTimelinePageButton.clicked += ShowPreviousTimelinePage;
             _nextTimelinePageButton.clicked += ShowNextTimelinePage;
             _enemyIntentDetailsButton.clicked += OpenEnemyIntentDetails;
@@ -173,6 +213,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             _statusDetailsOverlay.style.display = DisplayStyle.None;
             _enemyIntentDetailsOverlay.style.display = DisplayStyle.None;
             _qteOverlay.style.display = DisplayStyle.None;
+            _reconfigurationOverlay.style.display = DisplayStyle.None;
             _isVisible = false;
         }
 
@@ -181,6 +222,21 @@ namespace SER494.Gameplay.CombatHud.Unity
             if (_clearPreviewButton != null)
             {
                 _clearPreviewButton.clicked -= ClearPreview;
+            }
+
+            if (_openReconfigurationButton != null)
+            {
+                _openReconfigurationButton.clicked -= OpenReconfiguration;
+            }
+
+            if (_applyReconfigurationButton != null)
+            {
+                _applyReconfigurationButton.clicked -= ApplyReconfiguration;
+            }
+
+            if (_closeReconfigurationButton != null)
+            {
+                _closeReconfigurationButton.clicked -= CloseReconfiguration;
             }
 
             if (_previousTimelinePageButton != null)
@@ -242,8 +298,23 @@ namespace SER494.Gameplay.CombatHud.Unity
             RefreshPresentation();
             if (RefreshQtePresentation())
             {
+                CloseReconfiguration();
                 CloseEnemyIntentDetails();
                 HandleQteInput();
+                return;
+            }
+
+            if (_isReconfigurationOpen)
+            {
+                if (!_sandbox.CanReconfigureFormalCombo)
+                {
+                    CloseReconfiguration();
+                }
+                else
+                {
+                    HandleReconfigurationInput();
+                }
+
                 return;
             }
 
@@ -278,6 +349,7 @@ namespace SER494.Gameplay.CombatHud.Unity
             {
                 CloseStatusDetails();
                 CloseEnemyIntentDetails();
+                CloseReconfiguration();
                 HideQte();
             }
         }
@@ -348,8 +420,249 @@ namespace SER494.Gameplay.CombatHud.Unity
             _vitalityTonicCount.text = battle.GetItemCount(
                 PlayerStateInitialValues.VitalityTonicId).ToString();
 
+            int reconfigurationCharges =
+                battle.ComboReconfigurationChargesRemaining;
+            _reconfigurationChargesLabel.text =
+                $"CONFIGURE ×{reconfigurationCharges}";
+            _openReconfigurationButton.SetEnabled(
+                _sandbox.CanReconfigureFormalCombo);
+
             RefreshComboCards(battle);
             RefreshTimelineState(battle);
+        }
+
+        private void OpenReconfiguration()
+        {
+            if (_sandbox == null || !_sandbox.CanReconfigureFormalCombo)
+            {
+                return;
+            }
+
+            CloseStatusDetails();
+            CloseEnemyIntentDetails();
+            _sandbox.ClearFormalComboPreview();
+            _isReconfigurationOpen = true;
+            _reconfigurationComboIndex = 0;
+            _reconfigurationSlot = BattleComboActionSlot.Main;
+            _reconfigurationActionId = null;
+            _reconfigurationError.text = string.Empty;
+            _reconfigurationOverlay.style.display = DisplayStyle.Flex;
+            RebuildReconfigurationDialog();
+        }
+
+        private void CloseReconfiguration()
+        {
+            if (!_isReconfigurationOpen)
+            {
+                return;
+            }
+
+            _isReconfigurationOpen = false;
+            _reconfigurationActionId = null;
+            _reconfigurationOverlay.style.display = DisplayStyle.None;
+            _openReconfigurationButton?.Focus();
+        }
+
+        private void RebuildReconfigurationDialog()
+        {
+            SoloComboBattleState battle = _sandbox?.CurrentBattle;
+            if (battle == null || battle.Combos.Count == 0)
+            {
+                CloseReconfiguration();
+                return;
+            }
+
+            _reconfigurationComboIndex = Mathf.Clamp(
+                _reconfigurationComboIndex,
+                0,
+                battle.Combos.Count - 1);
+            _reconfigurationSummary.text =
+                $"Remaining changes: {battle.ComboReconfigurationChargesRemaining}. "
+                + "Only one existing Action is replaced per change.";
+            RebuildReconfigurationComboChoices(battle);
+            RebuildReconfigurationSlotChoices(battle.Combos[_reconfigurationComboIndex]);
+            RebuildReconfigurationActionChoices(battle.Combos[_reconfigurationComboIndex]);
+            _applyReconfigurationButton.SetEnabled(
+                !string.IsNullOrWhiteSpace(_reconfigurationActionId));
+        }
+
+        private void RebuildReconfigurationComboChoices(SoloComboBattleState battle)
+        {
+            _reconfigurationComboList.Clear();
+            for (int index = 0; index < battle.Combos.Count; index++)
+            {
+                int selectedIndex = index;
+                var button = new Button(() =>
+                {
+                    _reconfigurationComboIndex = selectedIndex;
+                    _reconfigurationSlot = BattleComboActionSlot.Main;
+                    _reconfigurationActionId = null;
+                    _reconfigurationError.text = string.Empty;
+                    RebuildReconfigurationDialog();
+                })
+                {
+                    text = $"{index + 1}  {battle.Combos[index].Name}"
+                };
+                button.AddToClassList("combat-hud-reconfigure-choice");
+                button.EnableInClassList(
+                    "combat-hud-reconfigure-choice-selected",
+                    index == _reconfigurationComboIndex);
+                _reconfigurationComboList.Add(button);
+            }
+        }
+
+        private void RebuildReconfigurationSlotChoices(ComboConfiguration combo)
+        {
+            _reconfigurationSlotList.Clear();
+            BattleComboActionSlot[] slots =
+            {
+                BattleComboActionSlot.Opening,
+                BattleComboActionSlot.Main,
+                BattleComboActionSlot.Closing,
+                BattleComboActionSlot.Linked
+            };
+            bool selectedSlotExists = GetComboAction(combo, _reconfigurationSlot) != null;
+            if (!selectedSlotExists)
+            {
+                for (int index = 0; index < slots.Length; index++)
+                {
+                    if (GetComboAction(combo, slots[index]) != null)
+                    {
+                        _reconfigurationSlot = slots[index];
+                        break;
+                    }
+                }
+            }
+
+            for (int index = 0; index < slots.Length; index++)
+            {
+                BattleComboActionSlot slot = slots[index];
+                ComboActionDefinition action = GetComboAction(combo, slot);
+                if (action == null)
+                {
+                    continue;
+                }
+
+                var button = new Button(() =>
+                {
+                    _reconfigurationSlot = slot;
+                    _reconfigurationActionId = null;
+                    _reconfigurationError.text = string.Empty;
+                    RebuildReconfigurationDialog();
+                })
+                {
+                    text = $"{slot}: {action.DisplayName}"
+                };
+                button.AddToClassList("combat-hud-reconfigure-choice");
+                button.EnableInClassList(
+                    "combat-hud-reconfigure-choice-selected",
+                    slot == _reconfigurationSlot);
+                _reconfigurationSlotList.Add(button);
+            }
+        }
+
+        private void RebuildReconfigurationActionChoices(ComboConfiguration combo)
+        {
+            _reconfigurationActionList.Clear();
+            ComboActionDefinition currentAction = GetComboAction(
+                combo,
+                _reconfigurationSlot);
+            if (!_sandbox.TryGetFormalReconfigurationCandidates(
+                    _reconfigurationSlot,
+                    out IReadOnlyList<ComboActionDefinition> candidates,
+                    out string validationError))
+            {
+                _reconfigurationError.text = validationError;
+                return;
+            }
+
+            int availableCount = 0;
+            for (int index = 0; index < candidates.Count; index++)
+            {
+                ComboActionDefinition candidate = candidates[index];
+                if (currentAction != null
+                    && string.Equals(
+                        currentAction.ActionId,
+                        candidate.ActionId,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                availableCount++;
+                string actionId = candidate.ActionId;
+                var button = new Button(() =>
+                {
+                    _reconfigurationActionId = actionId;
+                    _reconfigurationSelection.text =
+                        $"Selected: {candidate.DisplayName}";
+                    _reconfigurationError.text = string.Empty;
+                    _applyReconfigurationButton.SetEnabled(true);
+                })
+                {
+                    text = $"{candidate.DisplayName}\n"
+                        + $"TIME {candidate.TimelineCost}   STA {candidate.StaminaCost}   "
+                        + $"MANA {candidate.ManaCost}   CD {candidate.Cooldown}"
+                };
+                button.AddToClassList("combat-hud-reconfigure-action");
+                _reconfigurationActionList.Add(button);
+            }
+
+            _reconfigurationSelection.text = availableCount > 0
+                ? "No replacement selected."
+                : "No other learned Action is available for this slot.";
+        }
+
+        private void ApplyReconfiguration()
+        {
+            if (string.IsNullOrWhiteSpace(_reconfigurationActionId))
+            {
+                return;
+            }
+
+            if (!_sandbox.TryReconfigureFormalCombo(
+                    _reconfigurationComboIndex,
+                    _reconfigurationSlot,
+                    _reconfigurationActionId,
+                    out string validationError))
+            {
+                _reconfigurationError.text = validationError;
+                return;
+            }
+
+            CloseReconfiguration();
+            RefreshPresentation();
+        }
+
+        private void HandleReconfigurationInput()
+        {
+            bool cancelPressed = (Keyboard.current != null
+                    && Keyboard.current.escapeKey.wasPressedThisFrame)
+                || (Gamepad.current != null
+                    && Gamepad.current.buttonEast.wasPressedThisFrame);
+            if (cancelPressed)
+            {
+                CloseReconfiguration();
+            }
+        }
+
+        private static ComboActionDefinition GetComboAction(
+            ComboConfiguration combo,
+            BattleComboActionSlot slot)
+        {
+            switch (slot)
+            {
+                case BattleComboActionSlot.Opening:
+                    return combo.OpeningAction;
+                case BattleComboActionSlot.Main:
+                    return combo.MainAction;
+                case BattleComboActionSlot.Closing:
+                    return combo.ClosingAction;
+                case BattleComboActionSlot.Linked:
+                    return combo.LinkedAction;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(slot));
+            }
         }
 
         private void RefreshComboCards(SoloComboBattleState battle)

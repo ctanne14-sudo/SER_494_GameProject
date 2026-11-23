@@ -128,6 +128,21 @@ namespace SER494.Gameplay.CombatIntegration.Tests
         }
 
         [Test]
+        public void MithrilRing_AddsTwoBattleComboReconfigurationCharges()
+        {
+            PlayerEquipmentDerivedStats stats = Resolve(
+                CreateStateWithAccessory("accessory.mithril-ring"));
+
+            Assert.That(
+                stats.ComboReconfigurationChargeBonus,
+                Is.EqualTo(BattleComboReconfigurationRules.MithrilRingBonusCharges));
+            Assert.That(
+                BattleComboReconfigurationRules.BaseCharges
+                    + stats.ComboReconfigurationChargeBonus,
+                Is.EqualTo(3));
+        }
+
+        [Test]
         public void GoldRing_AppliesPercentageGoldBeforeFlatBonusAndReducesMaterialRolls()
         {
             PersistentPlayerState state = CreateStateWithArmorSet("yellow-silk");

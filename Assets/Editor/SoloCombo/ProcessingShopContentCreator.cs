@@ -181,7 +181,8 @@ namespace SER494.Gameplay.Combat.Editor
             new AccessorySpec("red-handkerchief", "Red Handkerchief", "At battle end, each of up to three extra material slots independently succeeds at min(total damage resolutions by both sides, 100)% even when attacks were Guarded or Evaded."),
             new AccessorySpec("thorn-bracer", "Thorn Bracer", "Lose 10 HP at each round end, but never below 1 HP. Restore HP to full when battle ends, including Mutual Destruction."),
             new AccessorySpec("crystal-pendant", "Crystal Pendant", "Chance to learn a new action after battle increases from 50% to 70%."),
-            new AccessorySpec("gold-ring", "Gold Ring", "Material reward rolls -1, to a minimum of zero; Gold reward +300.")
+            new AccessorySpec("gold-ring", "Gold Ring", "Material reward rolls -1, to a minimum of zero; Gold reward +300."),
+            new AccessorySpec("mithril-ring", "Mithril Ring", "Battle Combo reconfiguration charges +2, increasing the total from 1 to 3.")
         };
 
         static ProcessingShopContentCreator()
@@ -201,7 +202,7 @@ namespace SER494.Gameplay.Combat.Editor
             List<AccessoryDefinitionAsset> accessories = GenerateAccessories();
             UpdateCatalog(armor, weapons, accessories);
             AssetDatabase.SaveAssets();
-            Debug.Log("Generated 33 Armor, 27 Weapon, and 10 Accessory Processing Shop assets and updated the Player Equipment Catalog.");
+            Debug.Log("Generated 33 Armor, 27 Weapon, and 11 Accessory Processing Shop assets and updated the Player Equipment Catalog.");
         }
 
         private static List<ArmorDefinitionAsset> GenerateArmor()
@@ -258,7 +259,7 @@ namespace SER494.Gameplay.Combat.Editor
 
         private static List<AccessoryDefinitionAsset> GenerateAccessories()
         {
-            var generated = new List<AccessoryDefinitionAsset>(10);
+            var generated = new List<AccessoryDefinitionAsset>(11);
             foreach (AccessorySpec spec in AccessorySpecs)
             {
                 string assetPath = $"{AccessoryFolder}/{ToPascal(spec.Id)}.asset";
@@ -348,7 +349,7 @@ namespace SER494.Gameplay.Combat.Editor
         {
             if (AssetDatabase.FindAssets("t:ArmorDefinitionAsset", new[] { ArmorFolder }).Length == 33
                 && AssetDatabase.FindAssets("t:WeaponDefinitionAsset", new[] { WeaponFolder }).Length == 27
-                && AssetDatabase.FindAssets("t:AccessoryDefinitionAsset", new[] { AccessoryFolder }).Length == 10)
+                && AssetDatabase.FindAssets("t:AccessoryDefinitionAsset", new[] { AccessoryFolder }).Length == 11)
             {
                 return;
             }

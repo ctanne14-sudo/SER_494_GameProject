@@ -142,7 +142,10 @@ namespace SER494.Gameplay.CombatIntegration.Unity
                     enemyRandom: new Random(594),
                     startingItems: PlayerBattleStateTransfer.CaptureInventory(playerState),
                     equipmentEffects: derivedStats.CreateBattleEffectConfiguration(),
-                    equipmentEffectRandom: equipmentEffectRandom);
+                    equipmentEffectRandom: equipmentEffectRandom,
+                    comboReconfigurationCharges:
+                        BattleComboReconfigurationRules.BaseCharges
+                        + derivedStats.ComboReconfigurationChargeBonus);
             }
             catch (Exception exception) when (
                 exception is ArgumentException || exception is InvalidOperationException)

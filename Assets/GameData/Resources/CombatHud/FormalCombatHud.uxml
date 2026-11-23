@@ -74,7 +74,11 @@
             <ui:VisualElement class="combat-hud-combo-panel">
                 <ui:VisualElement class="combat-hud-combo-header">
                     <ui:Label text="COMBOS" class="combat-hud-section-title" />
-                    <ui:Button name="clearPreviewButton" text="Clear Preview" class="combat-hud-clear-button" />
+                    <ui:VisualElement class="combat-hud-combo-header-actions">
+                        <ui:Label name="reconfigurationChargesLabel" text="CONFIGURE ×1" class="combat-hud-reconfigure-count" />
+                        <ui:Button name="openReconfigurationButton" text="Configure" class="combat-hud-clear-button" />
+                        <ui:Button name="clearPreviewButton" text="Clear Preview" class="combat-hud-clear-button" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="comboList" class="combat-hud-combo-list" />
                 <ui:Label text="1–4 / D-pad: Preview, repeat: Confirm" class="combat-hud-input-hint" />
@@ -90,6 +94,28 @@
                 <ui:ProgressBar name="qteTimeRemaining" class="combat-hud-qte-time" />
                 <ui:Button name="qteActionButton" text="CONFIRM" class="combat-hud-qte-button" />
                 <ui:Label name="qteInputHint" class="combat-hud-qte-hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="reconfigurationOverlay" class="combat-hud-status-overlay">
+            <ui:VisualElement class="combat-hud-reconfigure-dialog">
+                <ui:VisualElement class="combat-hud-status-dialog-header">
+                    <ui:Label text="BATTLE COMBO CONFIGURE" class="combat-hud-status-dialog-title" />
+                    <ui:Button name="closeReconfigurationButton" text="Cancel" class="combat-hud-status-dialog-close" />
+                </ui:VisualElement>
+                <ui:Label name="reconfigurationSummary" class="combat-hud-status-dialog-summary" />
+                <ui:Label text="1. Choose a Combo" class="combat-hud-reconfigure-heading" />
+                <ui:VisualElement name="reconfigurationComboList" class="combat-hud-reconfigure-choice-row" />
+                <ui:Label text="2. Choose the Action slot to replace" class="combat-hud-reconfigure-heading" />
+                <ui:VisualElement name="reconfigurationSlotList" class="combat-hud-reconfigure-choice-row" />
+                <ui:Label text="3. Choose a learned Action" class="combat-hud-reconfigure-heading" />
+                <ui:ScrollView name="reconfigurationActionScroll" class="combat-hud-reconfigure-action-scroll">
+                    <ui:VisualElement name="reconfigurationActionList" class="combat-hud-reconfigure-action-list" />
+                </ui:ScrollView>
+                <ui:Label name="reconfigurationSelection" text="No replacement selected." class="combat-hud-reconfigure-selection" />
+                <ui:Label name="reconfigurationError" class="combat-hud-reconfigure-error" />
+                <ui:Button name="applyReconfigurationButton" text="Apply Change" class="combat-hud-reconfigure-apply" />
+                <ui:Label text="A successful change consumes one charge and resets this Combo's cooldown. Esc / B: Cancel" class="combat-hud-status-dialog-hint" />
             </ui:VisualElement>
         </ui:VisualElement>
 

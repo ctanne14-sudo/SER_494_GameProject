@@ -213,6 +213,130 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
         }
 
         [Test]
+        public void ReconfigureCombo_ReplacesOneActionConsumesChargeAndResetsCooldown()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            battle.ExecuteCombo(0);
+            var replacement = Action(
+                "replacement-main",
+                ComboActionCategory.Main,
+                timelineCost: 2,
+                mana: 0,
+                stamina: 0,
+                cooldown: 1,
+                damageMultiplier: 0.30d);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                replacement,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.None));
+            Assert.That(validation, Is.Not.Null);
+            Assert.That(validation.IsValid, Is.True);
+            Assert.That(battle.Combos[0].MainAction.ActionId, Is.EqualTo("replacement-main"));
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.Zero);
+            Assert.That(battle.GetCooldownRemaining(0), Is.Zero);
+            Assert.That(battle.HasComboReconfigurationChanges, Is.True);
+        }
+
+        [Test]
+        public void ReconfigureCombo_NoChangeDoesNotConsumeCharge()
+        {
+            ComboConfiguration combo = CompleteCombo(
+                "combo1",
+                LinkedActionPlacement.AfterMain,
+                cooldown: 3);
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[] { combo },
+                charges: 1);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                combo.MainAction,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.NoChange));
+            Assert.That(validation, Is.Null);
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
+            Assert.That(battle.HasComboReconfigurationChanges, Is.False);
+        }
+
+        [Test]
+        public void ReconfigureCombo_InvalidCategoryDoesNotConsumeCharge()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            ComboActionDefinition wrongCategory = Action(
+                "replacement-opening",
+                ComboActionCategory.Opening,
+                timelineCost: 1,
+                mana: 0,
+                stamina: 0,
+                cooldown: 0,
+                damageMultiplier: 0d);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                wrongCategory,
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(failure, Is.EqualTo(BattleComboReconfigurationFailure.InvalidCombo));
+            Assert.That(validation.IsValid, Is.False);
+            Assert.That(
+                validation.Issues.Select(issue => issue.Code),
+                Does.Contain(ComboValidationErrorCode.InvalidMainActionCategory));
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ReconfigureCombo_DuringTimelineIsRejectedWithoutConsumingCharge()
+        {
+            SoloComboBattleState battle = CreateBattleWithReconfiguration(
+                new[]
+                {
+                    CompleteCombo("combo1", LinkedActionPlacement.AfterMain, cooldown: 3)
+                },
+                charges: 1);
+            battle.BeginCombo(0);
+
+            BattleComboReconfigurationFailure failure = battle.TryReconfigureCombo(
+                0,
+                BattleComboActionSlot.Main,
+                Action(
+                    "replacement-main",
+                    ComboActionCategory.Main,
+                    2,
+                    0,
+                    0,
+                    0,
+                    0.20d),
+                new ComboValidationLimits(30, 12, 14),
+                out ComboValidationResult validation);
+
+            Assert.That(
+                failure,
+                Is.EqualTo(BattleComboReconfigurationFailure.TimelineResolving));
+            Assert.That(validation, Is.Null);
+            Assert.That(battle.ComboReconfigurationChargesRemaining, Is.EqualTo(1));
+        }
+
+        [Test]
         public void AdvanceTimeline_AppliesEffectsOnlyWhenTheirTimeStepArrives()
         {
             SoloComboBattleState battle = CreateBattle(
@@ -2499,6 +2623,13 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
 
         private static SoloComboBattleState CreateBattle(ComboConfiguration[] combos)
         {
+            return CreateBattleWithReconfiguration(combos, charges: 0);
+        }
+
+        private static SoloComboBattleState CreateBattleWithReconfiguration(
+            ComboConfiguration[] combos,
+            int charges)
+        {
             var player = new CombatantState(
                 "Player",
                 new CombatantStats(60, 12, 14, 50, 50));
@@ -2523,7 +2654,8 @@ namespace SER494.Gameplay.Combat.SoloCombo.Tests
                 combos,
                 enemySequence,
                 manaRecoveryPerTurn: 1,
-                staminaRecoveryPerTurn: 2);
+                staminaRecoveryPerTurn: 2,
+                comboReconfigurationCharges: charges);
         }
 
         private static SoloComboBattleState CreateBattleWithDefensiveActiveWindow()
