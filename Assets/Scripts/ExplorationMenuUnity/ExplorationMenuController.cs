@@ -3251,7 +3251,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 ExplorationMenuText.Get("equipment.accessory"),
                 GetEquippedAccessoryText(state, catalog));
 
-            _equipmentWarehouse = new VisualElement();
+            _equipmentWarehouse = new ScrollView(ScrollViewMode.Vertical);
             _equipmentWarehouse.AddToClassList("warehouse-panel");
             layout.Add(equippedPanel);
             layout.Add(_equipmentWarehouse);
@@ -3338,7 +3338,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     bool equipped = state.Equipment.EquippedWeaponId == asset.WeaponId;
                     AddEquipmentCandidate(
                         ExplorationMenuText.EquipmentName(asset.WeaponId, asset.DisplayName),
-                        $"ATK {asset.WeaponAttack}",
+                        EquipmentPresentationText.FormatWeaponStats(asset),
                         equipped,
                         () => EquipWeapon(state, catalog, asset.WeaponId));
                     candidateCount++;
@@ -3359,7 +3359,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                         out string equippedId) && equippedId == asset.AccessoryId;
                     AddEquipmentCandidate(
                         ExplorationMenuText.EquipmentName(asset.AccessoryId, asset.DisplayName),
-                        FormatAccessoryEffect(asset),
+                        EquipmentPresentationText.FormatAccessoryEffect(asset),
                         equipped,
                         () => EquipAccessory(state, catalog, asset.AccessoryId));
                     candidateCount++;
@@ -3382,7 +3382,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                         out string equippedId) && equippedId == asset.ArmorId;
                     AddEquipmentCandidate(
                         ExplorationMenuText.EquipmentName(asset.ArmorId, asset.DisplayName),
-                        $"DEF {asset.Defense}",
+                        $"DEF {asset.Defense}\n"
+                            + EquipmentPresentationText.FormatArmorEffect(asset),
                         equipped,
                         () => EquipArmor(state, catalog, slotId, asset.ArmorId));
                     candidateCount++;
@@ -3447,6 +3448,60 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             effectsTitle.AddToClassList("summary-effects-title");
             _equipmentWarehouse.Add(effectsTitle);
             int effectCount = 0;
+            var equippedArmor = new List<ArmorDefinitionAsset>();
+            var equippedSeriesCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (string armorId in state.Equipment.EquippedArmorBySlot.Values)
+            {
+                if (!catalog.TryGetArmor(armorId, out ArmorDefinitionAsset armor, out _))
+                {
+                    continue;
+                }
+
+                equippedArmor.Add(armor);
+                if (!string.IsNullOrWhiteSpace(armor.SeriesId))
+                {
+                    equippedSeriesCounts.TryGetValue(armor.SeriesId, out int count);
+                    equippedSeriesCounts[armor.SeriesId] = count + 1;
+                }
+            }
+
+            for (int index = 0; index < equippedArmor.Count; index++)
+            {
+                ArmorDefinitionAsset armor = equippedArmor[index];
+                string effectText = EquipmentPresentationText.FormatArmorEffect(
+                    armor,
+                    includeSetEffect: false);
+                if (string.Equals(
+                    effectText,
+                    "No individual armor effect.",
+                    StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                AddSummaryEffect(
+                    ExplorationMenuText.EquipmentName(armor.ArmorId, armor.DisplayName),
+                    effectText);
+                effectCount++;
+            }
+
+            var shownSetEffects = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < equippedArmor.Count; index++)
+            {
+                ArmorDefinitionAsset armor = equippedArmor[index];
+                if (string.IsNullOrWhiteSpace(armor.SetEffectDescription)
+                    || string.IsNullOrWhiteSpace(armor.SeriesId)
+                    || !equippedSeriesCounts.TryGetValue(armor.SeriesId, out int count)
+                    || count < 3
+                    || !shownSetEffects.Add(armor.SeriesId))
+                {
+                    continue;
+                }
+
+                AddSummaryEffect("Full Set Active", armor.SetEffectDescription.Trim());
+                effectCount++;
+            }
+
             foreach (string accessoryId in state.Equipment.EquippedAccessoryBySlot.Values)
             {
                 if (!catalog.TryGetAccessory(accessoryId, out AccessoryDefinitionAsset asset, out _))
@@ -3454,9 +3509,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                     continue;
                 }
 
-                var effect = new Label($"• {FormatAccessoryEffect(asset)}");
-                effect.AddToClassList("summary-effect");
-                _equipmentWarehouse.Add(effect);
+                AddSummaryEffect(
+                    ExplorationMenuText.EquipmentName(asset.AccessoryId, asset.DisplayName),
+                    EquipmentPresentationText.FormatAccessoryEffect(asset));
                 effectCount++;
             }
 
@@ -3466,6 +3521,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 empty.AddToClassList("muted-text");
                 _equipmentWarehouse.Add(empty);
             }
+        }
+
+        private void AddSummaryEffect(string sourceName, string effectText)
+        {
+            var effect = new Label($"• {sourceName}\n  {effectText}");
+            effect.AddToClassList("summary-effect");
+            _equipmentWarehouse.Add(effect);
         }
 
         private void AddSummaryRow(string name, string value)
@@ -4186,24 +4248,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             }
         }
 
-        private static string FormatAccessoryEffect(AccessoryDefinitionAsset accessory)
-        {
-            if (!string.IsNullOrWhiteSpace(accessory.EffectDescription))
-            {
-                return accessory.EffectDescription;
-            }
-
-            return accessory.EffectType == AccessoryEffectType.MaximumHealthFlat
-                ? $"Maximum HP +{accessory.EffectAmount:0}"
-                : $"All Damage +{accessory.EffectAmount * 100f:0}%";
-        }
-
         private static string GetEquippedWeaponText(
             PersistentPlayerState state,
             PlayerEquipmentCatalogAsset catalog)
         {
             return catalog.TryGetWeapon(state.Equipment.EquippedWeaponId, out var weapon, out _)
-                ? $"{ExplorationMenuText.EquipmentName(weapon.WeaponId, weapon.DisplayName)}  |  ATK {weapon.WeaponAttack}"
+                ? $"{ExplorationMenuText.EquipmentName(weapon.WeaponId, weapon.DisplayName)}"
+                    + $"  |  ATK {weapon.WeaponAttack}"
                 : "—";
         }
 
@@ -4218,7 +4269,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return "—";
             }
 
-            return $"{ExplorationMenuText.EquipmentName(armor.ArmorId, armor.DisplayName)}  |  DEF {armor.Defense}";
+            return $"{ExplorationMenuText.EquipmentName(armor.ArmorId, armor.DisplayName)}"
+                + $"  |  DEF {armor.Defense}";
         }
 
         private static string GetEquippedAccessoryText(
@@ -4236,7 +4288,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return "—";
             }
 
-            return $"{ExplorationMenuText.EquipmentName(accessory.AccessoryId, accessory.DisplayName)}  |  {FormatAccessoryEffect(accessory)}";
+            return ExplorationMenuText.EquipmentName(
+                accessory.AccessoryId,
+                accessory.DisplayName);
         }
 
         private static string GetSlotName(EquipmentSlot slot)

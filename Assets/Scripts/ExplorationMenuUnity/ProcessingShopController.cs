@@ -246,9 +246,21 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _selectedCategoryIndex = 0;
             _selectedSeriesIndex = 0;
             _selectedRecipeIndex = 0;
+            _stickLatched = false;
+            _confirmingCraft = false;
+            _confirmChoice = false;
+            _pendingRecipe = null;
+            _confirmOverlay.style.display = DisplayStyle.None;
             _message.text = "Choose a category, series, and equipment item to process.";
             _root.style.display = DisplayStyle.Flex;
             SelectCategory(0);
+            _root.schedule.Execute(() =>
+            {
+                if (_isOpen && _categoryButtons.Count > 0)
+                {
+                    _categoryButtons[0].Focus();
+                }
+            }).ExecuteLater(1);
         }
 
         private void Close()
@@ -465,7 +477,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case EquipmentCategory.Weapon:
                     if (TryGetWeapon(recipe, out WeaponDefinitionAsset weapon))
                     {
-                        _recipeStats.text = $"ATK  {weapon.WeaponAttack}     Type  {FormatWeaponType(weapon)}";
+                        _recipeStats.text = EquipmentPresentationText.FormatWeaponStats(weapon);
                         _recipeEffect.text = "Weapon attack power and compatible action type.";
                     }
                     else
@@ -477,7 +489,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case EquipmentCategory.Accessory:
                     _recipeStats.text = "Slot  Accessory";
                     _recipeEffect.text = TryGetAccessory(recipe, out AccessoryDefinitionAsset accessory)
-                        ? FormatEffect(accessory)
+                        ? EquipmentPresentationText.FormatAccessoryEffect(accessory)
                         : "Accessory effect data unavailable.";
                     break;
                 default:
@@ -485,7 +497,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                         ? $"DEF  {armor.Defense}     Slot  {FormatSlot(recipe.SlotId)}"
                         : $"Slot  {FormatSlot(recipe.SlotId)}";
                     _recipeEffect.text = TryGetArmor(recipe, out armor)
-                        ? FormatEffect(armor)
+                        ? EquipmentPresentationText.FormatArmorEffect(armor)
                         : "Armor effect data unavailable.";
                     break;
             }
@@ -502,59 +514,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 lines.Add($"{cost.DisplayName}: {state.Inventory.GetCount(cost.ItemId)} / {cost.Amount}");
             }
             return string.Join("\n", lines);
-        }
-
-        private static string FormatEffect(ArmorDefinitionAsset armor)
-        {
-            if (!string.IsNullOrWhiteSpace(armor.EffectDescription))
-            {
-                return string.IsNullOrWhiteSpace(armor.SetEffectDescription)
-                    ? armor.EffectDescription
-                    : armor.EffectDescription + "\n" + armor.SetEffectDescription;
-            }
-
-            int percent = (int)Math.Round(armor.EffectAmount * 100f, MidpointRounding.AwayFromZero);
-            switch (armor.EffectType)
-            {
-                case ArmorEffectType.None:
-                    switch (armor.SeriesId)
-                    {
-                        case "armor-series.yellow-silk":
-                            return "Full set: Gold earned after battle +20%.";
-                        case "armor-series.red-silk":
-                            return "Full set: one additional material reward roll.";
-                        default:
-                            return "No individual armor effect.";
-                    }
-                case ArmorEffectType.DamageTakenMultiplier:
-                    return $"{armor.EffectDamageType} damage taken -{percent}%."
-                        + (armor.SeriesId == "armor-series.pure-gold"
-                            ? "\nFull set: successful Clash damage +50%."
-                            : string.Empty);
-                case ArmorEffectType.MaximumHealthMultiplier:
-                    return $"Maximum HP +{percent}%.";
-                case ArmorEffectType.HealingPotionMultiplier:
-                    return $"Healing and Greater Healing Potion recovery +{percent}%.";
-                case ArmorEffectType.GuardCounterPiercingMultiplier:
-                    return $"Successful Guard deals an extra {percent}% Piercing damage.";
-                case ArmorEffectType.AllDamageDealtMultiplier:
-                    return $"All damage dealt +{percent}%."
-                        + "\nFull set: all damage dealt +10%.";
-                default:
-                    return "Unknown armor effect.";
-            }
-        }
-
-        private static string FormatEffect(AccessoryDefinitionAsset accessory)
-        {
-            if (!string.IsNullOrWhiteSpace(accessory.EffectDescription))
-            {
-                return accessory.EffectDescription;
-            }
-
-            return accessory.EffectType == AccessoryEffectType.MaximumHealthFlat
-                ? $"Maximum HP +{accessory.EffectAmount:0}."
-                : $"All damage dealt +{accessory.EffectAmount * 100f:0}%.";
         }
 
         private void BeginCraftConfirmation()
@@ -690,21 +649,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case EquipmentCategory.Weapon: return "Weapons";
                 case EquipmentCategory.Accessory: return "Accessories";
                 default: throw new ArgumentOutOfRangeException(nameof(category));
-            }
-        }
-
-        private static string FormatWeaponType(WeaponDefinitionAsset weapon)
-        {
-            switch (weapon.WeaponType)
-            {
-                case SER494.Gameplay.Combat.Weapons.WeaponType.Greatsword:
-                    return "Greatsword";
-                case SER494.Gameplay.Combat.Weapons.WeaponType.SwordAndShield:
-                    return "Sword and Shield";
-                case SER494.Gameplay.Combat.Weapons.WeaponType.GlaiveAndShield:
-                    return "Glaive and Shield";
-                default:
-                    return weapon.WeaponType.ToString();
             }
         }
 

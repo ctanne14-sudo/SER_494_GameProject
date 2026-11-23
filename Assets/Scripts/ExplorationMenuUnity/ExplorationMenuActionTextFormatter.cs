@@ -1,6 +1,10 @@
+using System;
 using System.Collections.Generic;
 using SER494.Gameplay.Combat;
+using SER494.Gameplay.Combat.Authoring.Equipment;
 using SER494.Gameplay.Combat.Authoring.SoloCombo;
+using SER494.Gameplay.Combat.Authoring.Weapons;
+using SER494.Gameplay.Combat.Damage;
 using SER494.Gameplay.Combat.SoloCombo;
 using SER494.Gameplay.Combat.Weapons;
 using SER494.Gameplay.PlayerState;
@@ -210,6 +214,114 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case 5: return "V";
                 default: return value.ToString();
             }
+        }
+    }
+
+    internal static class EquipmentPresentationText
+    {
+        internal static string FormatWeaponStats(WeaponDefinitionAsset weapon)
+        {
+            if (weapon == null)
+            {
+                return "Weapon data unavailable.";
+            }
+
+            return $"ATK {weapon.WeaponAttack}  |  {FormatWeaponType(weapon)}";
+        }
+
+        internal static string FormatArmorEffect(
+            ArmorDefinitionAsset armor,
+            bool includeSetEffect = true)
+        {
+            if (armor == null)
+            {
+                return "Armor effect data unavailable.";
+            }
+
+            string individual = !string.IsNullOrWhiteSpace(armor.EffectDescription)
+                ? armor.EffectDescription.Trim()
+                : FormatArmorEffectFallback(armor);
+            if (!includeSetEffect || string.IsNullOrWhiteSpace(armor.SetEffectDescription))
+            {
+                return individual;
+            }
+
+            return individual + "\n" + armor.SetEffectDescription.Trim();
+        }
+
+        internal static string FormatAccessoryEffect(AccessoryDefinitionAsset accessory)
+        {
+            if (accessory == null)
+            {
+                return "Accessory effect data unavailable.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(accessory.EffectDescription))
+            {
+                return accessory.EffectDescription.Trim();
+            }
+
+            switch (accessory.EffectType)
+            {
+                case AccessoryEffectType.MaximumHealthFlat:
+                    return $"Maximum HP +{accessory.EffectAmount:0}.";
+                case AccessoryEffectType.AllDamageDealtMultiplier:
+                    return $"All damage dealt +{accessory.EffectAmount * 100f:0}%.";
+                default:
+                    return "Custom accessory effect.";
+            }
+        }
+
+        internal static string FormatWeaponType(WeaponDefinitionAsset weapon)
+        {
+            switch (weapon.WeaponType)
+            {
+                case WeaponType.Greatsword:
+                    return "Greatsword";
+                case WeaponType.SwordAndShield:
+                    return "Sword and Shield";
+                case WeaponType.GlaiveAndShield:
+                    return "Glaive and Shield";
+                default:
+                    return weapon.WeaponType.ToString();
+            }
+        }
+
+        private static string FormatArmorEffectFallback(ArmorDefinitionAsset armor)
+        {
+            int percent = (int)Math.Round(
+                armor.EffectAmount * 100f,
+                MidpointRounding.AwayFromZero);
+            switch (armor.EffectType)
+            {
+                case ArmorEffectType.None:
+                    return "No individual armor effect.";
+                case ArmorEffectType.DamageTakenMultiplier:
+                    return $"{FormatDamageType(armor.EffectDamageType)} damage taken -{percent}%.";
+                case ArmorEffectType.MaximumHealthMultiplier:
+                    return $"Maximum HP +{percent}%.";
+                case ArmorEffectType.HealingPotionMultiplier:
+                    return $"Healing and Greater Healing Potion recovery +{percent}%.";
+                case ArmorEffectType.GuardCounterPiercingMultiplier:
+                    return $"Successful Guard deals an extra {percent}% Piercing damage.";
+                case ArmorEffectType.AllDamageDealtMultiplier:
+                    return $"All damage dealt +{percent}%.";
+                case ArmorEffectType.DefenseMultiplier:
+                    return $"Defense +{percent}%.";
+                case ArmorEffectType.StaminaRecoveryPerRoundFlat:
+                    return $"Stamina recovery +{armor.EffectAmount:0} each round.";
+                case ArmorEffectType.MaximumStaminaFlat:
+                    return $"Maximum Stamina +{armor.EffectAmount:0}.";
+                case ArmorEffectType.AllDamageTakenMultiplier:
+                    return $"All damage taken -{percent}%.";
+                default:
+                    return "Unknown armor effect.";
+            }
+        }
+
+        private static string FormatDamageType(DamageType type)
+        {
+            return type.ToString();
         }
     }
 }
