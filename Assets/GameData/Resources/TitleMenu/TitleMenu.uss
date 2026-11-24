@@ -201,3 +201,18 @@
     border-bottom-color: rgb(219, 175, 99);
 }
 
+
+.settings-list {
+    margin-top: 10px;
+    margin-bottom: 18px;
+}
+
+.settings-slider {
+    margin-bottom: 14px;
+}
+
+.settings-slider > .unity-label {
+    min-width: 230px;
+    font-size: 18px;
+    color: rgb(226, 212, 184);
+}
