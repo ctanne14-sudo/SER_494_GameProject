@@ -20,11 +20,11 @@ public class Inventory : MonoBehaviour
 
     [Header("Hand")]
     [SerializeField] private GameObject spawnPoint; //Spawn point for held items
-    [Header("Inventory Slot")]
 
-    [SerializeField] private GameObject invSlotObject;  //Initial Object to clone for added slots to inventory
+    [SerializeField] private GameObject inventoryPanel;  //Initial panel of inventory
+    private GameObject invSlotObject;   //Initial Object to clone for added slots to inventory
 
-    [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
+    private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
     [HideInInspector] public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
     private InvSlot prevInvSlot = null;     //Previous selected inventory slot
 
@@ -42,6 +42,9 @@ public class Inventory : MonoBehaviour
     **/
     void Awake()
     {
+        invSlotObject = inventoryPanel.GetComponentInChildren<InvSlot>().gameObject;
+        invSlots.Add(invSlotObject.GetComponent<InvSlot>());
+
         for (int i = 0; i < hotbarSlots.Length; i++)
         {
             hotbarSlots[i].setNum(i + 1);
@@ -88,7 +91,7 @@ public class Inventory : MonoBehaviour
         {
             prevInvSlot = null;
             openInventory = !openInventory;
-            invSlots[0].transform.root.gameObject.SetActive(openInventory);
+            inventoryPanel.SetActive(openInventory);
             Cursor.lockState = openInventory ? CursorLockMode.None : CursorLockMode.Locked;
             transform.GetComponentInChildren<CameraMovement>().enabled = !openInventory;
         }

@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/IntroScene.unity
     guid: 9091df7fde12d1244be9dd3965d16edf
   - enabled: 1
-    path: Assets/_Project/Scenes/Floor1_Cell_A.unity
+    path: Assets/_Project/Scenes/Exploration/Floor1_Cell_A.unity
     guid: 2346742eb287c6843885dce048752bf5
   - enabled: 1
     path: Assets/_Project/Scenes/Prototype/CombatSandbox.unity
@@ -27,7 +27,7 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/Exploration/Floor3_Boss_A.unity
     guid: 54e7afd3aa7d8b145b7a8ad5d9bd4ff2
   - enabled: 0
-    path: Assets/Scenes/TestScene.unity
+    path: Assets/_Project/Scenes/Prototype/TestScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 0
     path: Assets/_Project/Scenes/1.unity
@@ -35,6 +35,18 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Merchant_A.unity
     guid: d2090a2bc763a6e4da2cd42e399cf949
+  - enabled: 1
+    path: Assets/_Project/Scenes/CutsceneFloor1.unity
+    guid: dbc60bbb277b76347b34dce28ee8c15b
+  - enabled: 1
+    path: Assets/_Project/Scenes/CutsceneFloor2.unity
+    guid: 42d73d3cd55ebf846ba289dca4931126
+  - enabled: 1
+    path: Assets/_Project/Scenes/CutsceneFloor3.unity
+    guid: 872ab9aead16559428bd8588f0e550ef
+  - enabled: 1
+    path: Assets/_Project/Scenes/Application/TitleMenu.unity
+    guid: 1b269a01d69d4ab590d12f57c5a8e16d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

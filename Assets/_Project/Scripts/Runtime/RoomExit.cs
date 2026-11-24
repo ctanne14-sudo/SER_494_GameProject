@@ -7,7 +7,6 @@ namespace Roguelike
     {
         public bool locked = false;
 
-        private bool used;
 
         private void Reset()
         {
@@ -16,12 +15,11 @@ namespace Roguelike
 
         private void OnTriggerEnter(Collider other)
         {
-            if (locked || used || !other.CompareTag("Player"))
+            if (locked || !other.CompareTag("Player"))
             {
                 return;
             }
 
-            used = true;
             RunFlow.LoadNextFloor();
         }
     }

@@ -24,8 +24,17 @@ namespace Roguelike
 
         public static void StartRun()
         {
-            pendingFloor = -1;
+            CurrentFloor = 0;
             MerchantStock.ResetRun();
+
+            if (HasCutscene(0))
+            {
+                pendingFloor = 0;
+                SceneManager.LoadScene(Sequence.cutScenes[0]);
+                return;
+            }
+
+            pendingFloor = -1;
             LoadFloor(0);
         }
 
@@ -43,12 +52,24 @@ namespace Roguelike
             {
                 int target = pendingFloor >= 0 ? pendingFloor : CurrentFloor + 1;
                 pendingFloor = -1;
-                if (target >= Sequence.floors.Length)
+                LoadFloorOrFinish(target);
+                return;
+            }
+
+            int cutIndex = IndexOf(sequence.cutScenes, activeScene);
+            if (cutIndex >= 0)
+            {
+                int target = pendingFloor >= 0 ? pendingFloor : cutIndex;
+
+                if (target > 0 && target < Sequence.floors.Length && UseMerchant())
                 {
-                    Debug.Log("RunFlow: run complete, the player escaped the tower.");
+                    pendingFloor = target;
+                    SceneManager.LoadScene(PickRandom(Sequence.merchantScenes));
                     return;
                 }
-                LoadFloor(target);
+
+                pendingFloor = -1;
+                LoadFloorOrFinish(target);
                 return;
             }
 
@@ -59,20 +80,33 @@ namespace Roguelike
             }
 
             int next = CurrentFloor + 1;
-            if (next >= Sequence.floors.Length)
+
+            if (HasCutscene(next))
             {
-                Debug.Log("RunFlow: run complete, the player escaped the tower.");
+                pendingFloor = next;
+                SceneManager.LoadScene(Sequence.cutScenes[next]);
                 return;
             }
-
-            if (Sequence.merchantBetweenFloors && Sequence.merchantScenes != null && Sequence.merchantScenes.Length > 0)
+            
+            if (next < Sequence.floors.Length && UseMerchant())
             {
                 pendingFloor = next;
                 SceneManager.LoadScene(PickRandom(Sequence.merchantScenes));
                 return;
             }
 
-            LoadFloor(next);
+            pendingFloor = -1;
+            LoadFloorOrFinish(next);
+        }
+
+        private static void LoadFloorOrFinish(int index)
+        {
+            if (index >= Sequence.floors.Length)
+            {
+                Debug.Log("RunFlow: run complete, the player escaped the tower");
+                return;
+            }
+            LoadFloor(index);
         }
 
         private static void LoadFloor(int index)
@@ -86,6 +120,38 @@ namespace Roguelike
 
             CurrentFloor = index;
             SceneManager.LoadScene(PickRandom(variants));
+        }
+
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (Sequence == null) return;
+            bool isCutscene = Contains(Sequence.cutScenes, scene.name);
+            PlayerPersistance.SetPersistentObjectsActive(!isCutscene);
+        }
+
+        private static bool UseMerchant()
+        {
+            return Sequence.merchantBetweenFloors
+                && Sequence.merchantScenes != null
+                && Sequence.merchantScenes.Length > 0;
+        }
+
+        private static bool HasCutscene(int index)
+        {
+            return Sequence.cutScenes != null  
+                && index > 0
+                && index < Sequence.cutScenes.Length
+                && !string.IsNullOrEmpty(Sequence.cutScenes[index]);
+        }
+
+        private static int IndexOf(string[] scenes, string activeScene)
+        {
+            if (scenes == null) return -1;
+            for (int i = 0; i < scenes.Length; i++)
+            {
+                if (scenes[i] == activeScene) return i;
+            }
+            return -1;
         }
 
         private static string PickRandom(string[] scenes)
@@ -127,6 +193,8 @@ namespace Roguelike
             sequence = null;
             pendingFloor = -1;
             CurrentFloor = 0;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
     }
 }

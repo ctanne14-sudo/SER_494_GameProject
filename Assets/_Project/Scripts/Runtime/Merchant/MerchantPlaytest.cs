@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Roguelike
 {
@@ -31,7 +30,7 @@ namespace Roguelike
 
         private void Update()
         {
-            Keyboard keyboard = Keyboard.current;
+            /*Keyboard keyboard = Keyboard.current;
             if (keyboard == null)
             {
                 return;
@@ -77,7 +76,7 @@ namespace Roguelike
             {
                 MerchantShop shop = FindAnyObjectByType<MerchantShop>();
                 lastMessage = shop != null && shop.TryReroll(this) ? "Rerolled the shop" : "Can't reroll";
-            }
+            }*/
         }
 
         private void LateUpdate()

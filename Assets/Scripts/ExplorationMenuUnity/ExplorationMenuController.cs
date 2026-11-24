@@ -207,7 +207,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 return;
             }
-            Debug.Log($"Menu open: lock={UnityEngine.Cursor.lockState} visible={UnityEngine.Cursor.visible}");
             _previousTimeScale = Time.timeScale;
             _previousCursorLockMode = UnityEngine.Cursor.lockState;
             _previousCursorVisible = UnityEngine.Cursor.visible;
@@ -252,7 +251,6 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             Time.timeScale = _previousTimeScale;
             UnityEngine.Cursor.lockState = _previousCursorLockMode;
             UnityEngine.Cursor.visible = _previousCursorVisible;
-            Debug.Log($"Menu close: lock={UnityEngine.Cursor.lockState} visible={UnityEngine.Cursor.visible}");
             _hasLastMousePosition = false;
             _lastNavigationTarget = null;
         }

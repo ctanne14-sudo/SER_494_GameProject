@@ -9,6 +9,7 @@ public class ItemPopUp : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI usesLeft;
     [SerializeField] private TextMeshProUGUI displayName;
+    [SerializeField] private TextMeshProUGUI action;
     [SerializeField] private ItemDatabase db;
 
     private string itemID = null;
@@ -26,11 +27,13 @@ public class ItemPopUp : MonoBehaviour
                 usesLeft.text = "x" + service.State.Inventory.GetCount(itemID);
                 ItemData data = db.Get(itemID);
                 displayName.text = data != null ? data.displayName : itemID;
+                action.text = data != null ? data.action : "";
             }
         } else
         {
             usesLeft.text = "x0";
             displayName.text = "";
+            action.text = "";
         }
     }
 

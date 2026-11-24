@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   id: chest-key
   displayName: Chest Key
+  action: Unlock a Chest
   icon: {fileID: 2800000, guid: 673dbc7be03308040bdddf9cec636a50, type: 3}
   prefab: {fileID: 2253393103804301607, guid: f5b1389bfddfd5a468955629e84e3c58, type: 3}

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Healingpotion 1
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   id: greater-healing-potion
-  displayName: Greater Healing potion
+  displayName: Greater Healing Potion
+  action: Heals
   icon: {fileID: 2800000, guid: 566319a7f5cfc0d4281c23ade3fc160e, type: 3}
   prefab: {fileID: 8398601021662225049, guid: 3f4e443556a80c545ad0c7969aa84762, type: 3}

@@ -7,7 +7,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
     public static class TitleMenuBootstrap
     {
         public const string TitleSceneName = "TitleMenu";
-        public const string ExplorationSceneName = "Floor1_Cell_A";
+        public const string ExplorationSceneName = "IntroScene";
 
         private const string ObjectName = "Title Menu";
         private const string CameraObjectName = "Title Camera";

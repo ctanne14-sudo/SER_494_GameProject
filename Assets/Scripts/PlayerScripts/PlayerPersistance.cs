@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class PlayerPersistance : MonoBehaviour
 {
     private const string TitleSceneName = "TitleMenu";
-    private static GameObject[] persistantObjects = new GameObject[3];
+    private static GameObject[] persistantObjects = new GameObject[5];
     public int objectIndex;
 
     void Awake()
@@ -41,6 +41,18 @@ public class PlayerPersistance : MonoBehaviour
         }
     }
 
+    public static void SetPersistentObjectsActive(bool active)
+    {
+        for (int i = 0; i < persistantObjects.Length; i++)
+        {
+            GameObject obj = persistantObjects[i];
+            if (obj != null && obj.activeSelf != active)
+            {
+                obj.SetActive(active);
+            }
+        }
+    }
+
     void MoveToThis(GameObject target)
     {
         var cc = target.GetComponent<CharacterController>();
@@ -54,7 +66,7 @@ public class PlayerPersistance : MonoBehaviour
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { persistantObjects = new GameObject[3]; }
+    static void ResetStatics() { persistantObjects = new GameObject[5]; }
 }
 
 internal static class PlayerVisualOriginAlignment

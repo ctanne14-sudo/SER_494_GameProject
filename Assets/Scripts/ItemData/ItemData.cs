@@ -5,6 +5,7 @@ public class ItemData : ScriptableObject
 {
     public string id;
     public string displayName;
+    public string action;
     public Texture icon;
     public GameObject prefab;
 

@@ -22,3 +22,11 @@ MonoBehaviour:
   - floorName: Throne Room
     variantScenes:
     - Floor3_Boss_A
+  merchantBetweenFloors: 0
+  merchantScenes:
+  - Merchant_A
+  cutScenes:
+  - IntroScene
+  - CutsceneFloor1
+  - CutsceneFloor2
+  - CutsceneFloor3
