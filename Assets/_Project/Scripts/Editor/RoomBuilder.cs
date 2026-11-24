@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEditorInternal;
 
 namespace Roguelike.EditorTools
 {
@@ -17,12 +18,23 @@ namespace Roguelike.EditorTools
         private const string CellScene = "Floor1_Cell_A";
         private const string LobbyScene = "Floor2_Lobby_A";
         private const string BossScene = "Floor3_Boss_A";
+        private const string MerchantScene = "Merchant_A";
+
+        private const string PrefabFolder = Root + "/Prefabs";
+        private const string MerchantFolder = Root + "/Merchant";
+        private const string MerchantPrefabPath = PrefabFolder + "/MerchantRoom.prefab";
+
+        private static readonly bool MerchantInFloors = true;
+        private const float MerchantRoomWidth = 8f;
+        private const float MerchantRoomDepth = 6f;
+        private const float MerchantDoorWidth = 2.4f;
 
         private const float WallThickness = 0.5f;
         private const float NearWallHeight = 0.6f;
         private const float CellDoorTop = 2.4f;
 
         private static Dictionary<string, Material> materials;
+        private static GameObject merchantPrefab;
 
         [MenuItem("Roguelike/Build All Rooms")]
         public static void BuildAllRooms()
@@ -37,13 +49,17 @@ namespace Roguelike.EditorTools
             }
 
             EnsureFolders();
+            EnsureEnemyTag();
             CreateMaterials();
+            MerchantOfferPool pool = CreateSampleOffers();
+            merchantPrefab = BuildMerchantPrefab(pool);
 
             var scenePaths = new List<string>
             {
                 BuildScene(CellScene, BuildCellBlock),
                 BuildScene(LobbyScene, BuildLobby),
-                BuildScene(BossScene, BuildBossRoom)
+                BuildScene(BossScene, BuildBossRoom),
+                BuildScene(MerchantScene, BuildMerchantScene)
             };
 
             AddScenesToBuildSettings(scenePaths);
@@ -54,7 +70,7 @@ namespace Roguelike.EditorTools
             EditorSceneManager.OpenScene(scenePaths[0]);
             EditorUtility.DisplayDialog(
                 "Rooms built",
-                "Created 3 isometric scenes in Assets/_Project/Scenes/Exploration and added them to Build Settings.\n\n" +
+                "Created the floor scenes, the merchant scene and the MerchantRoom prefab, and added the scenes to Build Settings.\n\n" +
                 "Open them from that folder to look around in the Scene view. The green box at the end of each room is the exit to the next floor.",
                 "OK");
         }
@@ -73,7 +89,7 @@ namespace Roguelike.EditorTools
             const float dividerHeight = 2.2f;
             const float exitWidth = 2.4f;
 
-            Shell("Shell", root, 0f, width, depth, wallHeight, 0f, 0f, 0f, exitWidth, 2.8f, "DarkStone", "Stone");
+            Shell("Shell", root, 0f, width, depth, wallHeight, 0f, 0f, 0f, exitWidth, 2.8f, "DarkStone", "Stone", 25f, MerchantInFloors ? MerchantGap : 0f);
 
             float cellRowEnd = cellSize * cellsPerSide;
             Transform cells = Group("Cells", root);
@@ -139,6 +155,7 @@ namespace Roguelike.EditorTools
             Spawn(SpawnType.Prisoner, spawns, new Vector3(1f, 0f, 21f), 180f);
             Spawn(SpawnType.Prisoner, spawns, new Vector3(-3f, 0f, 26f), 180f);
 
+            PlaceMerchantRoom(root, new Vector3(-width / 2f - WallThickness, 0f, 25f));
             ExitAlcove(root, 0f, depth + WallThickness, exitWidth, wallHeight, "Stone", "DarkStone");
         }
 
@@ -199,7 +216,7 @@ namespace Roguelike.EditorTools
             const float exitX = 12.5f;
             const float exitWidth = 2.5f;
 
-            Shell("Shell", root, 0f, width, depth, wallHeight, 0f, 0f, exitX, exitWidth, 3f, "Marble", "Stone");
+            Shell("Shell", root, 0f, width, depth, wallHeight, 0f, 0f, exitX, exitWidth, 3f, "Marble", "Stone", 15f, MerchantInFloors ? MerchantGap : 0f);
 
             Box("Carpet", root, new Vector3(0f, 0.01f, 11f), new Vector3(3f, 0.02f, 20f), "Carpet");
 
@@ -255,6 +272,7 @@ namespace Roguelike.EditorTools
             Spawn(SpawnType.Guard, spawns, new Vector3(0f, galleryTop, 28f), 180f);
             Spawn(SpawnType.Guard, spawns, new Vector3(6f, galleryTop, 27f), 180f);
 
+            PlaceMerchantRoom(root, new Vector3(-width / 2f - WallThickness, 0f, 15f));
             ExitAlcove(root, exitX, depth + WallThickness, exitWidth, wallHeight, "Stone", "Marble");
         }
 
@@ -274,7 +292,7 @@ namespace Roguelike.EditorTools
             const float exitWidth = 3f;
 
             Shell("EntranceHall", root, 0f, hallWidth, hallDepth, hallHeight, 0f, 0f, 0f, hallWidth, hallHeight, "DarkStone", "DarkStone");
-            Shell("Arena", root, arenaStart, arenaWidth, arenaDepth, arenaHeight, 0f, hallWidth, exitX, exitWidth, 4f, "DarkStone", "DarkStone");
+            Shell("Arena", root, arenaStart, arenaWidth, arenaDepth, arenaHeight, 0f, hallWidth, exitX, exitWidth, 4f, "DarkStone", "DarkStone", 26.5f, MerchantInFloors ? MerchantGap : 0f);
 
             float arenaEnd = arenaStart + arenaDepth;
 
@@ -332,12 +350,13 @@ namespace Roguelike.EditorTools
             Spawn(SpawnType.Player, spawns, new Vector3(0f, 0f, 1.5f), 0f);
             Spawn(SpawnType.Boss, spawns, new Vector3(0f, 1f, 37.5f), 180f);
 
+            PlaceMerchantRoom(root, new Vector3(-arenaWidth / 2f - WallThickness, 0f, 26.5f));
             ExitAlcove(root, exitX, arenaEnd + WallThickness, exitWidth, arenaHeight, "DarkStone", "DarkStone");
         }
 
         private static Transform Shell(string name, Transform parent, float zStart, float width, float depth, float height,
             float southDoorX, float southDoorWidth, float northDoorX, float northDoorWidth, float doorHeight,
-            string floorMat, string wallMat)
+            string floorMat, string wallMat, float westGapZ = 0f, float westGapWidth = 0f)
         {
             Transform group = Group(name, parent);
             float t = WallThickness;
@@ -346,7 +365,23 @@ namespace Roguelike.EditorTools
 
             Box("Floor", group, new Vector3(0f, -0.25f, zMid), new Vector3(width + t * 2f, 0.5f, depth + t * 2f), floorMat);
 
-            WallZ("Wall_West_Low", group, -half - t / 2f, zStart - t, zStart + depth + t, NearWallHeight, wallMat);
+            if (westGapWidth > 0f)
+            {
+                float gapStart = westGapZ - westGapWidth / 2f;
+                float gapEnd = westGapZ + westGapWidth / 2f;
+                if (gapStart > zStart - t)
+                {
+                    WallZ("Wall_West_Low_South", group, -half - t / 2f, zStart - t, gapStart, NearWallHeight, wallMat);
+                }
+                if (gapEnd < zStart + depth + t)
+                {
+                    WallZ("Wall_West_Low_North", group, -half - t / 2f, gapEnd, zStart + depth + t, NearWallHeight, wallMat);
+                }
+            }
+            else
+            {
+                WallZ("Wall_West_Low", group, -half - t / 2f, zStart - t, zStart + depth + t, NearWallHeight, wallMat);
+            }
             WallZ("Wall_East", group, half + t / 2f, zStart - t, zStart + depth + t, height, wallMat);
             WallX("Wall_South_Low", group, zStart - t / 2f, -half, half, NearWallHeight, southDoorX, southDoorWidth, doorHeight, wallMat, t);
             WallX("Wall_North", group, zStart + depth + t / 2f, -half, half, height, northDoorX, northDoorWidth, doorHeight, wallMat, t);
@@ -415,6 +450,177 @@ namespace Roguelike.EditorTools
             trigger.AddComponent<RoomExit>();
 
             PointLight("ExitLight", group, new Vector3(x, 3f, zEnd - 1.5f), new Color(0.7f, 1f, 0.75f), 6f, 2.5f, false);
+        }
+
+        private static float MerchantGap => MerchantRoomDepth + WallThickness * 2f;
+
+        private static void PlaceMerchantRoom(Transform parent, Vector3 doorwayOuterEdge)
+        {
+            if (!MerchantInFloors || merchantPrefab == null)
+            {
+                return;
+            }
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(merchantPrefab);
+            instance.transform.SetParent(parent, false);
+            instance.transform.localPosition = doorwayOuterEdge;
+        }
+
+        private static void BuildMerchantScene(Transform root)
+        {
+            SetAmbient(new Color(0.15f, 0.13f, 0.12f));
+            KeyLight(root, new Color(1f, 0.85f, 0.7f), 0.35f, 55f, 25f);
+
+            const float width = 6f;
+            const float depth = 10f;
+            const float zStart = -4f;
+            const float wallHeight = 3.5f;
+            const float exitWidth = 2.4f;
+
+            Shell("Hall", root, zStart, width, depth, wallHeight, 0f, 0f, 0f, exitWidth, 2.8f, "DarkStone", "Stone", 0f, MerchantGap);
+
+            if (merchantPrefab != null)
+            {
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(merchantPrefab);
+                instance.transform.SetParent(root, false);
+                instance.transform.localPosition = new Vector3(-width / 2f - WallThickness, 0f, 0f);
+            }
+
+            Transform lights = Group("Lights", root);
+            PointLight("HallLamp", lights, new Vector3(1f, 3f, 0f), new Color(1f, 0.62f, 0.3f), 9f, 2f, false);
+
+            Transform spawns = Group("Spawns", root);
+            Spawn(SpawnType.Player, spawns, new Vector3(1.5f, 0f, -2.5f), 270f);
+
+            var tester = new GameObject("TestCustomer");
+            tester.transform.SetParent(root, false);
+            tester.AddComponent<MerchantTestCustomer>();
+
+            ExitAlcove(root, 0f, zStart + depth + WallThickness, exitWidth, wallHeight, "Stone", "DarkStone");
+        }
+
+        private static GameObject BuildMerchantPrefab(MerchantOfferPool pool)
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            const float roomHeight = 3.5f;
+            float t = WallThickness;
+            float w = MerchantRoomWidth;
+            float halfDepth = MerchantRoomDepth / 2f;
+            float halfDoor = MerchantDoorWidth / 2f;
+
+            var rootObject = new GameObject("MerchantRoom");
+            Transform room = rootObject.transform;
+
+            Transform shell = Group("Shell", room);
+            Box("Floor", shell, new Vector3(-w / 2f, -0.25f, 0f), new Vector3(w + t * 2f, 0.5f, MerchantRoomDepth + t * 2f), "DarkStone");
+            Box("Wall_North", shell, new Vector3(-(w + t) / 2f, roomHeight / 2f, halfDepth + t / 2f), new Vector3(w + t, roomHeight, t), "Stone");
+            Box("Wall_West_Low", shell, new Vector3(-w - t / 2f, NearWallHeight / 2f, 0f), new Vector3(t, NearWallHeight, MerchantRoomDepth + t * 2f), "Stone");
+            Box("Wall_South_Low", shell, new Vector3(-(w + t) / 2f, NearWallHeight / 2f, -halfDepth - t / 2f), new Vector3(w + t, NearWallHeight, t), "Stone");
+            float sideLength = halfDepth + t - halfDoor;
+            Box("Wall_East_Low_South", shell, new Vector3(t / 2f, NearWallHeight / 2f, -halfDoor - sideLength / 2f), new Vector3(t, NearWallHeight, sideLength), "Stone");
+            Box("Wall_East_Low_North", shell, new Vector3(t / 2f, NearWallHeight / 2f, halfDoor + sideLength / 2f), new Vector3(t, NearWallHeight, sideLength), "Stone");
+
+            Transform props = Group("Props", room);
+            Box("Rug", props, new Vector3(-3.5f, 0.01f, -0.5f), new Vector3(4f, 0.02f, 3f), "Carpet");
+            Box("Counter", props, new Vector3(-6.5f, 0.55f, 0f), new Vector3(0.8f, 1.1f, 3f), "Wood");
+            Cylinder("Barrel", props, new Vector3(-7.3f, 0.5f, 2.3f), 0.4f, 1f, "Wood");
+            Box("Crate", props, new Vector3(-7.3f, 0.4f, -2.3f), new Vector3(0.8f, 0.8f, 0.8f), "Wood");
+
+            Transform pedestalGroup = Group("Pedestals", room);
+            var pedestals = new MerchantPedestal[3];
+            for (int i = 0; i < pedestals.Length; i++)
+            {
+                Transform pedestalRoot = Group("Pedestal_" + (i + 1), pedestalGroup);
+                pedestalRoot.localPosition = new Vector3(-1.5f - 1.5f * i, 0f, halfDepth - 1f);
+                Cylinder("Base", pedestalRoot, new Vector3(0f, 0.5f, 0f), 0.35f, 1f, "Stone");
+                Transform displayPoint = Group("DisplayPoint", pedestalRoot);
+                displayPoint.localPosition = new Vector3(0f, 1.25f, 0f);
+                GameObject placeholder = Box("Placeholder", pedestalRoot, new Vector3(0f, 1.15f, 0f), new Vector3(0.3f, 0.3f, 0.3f), "Gold");
+                GameObjectUtility.SetStaticEditorFlags(placeholder, 0);
+
+                MerchantPedestal pedestal = pedestalRoot.gameObject.AddComponent<MerchantPedestal>();
+                pedestal.displayPoint = displayPoint;
+                pedestal.placeholder = placeholder;
+                pedestals[i] = pedestal;
+            }
+
+            Transform spawns = Group("Spawns", room);
+            Spawn(SpawnType.Merchant, spawns, new Vector3(-7.4f, 0f, 0f), 90f);
+
+            Transform lights = Group("Lights", room);
+            PointLight("Lantern", lights, new Vector3(-5f, 2.8f, 0f), new Color(1f, 0.8f, 0.45f), 8f, 3f, true);
+
+            Transform gate = Group("Gate", room);
+            for (float z = -halfDoor + 0.125f; z < halfDoor; z += 0.25f)
+            {
+                GameObject bar = Cylinder("Bar", gate, new Vector3(t / 2f, 1.2f, z), 0.04f, 2.4f, "Metal");
+                GameObjectUtility.SetStaticEditorFlags(bar, 0);
+            }
+            GameObject rail = Box("Rail_Top", gate, new Vector3(t / 2f, 2.4f, 0f), new Vector3(0.08f, 0.08f, MerchantDoorWidth), "Metal");
+            GameObjectUtility.SetStaticEditorFlags(rail, 0);
+
+            MerchantShop shop = rootObject.AddComponent<MerchantShop>();
+            shop.pool = pool;
+            shop.pedestals = pedestals;
+
+            RoomClearWatcher watcher = rootObject.AddComponent<RoomClearWatcher>();
+            watcher.gates = new[] { gate.gameObject };
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(rootObject, MerchantPrefabPath);
+            Object.DestroyImmediate(rootObject);
+            return prefab;
+        }
+
+        private static MerchantOfferPool CreateSampleOffers()
+        {
+            string poolPath = ResourcesFolder + "/MerchantOfferPool.asset";
+            var pool = AssetDatabase.LoadAssetAtPath<MerchantOfferPool>(poolPath);
+            if (pool != null)
+            {
+                return pool;
+            }
+
+            pool = ScriptableObject.CreateInstance<MerchantOfferPool>();
+            pool.offers = new[]
+            {
+                CreateOffer("Ration", "Heal some health.", 30, 3f, 0, false),
+                CreateOffer("Iron Shackle", "More max health.", 60, 2f, 0, false),
+                CreateOffer("Sharpened Spoon", "Hit harder.", 75, 2f, 0, false),
+                CreateOffer("Worn Boots", "Move faster.", 50, 2f, 0, false),
+                CreateOffer("Spare Key", "Get back up once after dying.", 120, 0.5f, 1, true)
+            };
+            AssetDatabase.CreateAsset(pool, poolPath);
+            return pool;
+        }
+
+        private static MerchantOffer CreateOffer(string displayName, string description, int price, float weight, int minFloor, bool oncePerRun)
+        {
+            string id = displayName.Replace(" ", "");
+            string path = MerchantFolder + "/Offers/" + id + ".asset";
+            var offer = AssetDatabase.LoadAssetAtPath<MerchantOffer>(path);
+            if (offer != null)
+            {
+                return offer;
+            }
+
+            offer = ScriptableObject.CreateInstance<MerchantOffer>();
+            offer.id = id.ToLowerInvariant();
+            offer.displayName = displayName;
+            offer.description = description;
+            offer.basePrice = price;
+            offer.weight = weight;
+            offer.minFloor = minFloor;
+            offer.oncePerRun = oncePerRun;
+            AssetDatabase.CreateAsset(offer, path);
+            return offer;
+        }
+
+        private static void EnsureEnemyTag()
+        {
+            if (!System.Array.Exists(InternalEditorUtility.tags, tag => tag == "Enemy"))
+            {
+                InternalEditorUtility.AddTag("Enemy");
+            }
         }
 
         private static void Spawn(SpawnType type, Transform parent, Vector3 position, float yaw)
@@ -492,7 +698,8 @@ namespace Roguelike.EditorTools
 
         private static bool ConfirmOverwrite()
         {
-            bool anyExist = File.Exists(ScenePath(CellScene)) || File.Exists(ScenePath(LobbyScene)) || File.Exists(ScenePath(BossScene));
+            bool anyExist = File.Exists(ScenePath(CellScene)) || File.Exists(ScenePath(LobbyScene)) || File.Exists(ScenePath(BossScene))
+                || File.Exists(ScenePath(MerchantScene)) || File.Exists(MerchantPrefabPath);
             if (!anyExist)
             {
                 return true;
@@ -526,6 +733,9 @@ namespace Roguelike.EditorTools
             EnsureFolder(Root + "/Scenes", "Exploration");
             EnsureFolder(Root, "Materials");
             EnsureFolder(Root, "Resources");
+            EnsureFolder(Root, "Prefabs");
+            EnsureFolder(Root, "Merchant");
+            EnsureFolder(MerchantFolder, "Offers");
         }
 
         private static void EnsureFolder(string parent, string name)

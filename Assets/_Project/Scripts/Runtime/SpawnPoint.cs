@@ -7,7 +7,8 @@ namespace Roguelike
         Player,
         Prisoner,
         Guard,
-        Boss
+        Boss,
+        Merchant
     }
 
     public class SpawnPoint : MonoBehaviour
@@ -33,6 +34,8 @@ namespace Roguelike
                     return new Color(1f, 0.6f, 0.1f);
                 case SpawnType.Guard:
                     return Color.yellow;
+                case SpawnType.Merchant:
+                    return Color.magenta;
                 default:
                     return Color.red;
             }

@@ -13,5 +13,8 @@ namespace Roguelike
         }
 
         public Floor[] floors;
+
+        public bool merchantBetweenFloors = false;
+        public string[] merchantScenes = { "Merchant_A" };
     }
 }
