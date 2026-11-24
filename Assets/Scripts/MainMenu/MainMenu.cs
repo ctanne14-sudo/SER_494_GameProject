@@ -3,6 +3,12 @@ using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
+
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.None;
+    }
+
     public void PlayGame()
     {
         Debug.Log("Play Game button clicked");
