@@ -1,13 +1,19 @@
 using SER494.Gameplay.ExplorationMenu.Unity;
 using SER494.Gameplay.PlayerState.Unity;
+using TMPro;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PersistentWorldObject))]
 public sealed class PersistentItemPickupAction : Action
 {
+    [Header("Interaction UI")]
     [SerializeField] private GameObject interactionPrompt;
+    [SerializeField] private Vector3 uiOffset = new Vector3(0, 1.5f, 0);
+    [SerializeField] private float uiScale = .01f;
     [SerializeField] private string fallbackPrompt = "E / A  Pick Up Healing Potion";
+
+
     [SerializeField] private string itemId = PlayerStateInitialValues.HealingPotionId;
     [Min(1)]
     [SerializeField] private int amount = 1;
@@ -18,6 +24,17 @@ public sealed class PersistentItemPickupAction : Action
     private void Awake()
     {
         _persistentWorldObject = GetComponent<PersistentWorldObject>();
+    }
+
+    private void Start()
+    {
+        if (interactionPrompt != null)
+        {
+            interactionPrompt = Instantiate(interactionPrompt, transform.position + uiOffset, Quaternion.identity, transform);
+            interactionPrompt.transform.localScale = Vector3.one * uiScale;
+            interactionPrompt.GetComponentInChildren<TextMeshProUGUI>().text = fallbackPrompt;
+            interactionPrompt.SetActive(false);
+        }
     }
 
     public void Configure(

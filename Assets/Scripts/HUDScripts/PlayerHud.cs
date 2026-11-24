@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using TMPro;
+using SER494.Gameplay.PlayerState.Unity;
+using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
 
 public class PlayerHud : MonoBehaviour {
 
@@ -23,7 +24,6 @@ public class PlayerHud : MonoBehaviour {
     [SerializeField] private Slider manaSlider;
 
     [Header("Gold")]
-    [SerializeField] private Inventory inventory;
     [SerializeField] private TextMeshProUGUI goldText;
     private float displayGold;
 
@@ -40,8 +40,13 @@ public class PlayerHud : MonoBehaviour {
         staminaSlider.maxValue = ps.maxStamina;
         staminaSlider.value = displayStamina;
 
-        displayGold = inventory.gold;
-        goldText.text = displayGold.ToString("0");
+        if (PlayerStateService.TryGetActive(out PlayerStateService service)
+                || service.State != null)
+            {
+                PersistentPlayerState state = service.State;
+                displayGold = state.Currencies.Gold;
+                goldText.text = displayGold.ToString("0");
+            }
     }
 
 
@@ -65,12 +70,18 @@ public class PlayerHud : MonoBehaviour {
             staminaSlider.value = displayStamina;
         }
 
-        int currentGold = inventory.gold;
-        if (displayGold != currentGold)
-        {
-            displayGold = Mathf.MoveTowards(displayGold, currentGold, 100f * Time.deltaTime);
-            goldText.text = displayGold.ToString("0");
-        }
+
+        if (PlayerStateService.TryGetActive(out PlayerStateService service)
+                || service.State != null)
+            {
+                PersistentPlayerState state = service.State;
+                int currentGold = state.Currencies.Gold;
+                if (displayGold != currentGold)
+                {
+                    displayGold = Mathf.MoveTowards(displayGold, currentGold, 100f * Time.deltaTime);
+                    goldText.text = displayGold.ToString("0");
+                }
+            }
 
 
     }
