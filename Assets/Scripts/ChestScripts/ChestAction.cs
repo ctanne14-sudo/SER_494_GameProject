@@ -65,8 +65,8 @@ public class ChestAction : Action {
 
 	private void checkForKey()
 	{
-		Item item = inventory.getSelectedHotbar();
-		bool stateChange = item != null && item.id == lockId;
+		string item = inventory.getSelectedHotbar();
+		bool stateChange = item != null && item == lockId;
 
 		if (stateChange == hasKey) return;
 
@@ -104,14 +104,14 @@ public class ChestAction : Action {
 			unlocked = !setLock || isOpen;
 		} else
 		{
-			Item item = inventory.getSelectedHotbar();
+			/*string item = inventory.getSelectedHotbar();
 			if (item != null && item.id == lockId)
 			{
 				item.usesLeft--;
 				unlocked = true;
 			} else {
 					uiShake.shake();
-			}
+			}*/
 		}
 		uiTextComponent.text = setUiPrompt();
 	}

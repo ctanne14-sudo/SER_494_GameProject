@@ -65,6 +65,9 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             new Dictionary<Button, Action>();
         private readonly Dictionary<string, int> _previewChargeLevels =
             new Dictionary<string, int>(StringComparer.Ordinal);
+
+        private readonly HashSet<string> _shownInventoryIds = new HashSet<string>(StringComparer.Ordinal);
+        [SerializeField] ItemDatabase db;
         private ComboMenuLevel _comboMenuLevel;
         private PlayerComboLoadoutState _selectedLoadout;
         private PlayerComboLoadoutDraft _selectedLoadoutDraft;
@@ -204,7 +207,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             {
                 return;
             }
-
+            Debug.Log($"Menu open: lock={UnityEngine.Cursor.lockState} visible={UnityEngine.Cursor.visible}");
             _previousTimeScale = Time.timeScale;
             _previousCursorLockMode = UnityEngine.Cursor.lockState;
             _previousCursorVisible = UnityEngine.Cursor.visible;
@@ -249,6 +252,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             Time.timeScale = _previousTimeScale;
             UnityEngine.Cursor.lockState = _previousCursorLockMode;
             UnityEngine.Cursor.visible = _previousCursorVisible;
+            Debug.Log($"Menu close: lock={UnityEngine.Cursor.lockState} visible={UnityEngine.Cursor.visible}");
             _hasLastMousePosition = false;
             _lastNavigationTarget = null;
         }
@@ -2904,6 +2908,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 ShowActionLearning,
                 "learn-actions-button");
             _content.Clear();
+            _shownInventoryIds.Clear();
             AddSectionHeading(ExplorationMenuText.Get("inventory.consumables"));
             AddInventoryRow(state, PlayerStateInitialValues.HealingPotionId, "Healing Potion");
             AddInventoryRow(state, PlayerStateInitialValues.GreaterHealingPotionId,
@@ -2939,6 +2944,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             AddInventoryRow(state, BattleRewardSummary.MithrilMaterialId, "Mithril");
             AddInventoryRow(state, BattleRewardSummary.YellowSilkMaterialId, "Yellow Silk");
             AddInventoryRow(state, BattleRewardSummary.RedSilkMaterialId, "Red Silk");
+            AddOtherInventoryRows(state);
             SetSelectedNavigation(_inventoryButton);
         }
 
@@ -4142,7 +4148,35 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private void AddInventoryRow(PersistentPlayerState state, string itemId, string displayName)
         {
+            _shownInventoryIds.Add(itemId);
             AddValueRow(displayName, state.Inventory.GetCount(itemId).ToString());
+        }
+
+        private void AddOtherInventoryRows(PersistentPlayerState state)
+        {
+            var others = new List<KeyValuePair<string, string>>();   // name, count
+            foreach (KeyValuePair<string, int> item in state.Inventory.ItemCounts)
+            {
+                if (item.Value <= 0
+                    || _shownInventoryIds.Contains(item.Key)
+                    || ActionManualLearningService.TryGetActionId(item.Key, out _))
+                {
+                    continue;   // already listed, empty, or an action manual (shown on the Learn Actions page)
+                }
+
+                ItemData data = db.Get(item.Key);
+                string name = data != null ? data.displayName : item.Key;
+                others.Add(new KeyValuePair<string, string>(name, item.Value.ToString()));
+            }
+
+            if (others.Count == 0) return;
+
+            others.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.Ordinal));
+            AddSectionHeading("Other");
+            foreach (KeyValuePair<string, string> row in others)
+            {
+                AddValueRow(row.Key, row.Value);
+            }
         }
 
         private void AddSectionHeading(string text)

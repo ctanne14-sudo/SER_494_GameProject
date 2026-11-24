@@ -38,7 +38,7 @@ public class HealthController : MonoBehaviour {
         deathPanel.SetActive(true);
     }
 
-    public void reset()
+    public void Reset()
     {
         State.RestoreHealthToMaximum();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);

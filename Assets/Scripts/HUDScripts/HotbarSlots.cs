@@ -6,9 +6,10 @@ public class HotbarSlot : MonoBehaviour
 {
     [SerializeField] private RawImage icon;
     [SerializeField] private Image highlight;
-    [SerializeField] private Item item;
     [SerializeField] private TextMeshProUGUI slotNum;
     [SerializeField] private TextMeshProUGUI itemName;
+    [SerializeField] private ItemDatabase db;
+    private string itemID = null;
     private GameObject spawnPoint;
     private GameObject spawned;
     private bool isSelected;
@@ -18,14 +19,15 @@ public class HotbarSlot : MonoBehaviour
         setName();
     }
 
-    public Item setItem(Item item, GameObject spawnPoint)
+    public string setItemID(string itemID, GameObject spawnPoint)
     {
-        Item temp = this.item;
+        string temp = this.itemID;
         clear();
+        ItemData data = string.IsNullOrEmpty(itemID) ? null : db.Get(itemID);
+        icon.texture = data != null ? data.icon : null;
+        icon.enabled = data != null;
         this.spawnPoint = spawnPoint;
-        this.item = item;
-        icon.texture = item.texture;
-        icon.enabled = item.texture != null;
+        this.itemID = itemID;
         spawnItem();
         setName();
         return temp;
@@ -42,9 +44,12 @@ public class HotbarSlot : MonoBehaviour
 
     private void spawnItem()
     {
-        if (isSelected && item != null && spawned == null) {
+        if (isSelected && itemID != null && spawned == null) {
+            ItemData itemData = db.Get(itemID);
+            if (string.IsNullOrEmpty(itemID) || itemData.prefab == null) return;
+
             Transform sp = spawnPoint.transform;
-            spawned = Instantiate(item.prefab, sp.position, sp.rotation, sp);
+            spawned = Instantiate(itemData.prefab, sp.position, sp.rotation, sp);
 
             Transform offset = spawned.transform.Find("handOffset");
             if (offset != null)
@@ -63,17 +68,19 @@ public class HotbarSlot : MonoBehaviour
 
     public void clear()
     {
-        item = null;
+        itemID = null;
         icon.texture = null;
         icon.enabled = false;
         setName();
         if (spawned != null) Destroy(spawned);
     }
 
-    public Item getItem() => item;
+    public string getItemID() => itemID;
 
     public void setNum(int num) => slotNum.text = num.ToString();
 
-    public void setName() =>
-        itemName.text = item != null ? item.displayName : "";
+    public void setName() {
+        ItemData data = string.IsNullOrEmpty(itemID) ? null : db.Get(itemID);
+        itemName.text = data != null ? data.displayName : itemID;
+    }
 }

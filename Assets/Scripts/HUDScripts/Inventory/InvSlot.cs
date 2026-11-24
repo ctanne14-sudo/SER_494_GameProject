@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -7,10 +6,11 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private RawImage icon;     //Image of the Item
     [SerializeField] private Image highlight;   //Enable When Selected
     [SerializeField] private GameObject itemPopUp;   //Enable When Hovered
+    [SerializeField] private ItemDatabase db;
     private float offset = 71.5f;
 
     private Inventory inventory;    //Reference to players inventory
-    private Item item;      //The item held in the slot
+    private string itemID = null;   //The itemID held in the slot
     private bool selected = false;  //True when the item is clicked
     private bool hovering = false;
 
@@ -19,7 +19,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         if (hovering)
         {
-            itemPopUp.GetComponent<ItemPopUp>().setItem(item);
+            itemPopUp.GetComponent<ItemPopUp>().setItemID(itemID);
             ((RectTransform)itemPopUp.transform).position = transform.TransformPoint(new Vector3(offset, 0f, 0f));
         }
     }
@@ -70,7 +70,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         highlight.gameObject.SetActive(true);
         transform.localScale = new Vector2(1.05f, 1.05f);
         itemPopUp.transform.localScale = new Vector2(1.05f, 1.05f); 
-        itemPopUp.GetComponent<ItemPopUp>().setItem(null);
+        itemPopUp.GetComponent<ItemPopUp>().setItemID(null);
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -78,24 +78,19 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         hovering = false;
         itemPopUp.SetActive(false);
         highlight.gameObject.SetActive(selected);
-        itemPopUp.GetComponent<ItemPopUp>().setItem(null);
+        itemPopUp.GetComponent<ItemPopUp>().setItemID(null);
         transform.localScale = selected ? new Vector2(1.05f, 1.05f) : Vector2.one;
     }
 
     /**
         Sets the slots item
     **/
-    public void setItem(Item item)
+    public void setItemID(string itemID)
     {
-        this.item = item;
-        if (item != null) {
-            item.setInvSlot(this); 
-            icon.texture = item.texture;
-            icon.enabled = true;    
-        } else
-        {
-            icon.enabled = false;
-        }
+        this.itemID = itemID;
+        ItemData data = string.IsNullOrEmpty(itemID) ? null : db.Get(itemID);
+        icon.texture = data != null ? data.icon : null;
+        icon.enabled = data != null;    
         if (inventory.selectedInvSlot != this)
             clearSelection();
     }
@@ -115,7 +110,7 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     **/
     public void clear()
     {
-        item = null;
+        itemID = null;
         icon.texture = null;
         icon.enabled = false;
         selected = false;
@@ -126,5 +121,5 @@ public class InvSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     /**
         Returns the currently stored item
     **/
-    public Item getItem() => item;
+    public string getItemID() => itemID;
 }

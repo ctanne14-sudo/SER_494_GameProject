@@ -1,21 +1,22 @@
 {
-  "name": "SER494.ExplorationMenu.Unity",
-  "rootNamespace": "SER494.Gameplay.ExplorationMenu.Unity",
-  "references": [
-    "SER494.Combat",
-    "SER494.Combat.Authoring",
-    "SER494.CombatIntegration.Unity",
-    "SER494.PlayerState",
-    "SER494.PlayerState.Unity",
-    "Unity.InputSystem"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "SER494.ExplorationMenu.Unity",
+    "rootNamespace": "SER494.Gameplay.ExplorationMenu.Unity",
+    "references": [
+        "SER494.Combat",
+        "SER494.Combat.Authoring",
+        "SER494.CombatIntegration.Unity",
+        "SER494.PlayerState",
+        "SER494.PlayerState.Unity",
+        "Unity.InputSystem",
+        "SER494.Items"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

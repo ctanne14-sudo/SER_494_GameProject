@@ -1,11 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
 using SER494.Gameplay.ExplorationMenu.Unity;
+using SER494.Gameplay.PlayerState.Unity;
+using PersistentPlayerState = SER494.Gameplay.PlayerState.PlayerState;
+using SER494.Gameplay.PlayerState;
+using System;
 
 public class Inventory : MonoBehaviour
 {
     [Header("Plyaer Scripts")]
+    private PlayerInventoryState inventory;
     [SerializeField] private PlayerInteractor interactor;
+    [SerializeField] private ItemDatabase db;
     [SerializeField] private PlayerSpeed ps;
 
     [Header("Hotbar")]
@@ -19,7 +25,6 @@ public class Inventory : MonoBehaviour
     [SerializeField] private GameObject invSlotObject;  //Initial Object to clone for added slots to inventory
 
     [SerializeField] private List<InvSlot> invSlots = new List<InvSlot>();  //List of slots in inventory
-    private List<Item> inInventory = new List<Item>();  //List of items in inventory/hotbar
     [HideInInspector] public InvSlot selectedInvSlot = null;  //Most recent selected inventory slot
     private InvSlot prevInvSlot = null;     //Previous selected inventory slot
 
@@ -47,7 +52,18 @@ public class Inventory : MonoBehaviour
             invSlots[i].addInventory(this, endRow);
         }
 
-        addInvSlot();
+
+        if (PlayerStateService.TryGetActive(out PlayerStateService service)
+                && service.State != null)
+            {
+                PersistentPlayerState state = service.State;
+                inventory = state.Inventory;
+
+            foreach (KeyValuePair<string, int> key in inventory.ItemCounts)
+            {
+                addToInvSlot(key.Key);
+            }
+            }
     }
 
 
@@ -67,13 +83,6 @@ public class Inventory : MonoBehaviour
         if (Input.GetMouseButtonUp(0) && !openInventory)
             useItem();
 
-        //Updates inventory once items have no uses left
-        for (int i = 0; i < inInventory.Count; i++) 
-            if (inInventory[i].usesLeft <= 0) {
-                removeItem(inInventory[i]);
-                i--;
-            }
-        
         //Opens the inventory with Tab
         if (Input.GetKeyDown(KeyCode.Tab))
         {
@@ -97,12 +106,17 @@ public class Inventory : MonoBehaviour
     **/
     void useItem()
     {
-        Item item = getSelectedHotbar();
-        if (item != null && item.usesLeft > 0) {
-            Action action = item.prefab.GetComponent<Action>();
-            if (action != null) {
-                action.action(interactor);
-                item.usesLeft--;
+        string itemID = getSelectedHotbar();
+        if (!string.IsNullOrEmpty(itemID)) {
+            Action action = db.Get(hotbarSlots[hbSelected].getItemID()).prefab.GetComponent<Action>();
+            if (action != null)
+            {
+                if (inventory.TryConsume(itemID, 1)) 
+                {
+                    action.action(interactor);
+                    if (inventory.GetCount(itemID) <= 0)
+                        hotbarSlots[hbSelected].clear();
+                }
             }
         }
     }
@@ -131,17 +145,16 @@ public class Inventory : MonoBehaviour
     /**
         Adds item to inventory in the next available slot
     **/
-    private void addToInvSlot(Item item)
+    public void addToInvSlot(string itemID)
     {
         bool added = false;
         while (!added) {
             addInvSlot();
             foreach (InvSlot slot in invSlots)
             {
-                if (slot.getItem() == null)
+                if (slot.getItemID() == null)
                 {
-                    item.setInvSlot(slot);
-                    slot.setItem(item);
+                    slot.setItemID(itemID);
                     added = true;
                     break;
                 }
@@ -155,7 +168,7 @@ public class Inventory : MonoBehaviour
     **/
     private void addInvSlot()
     {
-        while (invSlots.Count <= (((inInventory.Count / 8) + 2) * 8 - 1)) {
+        while (invSlots.Count <= (((inventory.ItemCounts.Count / 8) + 2) * 8 - 1)) {
             GameObject spawn = Instantiate(invSlotObject);
             spawn.transform.SetParent(invSlotObject.transform.parent);
             spawn.transform.localScale = Vector3.one;
@@ -164,7 +177,7 @@ public class Inventory : MonoBehaviour
             int index = invSlots.IndexOf(slot);
             bool endRow = (index % 8) > 5;
             slot.addInventory(this, endRow);
-            slot.setItem(null);
+            slot.setItemID(null);
         }
         rowCount = (int)Mathf.Ceil(invSlots.Count / 8);
         RectTransform rect = (RectTransform)invSlots[0].transform.parent.transform;
@@ -172,51 +185,12 @@ public class Inventory : MonoBehaviour
     }
 
     /**
-        Adds item to inventory if there are no matching items
-        Adds uses to matching items
-    **/
-    public void addItem(Item item)
-    {
-        foreach (Item i in inInventory)
-        {
-            if (item.prefab == i.prefab)
-            {
-                i.usesLeft += item.usesLeft;
-                if (i.invSlot == null)
-                {
-                    addToInvSlot(i);
-                } 
-                return;
-            }
-        }
-        inInventory.Add(item);
-        addToInvSlot(item);
-    }
-
-    /**
-        Removes items from the inventory 
-    **/
-    private void removeItem(Item item)
-    {
-        if (item == null) return;
-        inInventory.Remove(item);
-        foreach (HotbarSlot slot in hotbarSlots)
-        {
-            if (slot.getItem() == item)
-            {
-                slot.clear();
-            }
-        }
-        if (item.invSlot != null) item.invSlot.clear();
-    }
-
-    /**
         Swaps the selected inventory item with the selected hotbar slot
     **/
     public void swapWithHotbar(InvSlot selectedInvSlot)
     {
-        Item hbItem = hotbarSlots[hbSelected].getItem();
-        Item invItem = selectedInvSlot.getItem();
+        string hbItem = hotbarSlots[hbSelected].getItemID();
+        string invItem = selectedInvSlot.getItemID();
 
         if (hbItem == null && invItem == null)
         {
@@ -225,19 +199,18 @@ public class Inventory : MonoBehaviour
             return;
         }
 
-        if (invItem != null)
+        if (!string.IsNullOrEmpty(invItem))
         {
-            Item newItem = hotbarSlots[hbSelected].setItem(invItem, spawnPoint);
-            invItem.setInvSlot(null);
-            if (newItem != null)
+            string newItem = hotbarSlots[hbSelected].setItemID(invItem, spawnPoint);
+            if (!string.IsNullOrEmpty(newItem))
             {
-                selectedInvSlot.setItem(newItem);
+                selectedInvSlot.setItemID(newItem);
             } else 
                 selectedInvSlot.clear();
         } else
         {
             hotbarSlots[hbSelected].clear();
-            selectedInvSlot.setItem(hbItem);
+            selectedInvSlot.setItemID(hbItem);
         }
         this.selectedInvSlot = null;
         clearInvSelection(null);
@@ -248,14 +221,10 @@ public class Inventory : MonoBehaviour
     **/
     private void swapInvSlots()
     {
-            Item temp = prevInvSlot.getItem();
-            if (selectedInvSlot.getItem() == null) prevInvSlot.clear();
-            else prevInvSlot.setItem(selectedInvSlot.getItem());
-
-            if (temp == null) selectedInvSlot.clear();
-            else selectedInvSlot.setItem(temp);
-
-            prevInvSlot = null;
+        string a = prevInvSlot.getItemID();
+        string b = selectedInvSlot.getItemID();
+        prevInvSlot.setItemID(b);
+        selectedInvSlot.setItemID(a);
     }
 
     /**
@@ -272,8 +241,8 @@ public class Inventory : MonoBehaviour
     /**
         Returns selected hotbar item
     **/
-    public Item getSelectedHotbar() 
-        => hbSelected >= 0 && hbSelected < hotbarSlots.Length ? hotbarSlots[hbSelected].getItem() : null;
+    public string getSelectedHotbar() 
+        => hbSelected >= 0 && hbSelected < hotbarSlots.Length ? hotbarSlots[hbSelected].getItemID() : null;
 
     /**
         Returns true if the a hotbar is selected
@@ -287,37 +256,13 @@ public class Inventory : MonoBehaviour
     {
         prevInvSlot = selectedInvSlot;
         selectedInvSlot = slot;
-
     }
-}
 
-/**
-    Public class to store an items information
-**/
-public class Item
-{
-    public string id;   //Id for keys or locks
-    public GameObject prefab;   //Objects prefab model
-    public Texture texture;     //Objects 2-d picture for display
-    public int usesLeft;        //Amount of uses it has
-    public string displayName;  //The name to be displayed
-    public InvSlot invSlot = null;  //Refrence to the slot its stored in
-
-
-    /**
-        Creates the object
-    **/
-    public Item(GameObject prefab, Texture texture, int uses, string displayName, string id = null)
+    internal void addItem(string id, int uses)
     {
-        this.id = id;
-        this.prefab = prefab;
-        this.texture = texture;
-        usesLeft = uses;
-        this.displayName = displayName;
+        bool alreadyShown = invSlots.Exists(s => s.getItemID() == id)
+        || Array.Exists(hotbarSlots, h => h.getItemID() == id);
+        inventory.Add(id, uses);
+        if (!alreadyShown) addToInvSlot(id);
     }
-
-    /**
-        Set the refrence to the inventory
-    **/
-    public void setInvSlot(InvSlot slot) => invSlot = slot;
 }
