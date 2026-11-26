@@ -41,7 +41,7 @@ public class PlayerHud : MonoBehaviour {
         staminaSlider.value = displayStamina;
 
         if (PlayerStateService.TryGetActive(out PlayerStateService service)
-                || service.State != null)
+                && service.State != null)
             {
                 PersistentPlayerState state = service.State;
                 displayGold = state.Currencies.Gold;
@@ -72,7 +72,7 @@ public class PlayerHud : MonoBehaviour {
 
 
         if (PlayerStateService.TryGetActive(out PlayerStateService service)
-                || service.State != null)
+                && service.State != null)
             {
                 PersistentPlayerState state = service.State;
                 int currentGold = state.Currencies.Gold;
