@@ -15,6 +15,8 @@ public class AudioManager : MonoBehaviour
     private AudioClip[] footstepClips;
     private string currentMusic = "";
     private string lastFloorScene = "";
+    private string suspendedExplorationMusic = "";
+    private float suspendedExplorationTime;
     private HashSet<Object> hookedMenus = new HashSet<Object>();
     private float scanTimer;
 
@@ -53,8 +55,25 @@ public class AudioManager : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        bool isCombatScene = scene.name.Contains("Combat");
+        if (isCombatScene && IsExplorationMusic(currentMusic) && musicSource.clip != null)
+        {
+            suspendedExplorationMusic = currentMusic;
+            suspendedExplorationTime = musicSource.time;
+        }
+
         if (scene.name.StartsWith("Floor")) lastFloorScene = scene.name;
-        PlayMusic(MusicForScene(scene.name));
+        string nextMusic = MusicForScene(scene.name);
+        bool shouldResumeExploration = !isCombatScene
+            && nextMusic == suspendedExplorationMusic
+            && IsBattleMusic(currentMusic);
+        PlayMusic(nextMusic, shouldResumeExploration ? suspendedExplorationTime : 0f);
+        if (!isCombatScene)
+        {
+            suspendedExplorationMusic = "";
+            suspendedExplorationTime = 0f;
+        }
+
         EnsureListener();
         hookedMenus.Clear();
         scanTimer = 0f;
@@ -78,15 +97,26 @@ public class AudioManager : MonoBehaviour
 
     public void PlayMusic(string clipName)
     {
-        if (clipName == currentMusic) return;
-
-        currentMusic = clipName;
-        AudioClip clip = Resources.Load<AudioClip>("Audio/" + clipName);
-        StopAllCoroutines();
-        StartCoroutine(SwitchMusic(clip));
+        PlayMusic(clipName, 0f);
     }
 
-    IEnumerator SwitchMusic(AudioClip clip)
+    private void PlayMusic(string clipName, float startTime)
+    {
+        if (clipName == currentMusic) return;
+
+        AudioClip clip = Resources.Load<AudioClip>("Audio/" + clipName);
+        if (clip == null)
+        {
+            Debug.LogWarning($"Audio clip 'Audio/{clipName}' could not be loaded.", this);
+            return;
+        }
+
+        currentMusic = clipName;
+        StopAllCoroutines();
+        StartCoroutine(SwitchMusic(clip, startTime));
+    }
+
+    IEnumerator SwitchMusic(AudioClip clip, float startTime)
     {
         while (musicSource.isPlaying && musicSource.volume > 0.01f)
         {
@@ -96,19 +126,41 @@ public class AudioManager : MonoBehaviour
 
         musicSource.clip = clip;
         musicSource.volume = 0f;
+        if (startTime > 0f && clip.length > 0f)
+        {
+            musicSource.time = Mathf.Min(startTime, Mathf.Max(0f, clip.length - 0.01f));
+        }
         musicSource.Play();
 
-        while (musicSource.volume < GameSettings.MusicVolume)
+        while (musicSource.volume < GameSettings.EffectiveMusicVolume)
         {
-            musicSource.volume = Mathf.Min(GameSettings.MusicVolume, musicSource.volume + Time.unscaledDeltaTime);
+            musicSource.volume = Mathf.Min(GameSettings.EffectiveMusicVolume, musicSource.volume + Time.unscaledDeltaTime);
             yield return null;
         }
+    }
+
+    private static bool IsExplorationMusic(string clipName)
+    {
+        return clipName == "music_floor1"
+            || clipName == "music_floor2"
+            || clipName == "music_boss";
+    }
+
+    private static bool IsBattleMusic(string clipName)
+    {
+        return clipName == "music_battle" || clipName == "music_boss_battle";
+    }
+
+    public void SetMasterVolume(float volume)
+    {
+        GameSettings.MasterVolume = volume;
+        musicSource.volume = GameSettings.EffectiveMusicVolume;
     }
 
     public void SetMusicVolume(float volume)
     {
         GameSettings.MusicVolume = volume;
-        musicSource.volume = volume;
+        musicSource.volume = GameSettings.EffectiveMusicVolume;
     }
 
     public void PlaySfx(AudioClip clip, float pitch = 1f)
@@ -116,7 +168,7 @@ public class AudioManager : MonoBehaviour
         if (clip == null) return;
 
         sfxSource.pitch = pitch;
-        sfxSource.PlayOneShot(clip, GameSettings.SfxVolume);
+        sfxSource.PlayOneShot(clip, GameSettings.EffectiveSfxVolume);
     }
 
     public void PlayClick()

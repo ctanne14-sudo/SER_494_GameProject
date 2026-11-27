@@ -29,6 +29,7 @@
                     <ui:Button name="backFromSettingsButton" text="Back" class="title-small-button" />
                 </ui:VisualElement>
                 <ui:VisualElement name="audioSettings" class="settings-list">
+                    <ui:Slider name="masterVolumeSlider" label="Master Volume" low-value="0" high-value="1" value="1" class="settings-slider" />
                     <ui:Slider name="musicVolumeSlider" label="Music Volume" low-value="0" high-value="1" value="0.6" class="settings-slider" />
                     <ui:Slider name="sfxVolumeSlider" label="Sound Effects" low-value="0" high-value="1" value="0.8" class="settings-slider" />
                     <ui:Slider name="sensitivitySlider" label="Mouse Sensitivity" low-value="1" high-value="10" value="5" class="settings-slider" />

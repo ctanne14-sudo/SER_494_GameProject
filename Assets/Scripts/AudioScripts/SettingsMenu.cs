@@ -5,9 +5,22 @@ public static class SettingsMenu
 {
     public static void Setup(VisualElement root)
     {
+        Slider master = root.Q<Slider>("masterVolumeSlider");
         Slider music = root.Q<Slider>("musicVolumeSlider");
         Slider sfx = root.Q<Slider>("sfxVolumeSlider");
         Slider sensitivity = root.Q<Slider>("sensitivitySlider");
+
+        if (master != null)
+        {
+            master.SetValueWithoutNotify(GameSettings.MasterVolume);
+            ShowPercent(master, "Master Volume");
+            master.RegisterValueChangedCallback(evt =>
+            {
+                if (AudioManager.Instance != null) AudioManager.Instance.SetMasterVolume(evt.newValue);
+                else GameSettings.MasterVolume = evt.newValue;
+                ShowPercent(master, "Master Volume");
+            });
+        }
 
         if (music != null)
         {
@@ -15,7 +28,8 @@ public static class SettingsMenu
             ShowPercent(music, "Music Volume");
             music.RegisterValueChangedCallback(evt =>
             {
-                AudioManager.Instance.SetMusicVolume(evt.newValue);
+                if (AudioManager.Instance != null) AudioManager.Instance.SetMusicVolume(evt.newValue);
+                else GameSettings.MusicVolume = evt.newValue;
                 ShowPercent(music, "Music Volume");
             });
         }
@@ -29,7 +43,10 @@ public static class SettingsMenu
                 GameSettings.SfxVolume = evt.newValue;
                 ShowPercent(sfx, "Sound Effects");
             });
-            sfx.RegisterCallback<PointerUpEvent>(evt => AudioManager.Instance.PlaySelect(), TrickleDown.TrickleDown);
+            sfx.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (AudioManager.Instance != null) AudioManager.Instance.PlaySelect();
+            }, TrickleDown.TrickleDown);
         }
 
         if (sensitivity != null)
