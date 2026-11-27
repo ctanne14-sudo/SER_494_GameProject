@@ -67,6 +67,12 @@ public class Inventory : MonoBehaviour
                 addToInvSlot(key.Key);
             }
             }
+
+        openInventory = false;
+        if (inventoryPanel != null)
+        {
+            inventoryPanel.SetActive(false);
+        }
     }
 
 
@@ -85,16 +91,6 @@ public class Inventory : MonoBehaviour
         //Uses the selected hotbar item
         if (Input.GetMouseButtonUp(0) && !openInventory)
             useItem();
-
-        //Opens the inventory with Tab
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            prevInvSlot = null;
-            openInventory = !openInventory;
-            inventoryPanel.SetActive(openInventory);
-            Cursor.lockState = openInventory ? CursorLockMode.None : CursorLockMode.Locked;
-            transform.GetComponentInChildren<CameraMovement>().enabled = !openInventory;
-        }
 
         //Swaps the selected item with the clicked item when Left Shift is held
         if (Input.GetKey(KeyCode.LeftShift) && prevInvSlot != null && selectedInvSlot != null)

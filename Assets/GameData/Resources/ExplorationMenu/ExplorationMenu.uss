@@ -22,7 +22,7 @@
     -unity-slice-top: 16;
     -unity-slice-right: 16;
     -unity-slice-bottom: 16;
-    -unity-slice-scale: 1;
+    -unity-slice-scale: 1px;
     -unity-background-image-tint-color: rgb(139, 110, 70);
     border-left-width: 3px;
     border-right-width: 3px;
@@ -1308,4 +1308,239 @@
     -unity-text-align: middle-right;
     font-size: 12px;
     color: rgb(143, 134, 116);
+}
+
+.inventory-filter-bar {
+    min-height: 48px;
+    margin-bottom: 12px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.inventory-filter-button {
+    min-width: 128px;
+    height: 38px;
+    margin-right: 8px;
+    color: rgb(221, 209, 179);
+    background-color: rgb(48, 43, 36);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(94, 78, 57);
+    border-right-color: rgb(94, 78, 57);
+    border-top-color: rgb(112, 91, 61);
+    border-bottom-color: rgb(67, 56, 43);
+}
+
+.inventory-filter-button:hover,
+.inventory-filter-button:focus,
+.inventory-filter-selected,
+.inventory-filter-selected:hover,
+.inventory-filter-selected:focus {
+    color: rgb(255, 239, 195);
+    background-color: rgb(101, 72, 39);
+    border-left-color: rgb(220, 174, 91);
+    border-right-color: rgb(220, 174, 91);
+    border-top-color: rgb(220, 174, 91);
+    border-bottom-color: rgb(220, 174, 91);
+}
+
+.inventory-filter-shortcut {
+    flex-grow: 1;
+    -unity-text-align: middle-right;
+    color: rgb(167, 153, 126);
+}
+
+.inventory-workbench {
+    min-height: 535px;
+    padding: 20px;
+    flex-direction: row;
+    background-color: rgb(22, 21, 19);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(111, 75, 44);
+    border-right-color: rgb(111, 75, 44);
+    border-top-color: rgb(170, 122, 68);
+    border-bottom-color: rgb(68, 43, 25);
+}
+
+.inventory-grid-panel {
+    width: 68%;
+    min-width: 500px;
+    margin-right: 16px;
+    padding: 14px;
+    background-color: rgb(27, 26, 23);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(121, 86, 51);
+    border-right-color: rgb(121, 86, 51);
+    border-top-color: rgb(157, 116, 65);
+    border-bottom-color: rgb(73, 49, 30);
+}
+
+.inventory-panel-title {
+    height: 32px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(239, 218, 172);
+}
+
+.inventory-grid-scroll {
+    height: 440px;
+}
+
+.inventory-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-right: 8px;
+    padding-bottom: 8px;
+}
+
+.inventory-slot {
+    position: relative;
+    width: 126px;
+    height: 126px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    padding: 7px;
+    overflow: hidden;
+    background-color: rgb(66, 42, 23);
+    background-image: url("project://database/Assets/Textures/Medieval Wooden RPG UI Panel.png");
+    -unity-background-scale-mode: scale-and-crop;
+    -unity-background-image-tint-color: rgb(156, 126, 96);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgb(89, 78, 62);
+    border-right-color: rgb(89, 78, 62);
+    border-top-color: rgb(119, 101, 75);
+    border-bottom-color: rgb(57, 49, 40);
+}
+
+.inventory-slot:hover,
+.inventory-slot:focus,
+.inventory-slot-selected,
+.inventory-slot-selected:hover,
+.inventory-slot-selected:focus {
+    background-color: rgb(91, 59, 31);
+    -unity-background-image-tint-color: rgb(238, 216, 179);
+    border-left-color: rgb(230, 183, 93);
+    border-right-color: rgb(230, 183, 93);
+    border-top-color: rgb(246, 204, 114);
+    border-bottom-color: rgb(177, 127, 59);
+}
+
+.inventory-slot-icon {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 8px;
+    bottom: 31px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.inventory-slot-name {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    bottom: 4px;
+    height: 25px;
+    padding-left: 4px;
+    padding-right: 35px;
+    font-size: 11px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+    color: rgb(236, 222, 190);
+    background-color: rgba(12, 12, 11, 0.78);
+}
+
+.inventory-slot-count {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    min-width: 31px;
+    height: 21px;
+    padding-left: 4px;
+    padding-right: 4px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    color: rgb(255, 244, 210);
+    background-color: rgba(14, 12, 9, 0.92);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(175, 135, 71);
+    border-right-color: rgb(175, 135, 71);
+    border-top-color: rgb(175, 135, 71);
+    border-bottom-color: rgb(175, 135, 71);
+}
+
+.inventory-empty {
+    margin: 16px;
+    color: rgb(192, 178, 148);
+}
+
+.inventory-detail-panel {
+    flex-grow: 1;
+    min-width: 255px;
+    padding: 20px;
+    background-color: rgb(27, 26, 23);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgb(121, 86, 51);
+    border-right-color: rgb(121, 86, 51);
+    border-top-color: rgb(157, 116, 65);
+    border-bottom-color: rgb(73, 49, 30);
+}
+
+.inventory-detail-category {
+    margin-bottom: 5px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgb(190, 155, 96);
+}
+
+.inventory-detail-title {
+    min-height: 55px;
+    margin-bottom: 8px;
+    font-size: 24px;
+    -unity-font-style: bold;
+    white-space: normal;
+    color: rgb(247, 225, 176);
+}
+
+.inventory-detail-icon {
+    height: 190px;
+    margin-bottom: 12px;
+    -unity-background-scale-mode: scale-to-fit;
+    background-color: rgba(12, 12, 11, 0.45);
+}
+
+.inventory-detail-quantity {
+    margin-bottom: 20px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(237, 212, 157);
+}
+
+.inventory-detail-heading {
+    margin-bottom: 7px;
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(206, 171, 108);
+}
+
+.inventory-detail-description {
+    white-space: normal;
+    color: rgb(220, 207, 180);
 }

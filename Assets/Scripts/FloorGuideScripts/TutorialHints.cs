@@ -40,7 +40,7 @@ public class TutorialHints : MonoBehaviour
 
         if (!Seen("Inventory") && Seen("Menu"))
         {
-            guide.ShowHint("Press Tab for your inventory. Keys 1 - 5 pick hotbar items", 6f);
+            guide.ShowHint("Press Esc to open the Exploration Menu. Keys 1 - 5 pick hotbar items", 6f);
             MarkSeen("Inventory");
             return;
         }

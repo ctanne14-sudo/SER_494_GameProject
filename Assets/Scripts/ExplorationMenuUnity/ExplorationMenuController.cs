@@ -61,13 +61,21 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         private readonly List<Button> _unsavedDialogButtons = new List<Button>();
         private readonly List<Button> _timelineGuideButtons = new List<Button>();
         private readonly List<Button> _actionLearningDialogButtons = new List<Button>();
+        private readonly List<Button> _inventoryFilterButtons = new List<Button>();
+        private readonly List<Button> _inventorySlotButtons = new List<Button>();
+        private readonly Dictionary<Button, string> _inventoryItemIds =
+            new Dictionary<Button, string>();
         private readonly Dictionary<Button, Action> _buttonActions =
             new Dictionary<Button, Action>();
         private readonly Dictionary<string, int> _previewChargeLevels =
             new Dictionary<string, int>(StringComparer.Ordinal);
 
-        private readonly HashSet<string> _shownInventoryIds = new HashSet<string>(StringComparer.Ordinal);
         [SerializeField] ItemDatabase db;
+        private InventoryItemCategory _inventoryFilter = InventoryItemCategory.All;
+        private string _selectedInventoryItemId;
+        private VisualElement _inventoryGrid;
+        private VisualElement _inventoryDetail;
+        private bool _inventoryFilterInitialized;
         private ComboMenuLevel _comboMenuLevel;
         private PlayerComboLoadoutState _selectedLoadout;
         private PlayerComboLoadoutDraft _selectedLoadoutDraft;
@@ -226,6 +234,8 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _editingActionSlot = null;
             _previewChargeLevels.Clear();
             _actionLibraryFilterInitialized = false;
+            _inventoryFilterInitialized = false;
+            _selectedInventoryItemId = null;
             _lastNavigationTarget = null;
             RecordCurrentMousePosition();
             SetNavigationInputMode(openedWithNavigationInput);
@@ -626,6 +636,20 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
+            bool previousInventoryFilter = _currentPage == MenuPage.Inventory
+                && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.leftShoulder.wasPressedThisFrame));
+            bool nextInventoryFilter = _currentPage == MenuPage.Inventory
+                && ((Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                    || (Gamepad.current != null
+                        && Gamepad.current.rightShoulder.wasPressedThisFrame));
+            if (previousInventoryFilter || nextInventoryFilter)
+            {
+                CycleInventoryFilter(nextInventoryFilter ? 1 : -1);
+                return;
+            }
+
             bool previousActionFilter = _editingActionSlot.HasValue
                 && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
                     || (Gamepad.current != null
@@ -705,6 +729,11 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             if (moveLeft || moveRight)
             {
                 Button focused = GetFocusedButton();
+                if (TryMoveInventoryFocusHorizontally(focused, moveRight ? 1 : -1))
+                {
+                    return;
+                }
+
                 if (TryMoveComboFocusHorizontally(focused, moveRight ? 1 : -1))
                 {
                     return;
@@ -720,6 +749,22 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 }
 
                 return;
+            }
+
+            bool moveUp = Keyboard.current != null
+                && (Keyboard.current.upArrowKey.wasPressedThisFrame
+                    || Keyboard.current.wKey.wasPressedThisFrame);
+            bool moveDown = Keyboard.current != null
+                && (Keyboard.current.downArrowKey.wasPressedThisFrame
+                    || Keyboard.current.sKey.wasPressedThisFrame);
+            moveUp |= Gamepad.current != null && Gamepad.current.dpad.up.wasPressedThisFrame;
+            moveDown |= Gamepad.current != null && Gamepad.current.dpad.down.wasPressedThisFrame;
+            if (moveUp || moveDown)
+            {
+                if (TryMoveInventoryFocusVertically(GetFocusedButton(), moveDown ? 1 : -1))
+                {
+                    return;
+                }
             }
 
             if (Gamepad.current == null)
@@ -2186,6 +2231,13 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
 
         private Button DefaultNavigationTarget()
         {
+            if (_currentPage == MenuPage.Inventory)
+            {
+                return FirstEnabled(_inventorySlotButtons)
+                    ?? FirstEnabled(_inventoryFilterButtons)
+                    ?? _inventoryButton;
+            }
+
             if (_currentPage == MenuPage.Combos)
             {
                 if (_comboMenuLevel == ComboMenuLevel.LoadoutList
@@ -2894,10 +2946,17 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return;
             }
 
+            bool enteringInventory = _currentPage != MenuPage.Inventory;
             _currentPage = MenuPage.Inventory;
             _editingEquipmentSlot = EquipmentSlot.None;
             _isInsideEquipmentPage = false;
             ClearComboControls();
+            if (enteringInventory || !_inventoryFilterInitialized)
+            {
+                _inventoryFilter = InventoryItemCategory.All;
+                _inventoryFilterInitialized = true;
+            }
+
             ConfigurePageHeader(ExplorationMenuText.Get("inventory.heading"));
             AddPageHeaderButton(
                 string.Format(
@@ -2906,44 +2965,37 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 ShowActionLearning,
                 "learn-actions-button");
             _content.Clear();
-            _shownInventoryIds.Clear();
-            AddSectionHeading(ExplorationMenuText.Get("inventory.consumables"));
-            AddInventoryRow(state, PlayerStateInitialValues.HealingPotionId, "Healing Potion");
-            AddInventoryRow(state, PlayerStateInitialValues.GreaterHealingPotionId,
-                "Greater Healing Potion");
-            AddInventoryRow(state, PlayerStateInitialValues.VitalityTonicId, "Vitality Tonic");
-            AddSectionHeading(ExplorationMenuText.Get("inventory.materials"));
-            AddInventoryRow(
-                state,
-                BattleRewardSummary.WhiteCopperMaterialId,
-                "White Copper");
-            AddInventoryRow(state, BattleRewardSummary.BronzeMaterialId, "Bronze");
-            AddInventoryRow(state, BattleRewardSummary.BrassMaterialId, "Brass");
-            AddInventoryRow(
-                state,
-                BattleRewardSummary.ApeBeastPeltMaterialId,
-                "Ape Beast Pelt");
-            AddInventoryRow(
-                state,
-                BattleRewardSummary.ApeBeastArmguardMaterialId,
-                "Ape Beast Armguard");
-            AddInventoryRow(
-                state,
-                BattleRewardSummary.ApeBeastBlackFurMaterialId,
-                "Ape Beast Black Fur");
-            AddInventoryRow(
-                state,
-                BattleRewardSummary.ApeBeastBloodMaterialId,
-                "Ape Beast Blood");
-            AddInventoryRow(state, BattleRewardSummary.SlimeChunkMaterialId, "Slime Chunk");
-            AddInventoryRow(state, BattleRewardSummary.ThornMaterialId, "Thorn");
-            AddInventoryRow(state, BattleRewardSummary.CrystalMaterialId, "Crystal");
-            AddInventoryRow(state, BattleRewardSummary.PureGoldMaterialId, "Pure Gold");
-            AddInventoryRow(state, BattleRewardSummary.MithrilMaterialId, "Mithril");
-            AddInventoryRow(state, BattleRewardSummary.YellowSilkMaterialId, "Yellow Silk");
-            AddInventoryRow(state, BattleRewardSummary.RedSilkMaterialId, "Red Silk");
-            AddOtherInventoryRows(state);
+            BuildInventoryFilterBar();
+
+            var workbench = new VisualElement();
+            workbench.AddToClassList("inventory-workbench");
+            var gridPanel = new VisualElement();
+            gridPanel.AddToClassList("inventory-grid-panel");
+            var gridTitle = new Label(ExplorationMenuText.Get("inventory.items"));
+            gridTitle.AddToClassList("inventory-panel-title");
+            gridPanel.Add(gridTitle);
+            var gridScroll = new ScrollView(ScrollViewMode.Vertical);
+            gridScroll.AddToClassList("inventory-grid-scroll");
+            _inventoryGrid = new VisualElement();
+            _inventoryGrid.AddToClassList("inventory-grid");
+            gridScroll.Add(_inventoryGrid);
+            gridPanel.Add(gridScroll);
+
+            _inventoryDetail = new VisualElement();
+            _inventoryDetail.AddToClassList("inventory-detail-panel");
+            workbench.Add(gridPanel);
+            workbench.Add(_inventoryDetail);
+            _content.Add(workbench);
+
+            RefreshInventoryItems(state);
             SetSelectedNavigation(_inventoryButton);
+            if (_usesNavigationInput)
+            {
+                _root.schedule.Execute(() =>
+                    FocusNavigationTarget(FirstEnabled(_inventorySlotButtons)
+                        ?? FirstEnabled(_inventoryFilterButtons)))
+                    .ExecuteLater(1);
+            }
         }
 
         private void ShowActionLearning()
@@ -3809,6 +3861,68 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             return false;
         }
 
+        private bool TryMoveInventoryFocusHorizontally(Button focusedButton, int direction)
+        {
+            if (_currentPage != MenuPage.Inventory || focusedButton == null)
+            {
+                return false;
+            }
+
+            int filterIndex = _inventoryFilterButtons.IndexOf(focusedButton);
+            if (filterIndex >= 0)
+            {
+                FocusAdjacent(_inventoryFilterButtons, focusedButton, direction);
+                return true;
+            }
+
+            int slotIndex = _inventorySlotButtons.IndexOf(focusedButton);
+            if (slotIndex >= 0)
+            {
+                FocusAdjacentEnabled(_inventorySlotButtons, slotIndex, direction);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryMoveInventoryFocusVertically(Button focusedButton, int direction)
+        {
+            if (_currentPage != MenuPage.Inventory || focusedButton == null)
+            {
+                return false;
+            }
+
+            if (_inventoryFilterButtons.Contains(focusedButton))
+            {
+                if (direction > 0)
+                {
+                    FocusFirstEnabled(_inventorySlotButtons);
+                }
+
+                return true;
+            }
+
+            int slotIndex = _inventorySlotButtons.IndexOf(focusedButton);
+            if (slotIndex < 0)
+            {
+                return false;
+            }
+
+            const int approximateColumns = 4;
+            if (direction < 0 && slotIndex < approximateColumns)
+            {
+                FocusFirstEnabled(_inventoryFilterButtons);
+                return true;
+            }
+
+            int next = Mathf.Clamp(
+                slotIndex + direction * approximateColumns,
+                0,
+                _inventorySlotButtons.Count - 1);
+            FocusNavigationTarget(_inventorySlotButtons[next]);
+            return true;
+        }
+
         private bool TryMoveComboFocusVertically(Button focusedButton, int direction)
         {
             if (_currentPage != MenuPage.Combos || focusedButton == null)
@@ -3996,6 +4110,16 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 return _chargeLevelButtons;
             }
 
+            if (focusedButton != null && _inventoryFilterButtons.Contains(focusedButton))
+            {
+                return _inventoryFilterButtons;
+            }
+
+            if (focusedButton != null && _inventorySlotButtons.Contains(focusedButton))
+            {
+                return _inventorySlotButtons;
+            }
+
             if (focusedButton != null && _comboPageButtons.Contains(focusedButton))
             {
                 return _comboPageButtons;
@@ -4051,6 +4175,7 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
         {
             _contentRevision++;
             CloseActionLearningDialog();
+            ClearInventoryControls();
             foreach (Button button in _comboPageButtons)
             {
                 _buttonActions.Remove(button);
@@ -4090,6 +4215,30 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 _selectedComboIndex = -1;
                 _editingActionSlot = null;
             }
+        }
+
+        private void ClearInventoryControls()
+        {
+            foreach (Button button in _inventoryFilterButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _inventoryFilterButtons.Clear();
+            ClearInventorySlots();
+            _inventoryGrid = null;
+            _inventoryDetail = null;
+        }
+
+        private void ClearInventorySlots()
+        {
+            foreach (Button button in _inventorySlotButtons)
+            {
+                _buttonActions.Remove(button);
+            }
+
+            _inventorySlotButtons.Clear();
+            _inventoryItemIds.Clear();
         }
 
         private void FocusFirstComboPageButton()
@@ -4144,36 +4293,299 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             _content.Add(row);
         }
 
-        private void AddInventoryRow(PersistentPlayerState state, string itemId, string displayName)
+        private void BuildInventoryFilterBar()
         {
-            _shownInventoryIds.Add(itemId);
-            AddValueRow(displayName, state.Inventory.GetCount(itemId).ToString());
+            var filterBar = new VisualElement();
+            filterBar.AddToClassList("inventory-filter-bar");
+            AddInventoryFilterButton(
+                filterBar,
+                ExplorationMenuText.Get("inventory.filter-all"),
+                InventoryItemCategory.All);
+            AddInventoryFilterButton(
+                filterBar,
+                ExplorationMenuText.Get("inventory.consumables"),
+                InventoryItemCategory.Consumable);
+            AddInventoryFilterButton(
+                filterBar,
+                ExplorationMenuText.Get("inventory.materials"),
+                InventoryItemCategory.Material);
+            var shortcut = new Label(ExplorationMenuText.Get("inventory.filter-shortcut"));
+            shortcut.AddToClassList("inventory-filter-shortcut");
+            filterBar.Add(shortcut);
+            _content.Add(filterBar);
+            UpdateInventoryFilterButtons();
         }
 
-        private void AddOtherInventoryRows(PersistentPlayerState state)
+        private void AddInventoryFilterButton(
+            VisualElement parent,
+            string text,
+            InventoryItemCategory filter)
         {
-            var others = new List<KeyValuePair<string, string>>();   // name, count
+            var button = new Button(() => SetInventoryFilter(filter)) { text = text };
+            button.AddToClassList("inventory-filter-button");
+            parent.Add(button);
+            _inventoryFilterButtons.Add(button);
+            RegisterButtonAction(button, () => SetInventoryFilter(filter));
+        }
+
+        private void CycleInventoryFilter(int direction)
+        {
+            InventoryItemCategory[] filters =
+            {
+                InventoryItemCategory.All,
+                InventoryItemCategory.Consumable,
+                InventoryItemCategory.Material
+            };
+            int current = Array.IndexOf(filters, _inventoryFilter);
+            int next = (current + direction + filters.Length) % filters.Length;
+            SetInventoryFilter(filters[next]);
+        }
+
+        private void SetInventoryFilter(InventoryItemCategory filter)
+        {
+            if (_currentPage != MenuPage.Inventory || _inventoryFilter == filter)
+            {
+                return;
+            }
+
+            _inventoryFilter = filter;
+            UpdateInventoryFilterButtons();
+            if (TryGetContext(out PersistentPlayerState state, out _))
+            {
+                RefreshInventoryItems(state);
+            }
+        }
+
+        private void UpdateInventoryFilterButtons()
+        {
+            InventoryItemCategory[] filters =
+            {
+                InventoryItemCategory.All,
+                InventoryItemCategory.Consumable,
+                InventoryItemCategory.Material
+            };
+            for (int index = 0; index < _inventoryFilterButtons.Count; index++)
+            {
+                _inventoryFilterButtons[index].EnableInClassList(
+                    "inventory-filter-selected",
+                    index < filters.Length && filters[index] == _inventoryFilter);
+            }
+        }
+
+        private void RefreshInventoryItems(PersistentPlayerState state)
+        {
+            if (_inventoryGrid == null || _inventoryDetail == null)
+            {
+                return;
+            }
+
+            ClearInventorySlots();
+            _inventoryGrid.Clear();
+            List<InventoryDisplayEntry> entries = BuildInventoryEntries(state);
+            for (int index = 0; index < entries.Count; index++)
+            {
+                AddInventorySlot(entries[index]);
+            }
+
+            if (entries.Count == 0)
+            {
+                var empty = new Label(ExplorationMenuText.Get("inventory.empty"));
+                empty.AddToClassList("inventory-empty");
+                _inventoryGrid.Add(empty);
+                ShowInventoryEmptyDetail();
+                return;
+            }
+
+            InventoryDisplayEntry selected = entries[0];
+            for (int index = 0; index < entries.Count; index++)
+            {
+                if (string.Equals(
+                    entries[index].Presentation.ItemId,
+                    _selectedInventoryItemId,
+                    StringComparison.Ordinal))
+                {
+                    selected = entries[index];
+                    break;
+                }
+            }
+
+            SelectInventoryItem(selected);
+        }
+
+        private List<InventoryDisplayEntry> BuildInventoryEntries(PersistentPlayerState state)
+        {
+            var entries = new List<InventoryDisplayEntry>();
+            IReadOnlyList<InventoryItemPresentation> known =
+                InventoryPresentationCatalog.AllKnownItems;
+            for (int index = 0; index < known.Count; index++)
+            {
+                InventoryItemPresentation item = known[index];
+                int count = state.Inventory.GetCount(item.ItemId);
+                if (count <= 0 || !InventoryPresentationCatalog.MatchesFilter(item, _inventoryFilter))
+                {
+                    continue;
+                }
+
+                entries.Add(new InventoryDisplayEntry(
+                    item,
+                    count,
+                    ResolveInventoryIcon(item.ItemId, item.IconResourcePath)));
+            }
+
+            if (_inventoryFilter != InventoryItemCategory.All)
+            {
+                return entries;
+            }
+
+            var otherEntries = new List<InventoryDisplayEntry>();
             foreach (KeyValuePair<string, int> item in state.Inventory.ItemCounts)
             {
                 if (item.Value <= 0
-                    || _shownInventoryIds.Contains(item.Key)
+                    || InventoryPresentationCatalog.TryGet(item.Key, out _)
                     || ActionManualLearningService.TryGetActionId(item.Key, out _))
                 {
-                    continue;   // already listed, empty, or an action manual (shown on the Learn Actions page)
+                    continue;
                 }
 
-                ItemData data = db.Get(item.Key);
-                string name = data != null ? data.displayName : item.Key;
-                others.Add(new KeyValuePair<string, string>(name, item.Value.ToString()));
+                ItemData data = ResolveItemData(item.Key);
+                string displayName = data != null ? data.DisplayNameOrId : item.Key;
+                string description = data != null && !string.IsNullOrWhiteSpace(data.action)
+                    ? data.action
+                    : ExplorationMenuText.Get("inventory.no-description");
+                var presentation = new InventoryItemPresentation(
+                    item.Key,
+                    displayName,
+                    description,
+                    InventoryItemCategory.Other,
+                    null,
+                    new Color32(210, 210, 210, 255));
+                Texture2D icon = data != null ? data.icon as Texture2D : null;
+                icon ??= Resources.Load<Texture2D>("InventoryIcons/Unknown");
+                otherEntries.Add(new InventoryDisplayEntry(presentation, item.Value, icon));
             }
 
-            if (others.Count == 0) return;
+            otherEntries.Sort((left, right) => string.Compare(
+                left.Presentation.DisplayName,
+                right.Presentation.DisplayName,
+                StringComparison.Ordinal));
+            entries.AddRange(otherEntries);
+            return entries;
+        }
 
-            others.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.Ordinal));
-            AddSectionHeading("Other");
-            foreach (KeyValuePair<string, string> row in others)
+        private void AddInventorySlot(InventoryDisplayEntry entry)
+        {
+            var button = new Button(() => SelectInventoryItem(entry));
+            button.AddToClassList("inventory-slot");
+            button.tooltip = entry.Presentation.DisplayName;
+            var icon = new VisualElement();
+            icon.AddToClassList("inventory-slot-icon");
+            if (entry.Icon != null)
             {
-                AddValueRow(row.Key, row.Value);
+                icon.style.backgroundImage = new StyleBackground(entry.Icon);
+            }
+
+            icon.style.unityBackgroundImageTintColor =
+                new StyleColor(entry.Presentation.IconTint);
+            var name = new Label(entry.Presentation.DisplayName);
+            name.AddToClassList("inventory-slot-name");
+            var count = new Label(InventoryPresentationCatalog.FormatCountBadge(entry.Count));
+            count.AddToClassList("inventory-slot-count");
+            button.Add(icon);
+            button.Add(name);
+            button.Add(count);
+            button.RegisterCallback<FocusInEvent>(_ => SelectInventoryItem(entry));
+            _inventoryGrid.Add(button);
+            _inventorySlotButtons.Add(button);
+            _inventoryItemIds[button] = entry.Presentation.ItemId;
+            RegisterButtonAction(button, () => SelectInventoryItem(entry));
+        }
+
+        private void SelectInventoryItem(InventoryDisplayEntry entry)
+        {
+            _selectedInventoryItemId = entry.Presentation.ItemId;
+            foreach (KeyValuePair<Button, string> pair in _inventoryItemIds)
+            {
+                pair.Key.EnableInClassList(
+                    "inventory-slot-selected",
+                    string.Equals(pair.Value, _selectedInventoryItemId, StringComparison.Ordinal));
+            }
+
+            _inventoryDetail.Clear();
+            var category = new Label(InventoryCategoryName(entry.Presentation.Category));
+            category.AddToClassList("inventory-detail-category");
+            var title = new Label(entry.Presentation.DisplayName);
+            title.AddToClassList("inventory-detail-title");
+            var icon = new VisualElement();
+            icon.AddToClassList("inventory-detail-icon");
+            if (entry.Icon != null)
+            {
+                icon.style.backgroundImage = new StyleBackground(entry.Icon);
+            }
+
+            icon.style.unityBackgroundImageTintColor =
+                new StyleColor(entry.Presentation.IconTint);
+            var quantity = new Label(string.Format(
+                ExplorationMenuText.Get("inventory.quantity"),
+                entry.Count));
+            quantity.AddToClassList("inventory-detail-quantity");
+            var descriptionHeading = new Label(ExplorationMenuText.Get("inventory.description"));
+            descriptionHeading.AddToClassList("inventory-detail-heading");
+            var description = new Label(entry.Presentation.Description);
+            description.AddToClassList("inventory-detail-description");
+            _inventoryDetail.Add(category);
+            _inventoryDetail.Add(title);
+            _inventoryDetail.Add(icon);
+            _inventoryDetail.Add(quantity);
+            _inventoryDetail.Add(descriptionHeading);
+            _inventoryDetail.Add(description);
+        }
+
+        private void ShowInventoryEmptyDetail()
+        {
+            _selectedInventoryItemId = null;
+            _inventoryDetail.Clear();
+            var title = new Label(ExplorationMenuText.Get("inventory.no-selection"));
+            title.AddToClassList("inventory-detail-title");
+            _inventoryDetail.Add(title);
+        }
+
+        private Texture2D ResolveInventoryIcon(string itemId, string resourcePath)
+        {
+            if (!string.IsNullOrWhiteSpace(resourcePath))
+            {
+                Texture2D resourceIcon = Resources.Load<Texture2D>(resourcePath);
+                if (resourceIcon != null)
+                {
+                    return resourceIcon;
+                }
+            }
+
+            ItemData data = ResolveItemData(itemId);
+            return data != null && data.icon is Texture2D texture
+                ? texture
+                : Resources.Load<Texture2D>("InventoryIcons/Unknown");
+        }
+
+        private ItemData ResolveItemData(string itemId)
+        {
+            if (db == null)
+            {
+                db = Resources.Load<ItemDatabase>("PlayerState/ProcessedItems/ItemDatabase");
+            }
+
+            return db != null && db.TryGet(itemId, out ItemData data) ? data : null;
+        }
+
+        private static string InventoryCategoryName(InventoryItemCategory category)
+        {
+            switch (category)
+            {
+                case InventoryItemCategory.Consumable:
+                    return ExplorationMenuText.Get("inventory.consumables");
+                case InventoryItemCategory.Material:
+                    return ExplorationMenuText.Get("inventory.materials");
+                default:
+                    return ExplorationMenuText.Get("inventory.other");
             }
         }
 
@@ -4417,6 +4829,23 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
             ActionLearning,
             Equipment,
             ReturnToTitle
+        }
+
+        private readonly struct InventoryDisplayEntry
+        {
+            public InventoryDisplayEntry(
+                InventoryItemPresentation presentation,
+                int count,
+                Texture2D icon)
+            {
+                Presentation = presentation;
+                Count = count;
+                Icon = icon;
+            }
+
+            public InventoryItemPresentation Presentation { get; }
+            public int Count { get; }
+            public Texture2D Icon { get; }
         }
 
         private sealed class ActionManualEntry

@@ -72,9 +72,17 @@ namespace SER494.Gameplay.ExplorationMenu.Unity
                 case "combos.fix-before-leaving": return "This Loadout cannot be left with an invalid draft.";
                 case "inventory.heading": return "Inventory";
                 case "inventory.learn-actions-count": return "Learn New Actions ({0})";
+                case "inventory.filter-all": return "All";
                 case "inventory.consumables": return "Consumables";
                 case "inventory.materials": return "Materials";
+                case "inventory.other": return "Other";
+                case "inventory.items": return "Owned Items";
+                case "inventory.filter-shortcut": return "Q / E or LB / RB: Change filter";
                 case "inventory.empty": return "No items in this category.";
+                case "inventory.quantity": return "Owned  ×{0}";
+                case "inventory.description": return "Description";
+                case "inventory.no-description": return "No description is available.";
+                case "inventory.no-selection": return "Select an item to view its details.";
                 case "learning.heading": return "Learn New Actions";
                 case "learning.back": return "← Back to Inventory";
                 case "learning.instructions": return "Use an Action Manual to permanently add its Action to your library. Learning consumes one Manual. Save at a Save Point to preserve the change.";

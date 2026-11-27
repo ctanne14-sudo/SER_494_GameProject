@@ -1,0 +1,21 @@
+{
+  "name": "SER494.ExplorationMenu.EditModeTests",
+  "rootNamespace": "SER494.Gameplay.ExplorationMenu.Tests",
+  "references": [
+    "SER494.ExplorationMenu.Unity"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

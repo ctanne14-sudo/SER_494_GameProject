@@ -5,16 +5,18 @@ public static class GameSettings
     private const string MusicKey = "MusicVolume";
     private const string SfxKey = "SfxVolume";
     private const string SensitivityKey = "MouseSensitivity";
+    public const float DefaultMusicVolume = 0.06f;
+    public const float DefaultSfxVolume = 0.08f;
 
     public static float MusicVolume
     {
-        get { return PlayerPrefs.GetFloat(MusicKey, 0.6f); }
+        get { return PlayerPrefs.GetFloat(MusicKey, DefaultMusicVolume); }
         set { PlayerPrefs.SetFloat(MusicKey, value); PlayerPrefs.Save(); }
     }
 
     public static float SfxVolume
     {
-        get { return PlayerPrefs.GetFloat(SfxKey, 0.8f); }
+        get { return PlayerPrefs.GetFloat(SfxKey, DefaultSfxVolume); }
         set { PlayerPrefs.SetFloat(SfxKey, value); PlayerPrefs.Save(); }
     }
 
